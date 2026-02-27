@@ -194,7 +194,7 @@ export default function Pipeline() {
             )}
           </div>
         </div>
-        <div className="flex-1 overflow-x-auto p-4 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent" style={{ scrollbarWidth: 'thin' }}>
+        <div className="flex-1 overflow-x-scroll p-4 scrollbar-always-visible">
           <div className="flex gap-4 h-full min-w-max">
             {ETAPAS_ORDER.map(etapa => {
               const opps = grouped[etapa] || [];
