@@ -28,6 +28,29 @@ export default function Pipeline() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterTemp, setFilterTemp] = useState<Temperatura | 'todas'>('todas');
   const [filterResp, setFilterResp] = useState('');
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const checkScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 0);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
+  }, []);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    checkScroll();
+    el.addEventListener('scroll', checkScroll);
+    window.addEventListener('resize', checkScroll);
+    return () => { el.removeEventListener('scroll', checkScroll); window.removeEventListener('resize', checkScroll); };
+  }, [checkScroll]);
+
+  const scrollByAmount = (dir: number) => {
+    scrollRef.current?.scrollBy({ left: dir * 300, behavior: 'smooth' });
+  };
 
   const handleDragStart = (e: DragEvent, id: string) => {
     e.dataTransfer.setData('text/plain', id);
