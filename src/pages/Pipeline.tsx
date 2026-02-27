@@ -22,10 +22,45 @@ const TEMP_COLOR = {
 
 export default function Pipeline() {
   const { usuario } = useAuth();
-  const { oportunidades, responsaveis, alunos } = useData();
+  const { oportunidades, responsaveis, alunos, updateOportunidade } = useData();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [activeEtapa, setActiveEtapa] = useState<EtapaPipeline>('novo_lead');
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dragOverEtapa, setDragOverEtapa] = useState<EtapaPipeline | null>(null);
+
+  const handleDragStart = (e: DragEvent, id: string) => {
+    e.dataTransfer.setData('text/plain', id);
+    e.dataTransfer.effectAllowed = 'move';
+    setDraggingId(id);
+  };
+
+  const handleDragEnd = () => {
+    setDraggingId(null);
+    setDragOverEtapa(null);
+  };
+
+  const handleDragOver = (e: DragEvent, etapa: EtapaPipeline) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverEtapa(etapa);
+  };
+
+  const handleDragLeave = () => {
+    setDragOverEtapa(null);
+  };
+
+  const handleDrop = (e: DragEvent, etapa: EtapaPipeline) => {
+    e.preventDefault();
+    const oppId = e.dataTransfer.getData('text/plain');
+    const opp = oportunidades.find(o => o.id === oppId);
+    if (opp && opp.etapa !== etapa) {
+      updateOportunidade(oppId, { etapa });
+      toast.success(`Oportunidade movida para ${ETAPA_LABELS[etapa]}`);
+    }
+    setDraggingId(null);
+    setDragOverEtapa(null);
+  };
 
   const myOpps = useMemo(() => {
     return oportunidades.filter(o =>
