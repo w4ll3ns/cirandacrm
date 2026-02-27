@@ -54,9 +54,7 @@ export default function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader>
         <div className="flex items-center gap-3 px-2 py-2">
-          <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shrink-0">
-            <span className="text-primary-foreground font-black text-sm">C</span>
-          </div>
+          <img src="/logo.png" alt="Ciranda ABC" className="w-9 h-9 rounded-xl object-contain shrink-0" />
           {!collapsed && (
             <div className="min-w-0">
               <p className="font-bold text-sm truncate">Ciranda ABC</p>

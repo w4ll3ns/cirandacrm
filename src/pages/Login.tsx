@@ -52,10 +52,8 @@ export default function Login() {
     return (
       <div className="min-h-screen flex">
         {/* Left branding panel */}
-        <div className="hidden md:flex flex-1 bg-primary flex-col items-center justify-center p-12">
-          <div className="w-24 h-24 rounded-3xl bg-primary-foreground flex items-center justify-center mb-6 shadow-xl">
-            <span className="text-primary font-black text-3xl">C</span>
-          </div>
+         <div className="hidden md:flex flex-1 bg-primary flex-col items-center justify-center p-12">
+          <img src="/logo.png" alt="Ciranda ABC" className="w-[120px] h-[120px] object-contain mb-6 drop-shadow-xl" />
           <h1 className="text-3xl font-bold text-primary-foreground mb-2">Ciranda ABC</h1>
           <p className="text-primary-foreground/70 text-center max-w-xs">
             CRM Escolar para gerenciar matrículas, leads e comunicação com famílias.
@@ -90,9 +88,7 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-primary flex flex-col items-center justify-center p-6">
       <div className="mb-10 text-center">
-        <div className="w-20 h-20 rounded-2xl bg-primary-foreground flex items-center justify-center mx-auto mb-4 shadow-lg">
-          <span className="text-primary font-black text-2xl">C</span>
-        </div>
+        <img src="/logo.png" alt="Ciranda ABC" className="w-24 h-24 object-contain mx-auto mb-4 drop-shadow-lg" />
         <h1 className="text-2xl font-bold text-primary-foreground">Ciranda ABC</h1>
         <p className="text-primary-foreground/70 text-sm mt-1">CRM Escolar</p>
       </div>
