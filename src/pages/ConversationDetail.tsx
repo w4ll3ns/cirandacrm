@@ -1,9 +1,11 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Send, MoreVertical, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Send, MoreVertical, CheckCircle2, Link2, ListTodo } from 'lucide-react';
 import { useData } from '@/contexts/DataContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
+import NewTaskForm from '@/components/NewTaskForm';
+import { ETAPA_LABELS } from '@/types';
 
 interface Props {
   embeddedId?: string;
@@ -15,9 +17,11 @@ export default function ConversationDetail({ embeddedId }: Props) {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const isEmbedded = !!embeddedId;
-  const { conversas, mensagens, responsaveis, addMensagem, updateConversa } = useData();
+  const { conversas, mensagens, responsaveis, oportunidades, addMensagem, updateConversa } = useData();
   const [texto, setTexto] = useState('');
   const [showActions, setShowActions] = useState(false);
+  const [showTaskForm, setShowTaskForm] = useState(false);
+  const [showLinkOpp, setShowLinkOpp] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const conv = conversas.find(c => c.id === id);
@@ -25,6 +29,9 @@ export default function ConversationDetail({ embeddedId }: Props) {
   const msgs = mensagens.filter(m => m.conversa_id === id).sort(
     (a, b) => new Date(a.enviada_em).getTime() - new Date(b.enviada_em).getTime()
   );
+
+  // Opportunities related to this contact
+  const relOpps = resp ? oportunidades.filter(o => o.responsavel_id === resp.id) : [];
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -83,11 +90,11 @@ export default function ConversationDetail({ embeddedId }: Props) {
           <button onClick={markResolved} className="text-xs bg-success/10 text-success px-3 py-1.5 rounded-full font-medium flex items-center gap-1">
             <CheckCircle2 className="w-3 h-3" /> Resolver
           </button>
-          <button onClick={() => { toast.info('Funcionalidade de vincular oportunidade'); setShowActions(false); }} className="text-xs bg-primary/10 text-primary px-3 py-1.5 rounded-full font-medium">
-            Vincular Oportunidade
+          <button onClick={() => { setShowLinkOpp(true); setShowActions(false); }} className="text-xs bg-primary/10 text-primary px-3 py-1.5 rounded-full font-medium flex items-center gap-1">
+            <Link2 className="w-3 h-3" /> Vincular Oportunidade
           </button>
-          <button onClick={() => { toast.info('Funcionalidade de criar tarefa'); setShowActions(false); }} className="text-xs bg-secondary/10 text-secondary px-3 py-1.5 rounded-full font-medium">
-            Criar Tarefa
+          <button onClick={() => { setShowTaskForm(true); setShowActions(false); }} className="text-xs bg-secondary/10 text-secondary px-3 py-1.5 rounded-full font-medium flex items-center gap-1">
+            <ListTodo className="w-3 h-3" /> Criar Tarefa
           </button>
         </div>
       )}
@@ -98,9 +105,7 @@ export default function ConversationDetail({ embeddedId }: Props) {
           const isOut = msg.direcao === 'outbound';
           return (
             <div key={msg.id} className={`flex ${isOut ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[80%] md:max-w-[60%] rounded-2xl px-4 py-2.5 ${
-                isOut ? 'bg-primary text-primary-foreground rounded-br-md' : 'bg-card border border-border rounded-bl-md'
-              }`}>
+              <div className={`max-w-[80%] md:max-w-[60%] rounded-2xl px-4 py-2.5 ${isOut ? 'bg-primary text-primary-foreground rounded-br-md' : 'bg-card border border-border rounded-bl-md'}`}>
                 <p className="text-sm">{msg.texto}</p>
                 <div className={`flex items-center gap-1 mt-1 ${isOut ? 'justify-end' : ''}`}>
                   <span className={`text-[10px] ${isOut ? 'text-primary-foreground/60' : 'text-muted-foreground'}`}>
@@ -124,14 +129,37 @@ export default function ConversationDetail({ embeddedId }: Props) {
           placeholder="Digite uma mensagem..."
           className="flex-1 bg-muted rounded-full px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
         />
-        <button
-          onClick={handleSend}
-          disabled={!texto.trim()}
-          className="w-10 h-10 bg-primary text-primary-foreground rounded-full flex items-center justify-center shrink-0 disabled:opacity-50 active:scale-95 transition-transform"
-        >
+        <button onClick={handleSend} disabled={!texto.trim()} className="w-10 h-10 bg-primary text-primary-foreground rounded-full flex items-center justify-center shrink-0 disabled:opacity-50 active:scale-95 transition-transform">
           <Send className="w-4 h-4" />
         </button>
       </div>
+
+      {/* Link opportunity modal */}
+      {showLinkOpp && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowLinkOpp(false)}>
+          <div className="absolute inset-0 bg-foreground/40" />
+          <div className="relative bg-card rounded-2xl p-5 w-full max-w-sm" onClick={e => e.stopPropagation()}>
+            <h3 className="font-semibold mb-3">Oportunidades de {resp?.nome?.split(' ')[0]}</h3>
+            {relOpps.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-4 text-center">Nenhuma oportunidade encontrada para este contato</p>
+            ) : (
+              <div className="space-y-1 max-h-60 overflow-y-auto">
+                {relOpps.map(o => (
+                  <button key={o.id} onClick={() => { navigate(`/app/oportunidades/${o.id}`); setShowLinkOpp(false); }}
+                    className="w-full text-left px-4 py-3 rounded-lg text-sm hover:bg-muted transition-colors">
+                    <p className="font-medium">{ETAPA_LABELS[o.etapa]}</p>
+                    <p className="text-xs text-muted-foreground">{new Date(o.criado_em).toLocaleDateString('pt-BR')}</p>
+                  </button>
+                ))}
+              </div>
+            )}
+            <button onClick={() => setShowLinkOpp(false)} className="w-full mt-3 py-2 text-sm text-muted-foreground font-medium">Fechar</button>
+          </div>
+        </div>
+      )}
+
+      {/* New task form */}
+      <NewTaskForm open={showTaskForm} onClose={() => setShowTaskForm(false)} defaultResponsavelId={conv.responsavel_id} />
     </div>
   );
 }
