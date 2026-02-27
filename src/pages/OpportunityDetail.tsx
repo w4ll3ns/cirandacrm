@@ -41,6 +41,7 @@ export default function OpportunityDetail() {
   };
 
   const handleLost = () => {
+    if (!opp) return;
     updateOportunidade(opp.id, { etapa: 'perdido', status: 'perdida', motivo_perda: motivoPerda || 'Sem motivo informado' });
     toast.success('Oportunidade marcada como perdida');
     setShowLostDialog(false);
@@ -48,6 +49,7 @@ export default function OpportunityDetail() {
 
   // Timeline events
   const timeline = useMemo(() => {
+    if (!opp) return [];
     const events: { date: string; label: string; type: 'create' | 'move' | 'task' | 'conversation' }[] = [];
     events.push({ date: opp.criado_em, label: 'Oportunidade criada', type: 'create' });
     if (opp.atualizado_em !== opp.criado_em) {
@@ -63,6 +65,8 @@ export default function OpportunityDetail() {
   }, [opp, relTarefas, relConversas]);
 
   const timelineColors = { create: 'bg-primary', move: 'bg-accent', task: 'bg-secondary', conversation: 'bg-success' };
+
+  if (!opp) return <div className="p-4 text-center text-muted-foreground">Oportunidade não encontrada</div>;
 
   const mainContent = (
     <>
