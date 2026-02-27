@@ -2,11 +2,19 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useRef, useEffect } from 'react';
 import { ArrowLeft, Send, MoreVertical, CheckCircle2 } from 'lucide-react';
 import { useData } from '@/contexts/DataContext';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
 
-export default function ConversationDetail() {
-  const { id } = useParams();
+interface Props {
+  embeddedId?: string;
+}
+
+export default function ConversationDetail({ embeddedId }: Props) {
+  const { id: paramId } = useParams();
+  const id = embeddedId || paramId;
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
+  const isEmbedded = !!embeddedId;
   const { conversas, mensagens, responsaveis, addMensagem, updateConversa } = useData();
   const [texto, setTexto] = useState('');
   const [showActions, setShowActions] = useState(false);
@@ -21,6 +29,11 @@ export default function ConversationDetail() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [msgs.length]);
+
+  useEffect(() => {
+    setTexto('');
+    setShowActions(false);
+  }, [id]);
 
   if (!conv) return <div className="p-4 text-muted-foreground text-center">Conversa não encontrada</div>;
 
@@ -46,18 +59,22 @@ export default function ConversationDetail() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-muted">
+    <div className={`flex flex-col ${isEmbedded ? 'h-full' : 'h-screen'} bg-muted`}>
       {/* Header */}
-      <div className="bg-primary text-primary-foreground px-3 py-3 flex items-center gap-3 shrink-0">
-        <button onClick={() => navigate('/app/conversas')} className="p-1"><ArrowLeft className="w-5 h-5" /></button>
-        <div className="w-9 h-9 rounded-full bg-primary-foreground/15 flex items-center justify-center text-xs font-bold shrink-0">
+      <div className={`${isEmbedded ? 'bg-card border-b border-border' : 'bg-primary text-primary-foreground'} px-3 py-3 flex items-center gap-3 shrink-0`}>
+        {!isEmbedded && (
+          <button onClick={() => navigate('/app/conversas')} className="p-1"><ArrowLeft className="w-5 h-5" /></button>
+        )}
+        <div className={`w-9 h-9 rounded-full ${isEmbedded ? 'bg-success/15' : 'bg-primary-foreground/15'} flex items-center justify-center text-xs font-bold shrink-0`}>
           {resp?.nome?.charAt(0) || '?'}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-sm truncate">{resp?.nome}</p>
-          <p className="text-[10px] opacity-80">WhatsApp · {resp?.whatsapp}</p>
+          <p className={`font-semibold text-sm truncate ${isEmbedded ? 'text-foreground' : ''}`}>{resp?.nome}</p>
+          <p className={`text-[10px] ${isEmbedded ? 'text-muted-foreground' : 'opacity-80'}`}>WhatsApp · {resp?.whatsapp}</p>
         </div>
-        <button onClick={() => setShowActions(!showActions)} className="p-1"><MoreVertical className="w-5 h-5" /></button>
+        <button onClick={() => setShowActions(!showActions)} className="p-1">
+          <MoreVertical className={`w-5 h-5 ${isEmbedded ? 'text-muted-foreground' : ''}`} />
+        </button>
       </div>
 
       {/* Actions dropdown */}
@@ -81,7 +98,7 @@ export default function ConversationDetail() {
           const isOut = msg.direcao === 'outbound';
           return (
             <div key={msg.id} className={`flex ${isOut ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${
+              <div className={`max-w-[80%] md:max-w-[60%] rounded-2xl px-4 py-2.5 ${
                 isOut ? 'bg-primary text-primary-foreground rounded-br-md' : 'bg-card border border-border rounded-bl-md'
               }`}>
                 <p className="text-sm">{msg.texto}</p>
@@ -99,7 +116,7 @@ export default function ConversationDetail() {
       </div>
 
       {/* Input */}
-      <div className="bg-card border-t border-border px-3 py-2 flex items-end gap-2 shrink-0 safe-bottom">
+      <div className={`bg-card border-t border-border px-3 py-2 flex items-end gap-2 shrink-0 ${!isEmbedded ? 'safe-bottom' : ''}`}>
         <input
           value={texto}
           onChange={e => setTexto(e.target.value)}
