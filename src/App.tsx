@@ -1,25 +1,61 @@
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
+import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Index from "./pages/Index";
-import NotFound from "./pages/NotFound";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { DataProvider } from "@/contexts/DataContext";
+import Layout from "@/components/Layout";
+import Login from "@/pages/Login";
+import Home from "@/pages/Home";
+import Pipeline from "@/pages/Pipeline";
+import Conversations from "@/pages/Conversations";
+import ConversationDetail from "@/pages/ConversationDetail";
+import Contacts from "@/pages/Contacts";
+import ContactDetail from "@/pages/ContactDetail";
+import Tasks from "@/pages/Tasks";
+import Settings from "@/pages/Settings";
+import OpportunityDetail from "@/pages/OpportunityDetail";
+import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
+
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { usuario } = useAuth();
+  if (!usuario) return <Navigate to="/" replace />;
+  return <>{children}</>;
+}
+
+function AppRoutes() {
+  return (
+    <Routes>
+      <Route path="/" element={<Login />} />
+      <Route path="/app" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+        <Route index element={<Home />} />
+        <Route path="pipeline" element={<Pipeline />} />
+        <Route path="conversas" element={<Conversations />} />
+        <Route path="tarefas" element={<Tasks />} />
+        <Route path="contatos" element={<Contacts />} />
+      </Route>
+      <Route path="/app/conversas/:id" element={<ProtectedRoute><ConversationDetail /></ProtectedRoute>} />
+      <Route path="/app/oportunidades/:id" element={<ProtectedRoute><OpportunityDetail /></ProtectedRoute>} />
+      <Route path="/app/contatos/:type/:id" element={<ProtectedRoute><ContactDetail /></ProtectedRoute>} />
+      <Route path="/app/configuracoes" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+}
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
+      <AuthProvider>
+        <DataProvider>
+          <Toaster />
+          <BrowserRouter>
+            <AppRoutes />
+          </BrowserRouter>
+        </DataProvider>
+      </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );
