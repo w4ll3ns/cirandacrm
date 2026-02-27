@@ -26,6 +26,7 @@ export default function NewTaskForm({ open, onClose, defaultOportunidadeId, defa
     d.setHours(10, 0, 0, 0);
     return d.toISOString().slice(0, 16);
   });
+  const isAdmin = usuario?.perfil === 'admin';
   const [responsavelInternoId, setResponsavelInternoId] = useState(usuario?.id || 'usr_001');
   const [oportunidadeId, setOportunidadeId] = useState(defaultOportunidadeId || '');
   const [responsavelId, setResponsavelId] = useState(defaultResponsavelId || '');
@@ -95,12 +96,14 @@ export default function NewTaskForm({ open, onClose, defaultOportunidadeId, defa
             <input type="datetime-local" value={dataHora} onChange={e => setDataHora(e.target.value)} className="w-full mt-1 bg-muted rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
           </div>
 
-          <div>
-            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Responsável Interno</label>
-            <select value={responsavelInternoId} onChange={e => setResponsavelInternoId(e.target.value)} className="w-full mt-1 bg-muted rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
-              {usuarios.map(u => <option key={u.id} value={u.id}>{u.nome}</option>)}
-            </select>
-          </div>
+          {isAdmin && (
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Responsável Interno</label>
+              <select value={responsavelInternoId} onChange={e => setResponsavelInternoId(e.target.value)} className="w-full mt-1 bg-muted rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
+                {usuarios.map(u => <option key={u.id} value={u.id}>{u.nome}</option>)}
+              </select>
+            </div>
+          )}
 
           <div>
             <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Vincular Responsável (opcional)</label>

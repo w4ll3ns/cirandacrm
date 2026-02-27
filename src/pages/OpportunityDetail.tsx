@@ -6,6 +6,7 @@ import { ETAPA_LABELS, ETAPAS_ORDER, TEMPERATURA_LABELS, ORIGEM_LABELS, TIPO_TAR
 import type { EtapaPipeline } from '@/types';
 import { toast } from 'sonner';
 import { useState, useMemo } from 'react';
+import { usePermissions } from '@/hooks/usePermissions';
 
 export default function OpportunityDetail() {
   const { id } = useParams();
@@ -15,6 +16,7 @@ export default function OpportunityDetail() {
   const [showMoveSheet, setShowMoveSheet] = useState(false);
   const [showLostDialog, setShowLostDialog] = useState(false);
   const [motivoPerda, setMotivoPerda] = useState('');
+  const { canMoveEtapa, canMarkLost } = usePermissions();
 
   const opp = oportunidades.find(o => o.id === id);
 
@@ -89,13 +91,15 @@ export default function OpportunityDetail() {
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-2">
+      <div className={`grid gap-2 ${canMoveEtapa ? 'grid-cols-2' : 'grid-cols-1'}`}>
         <button onClick={() => toast.success('Abrindo WhatsApp...')} className="bg-success text-success-foreground rounded-xl py-3 text-sm font-semibold flex items-center justify-center gap-2 active:scale-95 transition-transform hover:opacity-90">
           <MessageCircle className="w-4 h-4" /> WhatsApp
         </button>
-        <button onClick={() => setShowMoveSheet(true)} className="bg-secondary text-secondary-foreground rounded-xl py-3 text-sm font-semibold flex items-center justify-center gap-2 active:scale-95 transition-transform hover:opacity-90">
-          <ChevronRight className="w-4 h-4" /> Mover Etapa
-        </button>
+        {canMoveEtapa && (
+          <button onClick={() => setShowMoveSheet(true)} className="bg-secondary text-secondary-foreground rounded-xl py-3 text-sm font-semibold flex items-center justify-center gap-2 active:scale-95 transition-transform hover:opacity-90">
+            <ChevronRight className="w-4 h-4" /> Mover Etapa
+          </button>
+        )}
       </div>
 
       {opp.notas && (

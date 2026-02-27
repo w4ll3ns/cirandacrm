@@ -7,6 +7,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { ETAPA_LABELS, TIPO_TAREFA_LABELS } from '@/types';
 import NewLeadForm from '@/components/NewLeadForm';
 import ReportsPanel from '@/components/ReportsPanel';
+import { usePermissions } from '@/hooks/usePermissions';
 
 type Periodo = 'hoje' | '7dias' | 'mes';
 type HomeTab = 'resumo' | 'relatorios';
@@ -19,6 +20,7 @@ export default function Home() {
   const [periodo, setPeriodo] = useState<Periodo>('hoje');
   const [showNewLead, setShowNewLead] = useState(false);
   const [homeTab, setHomeTab] = useState<HomeTab>('resumo');
+  const { canViewReports } = usePermissions();
 
   const isOwn = (internoId: string) => usuario?.perfil === 'admin' || internoId === usuario?.id;
 
@@ -71,7 +73,7 @@ export default function Home() {
           ))}
         </div>
         <div className="flex items-center gap-2">
-          {!isMobile && usuario?.perfil === 'admin' && (
+          {!isMobile && canViewReports && (
             <button onClick={() => setHomeTab(homeTab === 'resumo' ? 'relatorios' : 'resumo')} className="bg-card text-muted-foreground border border-border px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 hover:text-foreground transition-colors">
               <BarChart3 className="w-4 h-4" /> {homeTab === 'resumo' ? 'Relatórios' : 'Resumo'}
             </button>
