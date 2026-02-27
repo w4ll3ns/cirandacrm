@@ -85,4 +85,19 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+
+  .scrollbar-always-visible {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+  .scrollbar-always-visible::-webkit-scrollbar {
+    height: 8px;
+  }
+  .scrollbar-always-visible::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--border));
+    border-radius: 4px;
+  }
+  .scrollbar-always-visible::-webkit-scrollbar-track {
+    background: transparent;
+  }
 }
