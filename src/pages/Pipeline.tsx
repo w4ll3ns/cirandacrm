@@ -115,7 +115,48 @@ export default function Pipeline() {
     );
   };
 
-  // Desktop: Kanban columns
+  const renderDesktopCard = (opp: typeof myOpps[0]) => {
+    const resp = getResp(opp.responsavel_id);
+    const aluno = getAluno(opp.aluno_id);
+    const TempIcon = TEMP_ICON[opp.temperatura];
+    const followup = opp.proximo_followup_em
+      ? new Date(opp.proximo_followup_em).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+      : null;
+    const isDragging = draggingId === opp.id;
+
+    return (
+      <div
+        key={opp.id}
+        draggable
+        onDragStart={(e) => handleDragStart(e, opp.id)}
+        onDragEnd={handleDragEnd}
+        onClick={() => navigate(`/app/oportunidades/${opp.id}`)}
+        className={`w-full bg-card rounded-xl p-4 border border-border text-left cursor-grab active:cursor-grabbing transition-all hover:shadow-md hover:border-primary/30 ${isDragging ? 'opacity-40 scale-95' : ''}`}
+      >
+        <div className="flex items-start justify-between gap-2 mb-2">
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold text-sm truncate">{aluno?.nome || 'Aluno'}</p>
+            <p className="text-xs text-muted-foreground truncate">{resp?.nome || 'Responsável'}</p>
+          </div>
+          <span className={`shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${TEMP_COLOR[opp.temperatura]}`}>
+            <TempIcon className="w-3 h-3" />
+            {TEMPERATURA_LABELS[opp.temperatura]}
+          </span>
+        </div>
+        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          {resp?.whatsapp && <span>📱 {resp.whatsapp}</span>}
+          {resp && <span>· {ORIGEM_LABELS[resp.origem]}</span>}
+        </div>
+        {followup && (
+          <div className="mt-2 text-xs text-primary font-medium">
+            Follow-up: {followup}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Desktop: Kanban columns with drag-and-drop
   if (!isMobile) {
     return (
       <div className="h-full flex flex-col">
@@ -128,10 +169,14 @@ export default function Pipeline() {
               const opps = grouped[etapa] || [];
               const isLost = etapa === 'perdido';
               const isWon = etapa === 'matricula_fechada';
+              const isOver = dragOverEtapa === etapa;
               return (
                 <div
                   key={etapa}
-                  className="w-72 flex flex-col shrink-0 bg-card/50 rounded-xl border border-border"
+                  onDragOver={(e) => handleDragOver(e, etapa)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, etapa)}
+                  className={`w-72 flex flex-col shrink-0 bg-card/50 rounded-xl border transition-colors ${isOver ? 'border-primary bg-primary/5' : 'border-border'}`}
                 >
                   <div className="px-4 py-3 border-b border-border flex items-center justify-between">
                     <h3 className={`text-sm font-semibold ${isLost ? 'text-destructive' : isWon ? 'text-success' : ''}`}>
@@ -143,9 +188,11 @@ export default function Pipeline() {
                   </div>
                   <div className="flex-1 overflow-y-auto p-3 space-y-2">
                     {opps.length === 0 && (
-                      <p className="text-xs text-muted-foreground text-center py-6">Nenhuma</p>
+                      <p className="text-xs text-muted-foreground text-center py-6">
+                        {isOver ? 'Solte aqui' : 'Nenhuma'}
+                      </p>
                     )}
-                    {opps.map(renderCard)}
+                    {opps.map(renderDesktopCard)}
                   </div>
                 </div>
               );
