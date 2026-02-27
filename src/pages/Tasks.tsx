@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react';
-import { CheckCircle2, Circle, AlertTriangle } from 'lucide-react';
+import { CheckCircle2, Circle, AlertTriangle, Plus } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { TIPO_TAREFA_LABELS } from '@/types';
 import type { StatusTarefa, PrioridadeTarefa } from '@/types';
 import { toast } from 'sonner';
+import NewTaskForm from '@/components/NewTaskForm';
 
 type FilterStatus = StatusTarefa | 'todas';
 
@@ -14,6 +15,7 @@ export default function Tasks() {
   const { tarefas, updateTarefa, responsaveis } = useData();
   const isMobile = useIsMobile();
   const [statusFilter, setStatusFilter] = useState<FilterStatus>('todas');
+  const [showNewTask, setShowNewTask] = useState(false);
 
   const filtered = useMemo(() => {
     let list = tarefas.filter(t =>
@@ -60,18 +62,17 @@ export default function Tasks() {
       <div className="p-6 max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-lg font-bold">Tarefas</h1>
-          <div className="flex gap-1 bg-card rounded-lg p-1 border border-border">
-            {filters.map(({ key, label }) => (
-              <button
-                key={key}
-                onClick={() => setStatusFilter(key)}
-                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                  statusFilter === key ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
+          <div className="flex items-center gap-3">
+            <div className="flex gap-1 bg-card rounded-lg p-1 border border-border">
+              {filters.map(({ key, label }) => (
+                <button key={key} onClick={() => setStatusFilter(key)} className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${statusFilter === key ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
+                  {label}
+                </button>
+              ))}
+            </div>
+            <button onClick={() => setShowNewTask(true)} className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 hover:opacity-90">
+              <Plus className="w-4 h-4" /> Nova Tarefa
+            </button>
           </div>
         </div>
 
@@ -90,31 +91,19 @@ export default function Tasks() {
             </thead>
             <tbody>
               {filtered.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="text-center py-12 text-sm text-muted-foreground">
-                    Nenhuma tarefa encontrada
-                  </td>
-                </tr>
+                <tr><td colSpan={7} className="text-center py-12 text-sm text-muted-foreground">Nenhuma tarefa encontrada</td></tr>
               )}
               {filtered.map(t => {
                 const resp = t.responsavel_id ? responsaveis.find(r => r.id === t.responsavel_id) : null;
                 const isDone = t.status === 'concluida';
                 return (
                   <tr key={t.id} className="border-b border-border hover:bg-muted/30 transition-colors">
-                    <td className="px-4 py-3">
-                      <button onClick={() => toggleDone(t.id, t.status)}>{statusIcon(t.status)}</button>
-                    </td>
+                    <td className="px-4 py-3"><button onClick={() => toggleDone(t.id, t.status)}>{statusIcon(t.status)}</button></td>
                     <td className={`px-4 py-3 text-sm font-medium ${isDone ? 'line-through text-muted-foreground' : ''}`}>{t.titulo}</td>
                     <td className="px-4 py-3 text-sm text-muted-foreground">{TIPO_TAREFA_LABELS[t.tipo]}</td>
-                    <td className="px-4 py-3">
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${prioColor(t.prioridade)}`}>
-                        {prioLabel(t.prioridade)}
-                      </span>
-                    </td>
+                    <td className="px-4 py-3"><span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${prioColor(t.prioridade)}`}>{prioLabel(t.prioridade)}</span></td>
                     <td className="px-4 py-3 text-sm text-muted-foreground">{resp?.nome?.split(' ')[0] || '-'}</td>
-                    <td className="px-4 py-3 text-sm text-muted-foreground">
-                      {new Date(t.data_hora).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                    </td>
+                    <td className="px-4 py-3 text-sm text-muted-foreground">{new Date(t.data_hora).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</td>
                     <td className="px-4 py-3">
                       {t.status === 'atrasada' && <span className="text-[10px] bg-destructive/10 text-destructive px-2 py-0.5 rounded-full font-medium">Atrasada</span>}
                       {t.status === 'concluida' && <span className="text-[10px] bg-success/10 text-success px-2 py-0.5 rounded-full font-medium">Concluída</span>}
@@ -126,6 +115,7 @@ export default function Tasks() {
             </tbody>
           </table>
         </div>
+        <NewTaskForm open={showNewTask} onClose={() => setShowNewTask(false)} />
       </div>
     );
   }
@@ -135,18 +125,11 @@ export default function Tasks() {
     <div className="flex flex-col h-full">
       <div className="flex overflow-x-auto scrollbar-hide px-3 py-2 gap-1 bg-card border-b border-border">
         {filters.map(({ key, label }) => (
-          <button
-            key={key}
-            onClick={() => setStatusFilter(key)}
-            className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-              statusFilter === key ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'
-            }`}
-          >
+          <button key={key} onClick={() => setStatusFilter(key)} className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${statusFilter === key ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}>
             {label}
           </button>
         ))}
       </div>
-
       <div className="flex-1 overflow-y-auto">
         {filtered.length === 0 && (
           <div className="text-center py-12">
@@ -157,30 +140,26 @@ export default function Tasks() {
         {filtered.map(t => {
           const resp = t.responsavel_id ? responsaveis.find(r => r.id === t.responsavel_id) : null;
           const isDone = t.status === 'concluida';
-          const isLate = t.status === 'atrasada';
-
           return (
             <div key={t.id} className="px-4 py-3 border-b border-border flex items-start gap-3">
-              <button onClick={() => toggleDone(t.id, t.status)} className="mt-0.5 shrink-0">
-                {statusIcon(t.status)}
-              </button>
+              <button onClick={() => toggleDone(t.id, t.status)} className="mt-0.5 shrink-0">{statusIcon(t.status)}</button>
               <div className="flex-1 min-w-0">
                 <p className={`text-sm font-medium ${isDone ? 'line-through text-muted-foreground' : ''}`}>{t.titulo}</p>
                 <div className="flex items-center gap-2 mt-1 flex-wrap">
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${prioColor(t.prioridade)}`}>
-                    {prioLabel(t.prioridade)}
-                  </span>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${prioColor(t.prioridade)}`}>{prioLabel(t.prioridade)}</span>
                   <span className="text-[10px] text-muted-foreground">{TIPO_TAREFA_LABELS[t.tipo]}</span>
                   {resp && <span className="text-[10px] text-muted-foreground">· {resp.nome.split(' ')[0]}</span>}
                 </div>
-                <p className="text-[10px] text-muted-foreground mt-0.5">
-                  {new Date(t.data_hora).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                </p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">{new Date(t.data_hora).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</p>
               </div>
             </div>
           );
         })}
       </div>
+      <button onClick={() => setShowNewTask(true)} className="fixed bottom-20 right-4 w-14 h-14 bg-primary text-primary-foreground rounded-full shadow-lg flex items-center justify-center active:scale-95 transition-transform z-30">
+        <Plus className="w-6 h-6" />
+      </button>
+      <NewTaskForm open={showNewTask} onClose={() => setShowNewTask(false)} />
     </div>
   );
 }
