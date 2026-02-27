@@ -1,9 +1,11 @@
 import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Search, MessageCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
+import { useIsMobile } from '@/hooks/use-mobile';
 import type { StatusConversa } from '@/types';
+import ConversationDetail from './ConversationDetail';
 
 const STATUS_FILTER: { key: StatusConversa | 'todas'; label: string }[] = [
   { key: 'todas', label: 'Todas' },
@@ -17,8 +19,10 @@ export default function Conversations() {
   const { usuario } = useAuth();
   const { conversas, mensagens, responsaveis } = useData();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [busca, setBusca] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusConversa | 'todas'>('todas');
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     let list = conversas.filter(c =>
@@ -40,8 +44,16 @@ export default function Conversations() {
     return msgs[msgs.length - 1];
   };
 
-  return (
-    <div className="flex flex-col h-full">
+  const handleSelect = (id: string) => {
+    if (isMobile) {
+      navigate(`/app/conversas/${id}`);
+    } else {
+      setSelectedId(id);
+    }
+  };
+
+  const listPanel = (
+    <div className={`flex flex-col h-full ${!isMobile ? 'border-r border-border' : ''}`}>
       {/* Search */}
       <div className="p-3 bg-card border-b border-border">
         <div className="relative">
@@ -87,12 +99,15 @@ export default function Conversations() {
           const resp = responsaveis.find(r => r.id === c.responsavel_id);
           const lastMsg = getLastMsg(c.id);
           const isUnread = c.status === 'nao_lida';
+          const isSelected = !isMobile && selectedId === c.id;
 
           return (
             <button
               key={c.id}
-              onClick={() => navigate(`/app/conversas/${c.id}`)}
-              className="w-full px-4 py-3 flex items-center gap-3 border-b border-border text-left active:bg-muted transition-colors"
+              onClick={() => handleSelect(c.id)}
+              className={`w-full px-4 py-3 flex items-center gap-3 border-b border-border text-left transition-colors ${
+                isSelected ? 'bg-primary/5 border-l-2 border-l-primary' : 'active:bg-muted hover:bg-muted/50'
+              }`}
             >
               <div className="w-11 h-11 rounded-full bg-success/15 flex items-center justify-center shrink-0">
                 <MessageCircle className="w-5 h-5 text-success" />
@@ -117,4 +132,27 @@ export default function Conversations() {
       </div>
     </div>
   );
+
+  // Desktop: split view
+  if (!isMobile) {
+    return (
+      <div className="flex h-[calc(100vh-3.5rem)]">
+        <div className="w-96 shrink-0">{listPanel}</div>
+        <div className="flex-1">
+          {selectedId ? (
+            <ConversationDetail embeddedId={selectedId} />
+          ) : (
+            <div className="flex items-center justify-center h-full text-muted-foreground">
+              <div className="text-center">
+                <MessageCircle className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                <p className="text-sm">Selecione uma conversa</p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return listPanel;
 }
