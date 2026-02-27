@@ -166,7 +166,7 @@ export default function Pipeline() {
   // Desktop
   if (!isMobile) {
     return (
-      <div className="h-full flex flex-col">
+      <div className="h-[calc(100vh-3.5rem)] flex flex-col">
         <div className="p-4 pb-0 space-y-3">
           <div className="flex items-center justify-between">
             <h1 className="text-lg font-bold">Pipeline</h1>
