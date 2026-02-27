@@ -6,6 +6,7 @@ import { ORIGEM_LABELS, ETAPA_LABELS } from '@/types';
 import type { Origem } from '@/types';
 import { toast } from 'sonner';
 import { useState } from 'react';
+import { usePermissions } from '@/hooks/usePermissions';
 
 export default function ContactDetail() {
   const { type, id } = useParams<{ type: string; id: string }>();
@@ -23,13 +24,13 @@ export default function ContactDetail() {
     : <button onClick={() => navigate(-1)} className="p-2 rounded-lg hover:bg-card text-muted-foreground"><ArrowLeft className="w-5 h-5" /></button>;
 
   if (type === 'resp') {
-    return <RespDetail id={id!} editing={editing} setEditing={setEditing} headerClass={headerClass} backBtn={backBtn} isMobile={isMobile} />;
+    return <RespDetail id={id!} editing={canEditContacts ? editing : false} setEditing={canEditContacts ? setEditing : () => {}} headerClass={headerClass} backBtn={backBtn} isMobile={isMobile} canEdit={canEditContacts} />;
   }
 
-  return <AlunoDetail id={id!} editing={editing} setEditing={setEditing} headerClass={headerClass} backBtn={backBtn} isMobile={isMobile} />;
+  return <AlunoDetail id={id!} editing={canEditContacts ? editing : false} setEditing={canEditContacts ? setEditing : () => {}} headerClass={headerClass} backBtn={backBtn} isMobile={isMobile} canEdit={canEditContacts} />;
 }
 
-function RespDetail({ id, editing, setEditing, headerClass, backBtn, isMobile }: any) {
+function RespDetail({ id, editing, setEditing, headerClass, backBtn, isMobile, canEdit }: any) {
   const navigate = useNavigate();
   const { responsaveis, alunos, oportunidades, conversas, updateResponsavel } = useData();
   const resp = responsaveis.find(r => r.id === id);
@@ -64,7 +65,7 @@ function RespDetail({ id, editing, setEditing, headerClass, backBtn, isMobile }:
           <p className={`font-semibold truncate ${!isMobile ? 'text-lg text-foreground' : ''}`}>{resp.nome}</p>
           <p className={`text-xs ${isMobile ? 'opacity-80' : 'text-muted-foreground'}`}>Responsável</p>
         </div>
-        {!editing ? (
+        {canEdit && (!editing ? (
           <button onClick={() => setEditing(true)} className={`p-2 rounded-lg ${isMobile ? 'text-primary-foreground/80' : 'hover:bg-card text-muted-foreground'}`}>
             <Edit3 className="w-4 h-4" />
           </button>
@@ -73,7 +74,7 @@ function RespDetail({ id, editing, setEditing, headerClass, backBtn, isMobile }:
             <button onClick={handleCancel} className={`p-2 rounded-lg ${isMobile ? 'text-primary-foreground/80' : 'hover:bg-card text-muted-foreground'}`}><X className="w-4 h-4" /></button>
             <button onClick={handleSave} className={`p-2 rounded-lg ${isMobile ? 'text-primary-foreground' : 'hover:bg-card text-primary'}`}><Save className="w-4 h-4" /></button>
           </div>
-        )}
+        ))}
       </div>
       <div className={`p-4 space-y-4 ${!isMobile ? 'max-w-5xl mx-auto md:grid md:grid-cols-2 md:gap-6 md:space-y-0' : ''}`}>
         <div className="space-y-4">
@@ -153,7 +154,7 @@ function RespDetail({ id, editing, setEditing, headerClass, backBtn, isMobile }:
   );
 }
 
-function AlunoDetail({ id, editing, setEditing, headerClass, backBtn, isMobile }: any) {
+function AlunoDetail({ id, editing, setEditing, headerClass, backBtn, isMobile, canEdit }: any) {
   const navigate = useNavigate();
   const { alunos, responsaveis, tarefas, updateAluno } = useData();
   const aluno = alunos.find(a => a.id === id);
@@ -188,7 +189,7 @@ function AlunoDetail({ id, editing, setEditing, headerClass, backBtn, isMobile }
           <p className={`font-semibold ${!isMobile ? 'text-lg text-foreground' : ''}`}>{aluno.nome}</p>
           <p className={`text-xs ${isMobile ? 'opacity-80' : 'text-muted-foreground'}`}>Aluno · {aluno.serie_turma_interesse}</p>
         </div>
-        {!editing ? (
+        {canEdit && (!editing ? (
           <button onClick={() => setEditing(true)} className={`p-2 rounded-lg ${isMobile ? 'text-primary-foreground/80' : 'hover:bg-card text-muted-foreground'}`}>
             <Edit3 className="w-4 h-4" />
           </button>
@@ -197,7 +198,7 @@ function AlunoDetail({ id, editing, setEditing, headerClass, backBtn, isMobile }
             <button onClick={handleCancel} className={`p-2 rounded-lg ${isMobile ? 'text-primary-foreground/80' : 'hover:bg-card text-muted-foreground'}`}><X className="w-4 h-4" /></button>
             <button onClick={handleSave} className={`p-2 rounded-lg ${isMobile ? 'text-primary-foreground' : 'hover:bg-card text-primary'}`}><Save className="w-4 h-4" /></button>
           </div>
-        )}
+        ))}
       </div>
       <div className={`p-4 space-y-4 ${!isMobile ? 'max-w-5xl mx-auto md:grid md:grid-cols-2 md:gap-6 md:space-y-0' : ''}`}>
         <div className="space-y-4">

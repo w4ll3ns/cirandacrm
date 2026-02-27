@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, LogOut, WifiOff, User, Shield, Bell } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { usePermissions } from '@/hooks/usePermissions';
 import { toast } from 'sonner';
 import { usuarios } from '@/data/mock';
 
@@ -9,6 +10,7 @@ export default function Settings() {
   const { usuario, logout } = useAuth();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const { canManageSettings } = usePermissions();
 
   const handleLogout = () => {
     logout();
@@ -41,7 +43,7 @@ export default function Settings() {
       </div>
 
       {/* Users (admin only) */}
-      {usuario?.perfil === 'admin' && (
+      {canManageSettings && (
         <div className="bg-card rounded-xl p-4 border border-border">
           <h3 className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wider flex items-center gap-2">
             <Shield className="w-3.5 h-3.5" /> Equipe
@@ -61,51 +63,55 @@ export default function Settings() {
         </div>
       )}
 
-      {/* Integrations */}
-      <div className="bg-card rounded-xl p-4 border border-border">
-        <h3 className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wider">Integrações</h3>
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <WifiOff className="w-4 h-4 text-muted-foreground" />
-              <div>
-                <p className="text-sm font-medium">WhatsApp API</p>
-                <p className="text-xs text-muted-foreground">Não conectado</p>
+      {/* Integrations - admin only */}
+      {canManageSettings && (
+        <div className="bg-card rounded-xl p-4 border border-border">
+          <h3 className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wider">Integrações</h3>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <WifiOff className="w-4 h-4 text-muted-foreground" />
+                <div>
+                  <p className="text-sm font-medium">WhatsApp API</p>
+                  <p className="text-xs text-muted-foreground">Não conectado</p>
+                </div>
               </div>
+              <button onClick={() => toast.info('Funcionalidade disponível em breve')} className="text-xs bg-primary/10 text-primary px-3 py-1.5 rounded-full font-medium">
+                Configurar
+              </button>
             </div>
-            <button onClick={() => toast.info('Funcionalidade disponível em breve')} className="text-xs bg-primary/10 text-primary px-3 py-1.5 rounded-full font-medium">
-              Configurar
-            </button>
-          </div>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <WifiOff className="w-4 h-4 text-muted-foreground" />
-              <div>
-                <p className="text-sm font-medium">Webhooks</p>
-                <p className="text-xs text-muted-foreground">Não conectado</p>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <WifiOff className="w-4 h-4 text-muted-foreground" />
+                <div>
+                  <p className="text-sm font-medium">Webhooks</p>
+                  <p className="text-xs text-muted-foreground">Não conectado</p>
+                </div>
               </div>
+              <button onClick={() => toast.info('Funcionalidade disponível em breve')} className="text-xs bg-primary/10 text-primary px-3 py-1.5 rounded-full font-medium">
+                Configurar
+              </button>
             </div>
-            <button onClick={() => toast.info('Funcionalidade disponível em breve')} className="text-xs bg-primary/10 text-primary px-3 py-1.5 rounded-full font-medium">
-              Configurar
-            </button>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Growth */}
-      <div className="bg-card rounded-xl p-4 border border-border">
-        <h3 className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wider">Métricas / Growth</h3>
-        <div className="space-y-3">
-          {['Meta Pixel', 'Google Analytics'].map(name => (
-            <div key={name} className="flex items-center justify-between">
-              <span className="text-sm">{name}</span>
-              <div className="w-10 h-6 bg-muted rounded-full relative">
-                <div className="absolute left-1 top-1 w-4 h-4 bg-muted-foreground/30 rounded-full" />
+      {/* Growth - admin only */}
+      {canManageSettings && (
+        <div className="bg-card rounded-xl p-4 border border-border">
+          <h3 className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wider">Métricas / Growth</h3>
+          <div className="space-y-3">
+            {['Meta Pixel', 'Google Analytics'].map(name => (
+              <div key={name} className="flex items-center justify-between">
+                <span className="text-sm">{name}</span>
+                <div className="w-10 h-6 bg-muted rounded-full relative">
+                  <div className="absolute left-1 top-1 w-4 h-4 bg-muted-foreground/30 rounded-full" />
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Notifications */}
       <div className="bg-card rounded-xl p-4 border border-border">

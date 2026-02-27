@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { ORIGEM_LABELS } from '@/types';
 import type { Origem } from '@/types';
 import { toast } from 'sonner';
+import { usuarios } from '@/data/mock';
 
 interface Props {
   open: boolean;
@@ -22,6 +23,8 @@ export default function NewLeadForm({ open, onClose }: Props) {
   const [nomeAluno, setNomeAluno] = useState('');
   const [serie, setSerie] = useState('Jardim I');
   const [valorEstimado, setValorEstimado] = useState('');
+  const [responsavelInternoId, setResponsavelInternoId] = useState(usuario?.id || 'usr_001');
+  const isAdmin = usuario?.perfil === 'admin';
 
   if (!open) return null;
 
@@ -67,7 +70,7 @@ export default function NewLeadForm({ open, onClose }: Props) {
       temperatura: 'morno',
       status: 'aberta',
       valor_estimado: valorEstimado ? Number(valorEstimado) : undefined,
-      responsavel_interno_id: usuario?.id || 'usr_001',
+      responsavel_interno_id: responsavelInternoId,
       criado_em: now,
       atualizado_em: now,
     });
@@ -112,6 +115,14 @@ export default function NewLeadForm({ open, onClose }: Props) {
               {SERIES.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
+          {isAdmin && (
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Responsável Interno</label>
+              <select value={responsavelInternoId} onChange={e => setResponsavelInternoId(e.target.value)} className="w-full mt-1 bg-muted rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
+                {usuarios.map(u => <option key={u.id} value={u.id}>{u.nome}</option>)}
+              </select>
+            </div>
+          )}
           <div>
             <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Valor Estimado (R$)</label>
             <input type="number" value={valorEstimado} onChange={e => setValorEstimado(e.target.value)} placeholder="Ex: 1500" className="w-full mt-1 bg-muted rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
