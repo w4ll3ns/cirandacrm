@@ -19,7 +19,7 @@
     --secondary: 26 73% 51%;
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 210 12% 93%;
+    --muted: 220 14% 95%;
     --muted-foreground: 220 15% 46%;
 
     --accent: 55 86% 51%;
@@ -66,6 +66,10 @@
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+
+  button, a {
+    @apply transition-all duration-150;
   }
 }
 

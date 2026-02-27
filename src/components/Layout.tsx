@@ -16,9 +16,12 @@ export default function Layout() {
     return (
       <div className="min-h-screen bg-muted flex flex-col">
         <header className="sticky top-0 z-40 bg-primary text-primary-foreground px-4 py-3 flex items-center justify-between">
-          <div>
-            <h1 className="text-base font-bold leading-tight">Ciranda ABC</h1>
-            <p className="text-[11px] opacity-80">{usuario?.nome} · {usuario?.perfil === 'admin' ? 'Admin' : usuario?.perfil === 'secretaria' ? 'Secretaria' : 'Comercial'}</p>
+          <div className="flex items-center gap-2">
+            <img src="/logo.png" alt="Ciranda ABC" className="w-8 h-8 object-contain rounded-lg" />
+            <div>
+              <h1 className="text-base font-bold leading-tight">Ciranda ABC</h1>
+              <p className="text-[11px] opacity-80">{usuario?.nome} · {usuario?.perfil === 'admin' ? 'Admin' : usuario?.perfil === 'secretaria' ? 'Secretaria' : 'Comercial'}</p>
+            </div>
           </div>
           <button onClick={() => navigate('/app/configuracoes')} className="w-9 h-9 rounded-full bg-primary-foreground/15 flex items-center justify-center">
             <Settings className="w-5 h-5" />
