@@ -1,11 +1,11 @@
-import { useMemo, useState, DragEvent } from 'react';
+import { useMemo, useState, useRef, useCallback, useEffect, DragEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { ETAPA_LABELS, ETAPAS_ORDER, TEMPERATURA_LABELS, ORIGEM_LABELS } from '@/types';
 import type { EtapaPipeline, Temperatura } from '@/types';
-import { Flame, Thermometer, Snowflake, ChevronRight, Search, Filter, Plus, DollarSign } from 'lucide-react';
+import { Flame, Thermometer, Snowflake, ChevronLeft, ChevronRight, Search, Filter, Plus, DollarSign } from 'lucide-react';
 import { toast } from 'sonner';
 import NewLeadForm from '@/components/NewLeadForm';
 import { usuarios } from '@/data/mock';
@@ -28,6 +28,29 @@ export default function Pipeline() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterTemp, setFilterTemp] = useState<Temperatura | 'todas'>('todas');
   const [filterResp, setFilterResp] = useState('');
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const checkScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 0);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
+  }, []);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    checkScroll();
+    el.addEventListener('scroll', checkScroll);
+    window.addEventListener('resize', checkScroll);
+    return () => { el.removeEventListener('scroll', checkScroll); window.removeEventListener('resize', checkScroll); };
+  }, [checkScroll]);
+
+  const scrollByAmount = (dir: number) => {
+    scrollRef.current?.scrollBy({ left: dir * 300, behavior: 'smooth' });
+  };
 
   const handleDragStart = (e: DragEvent, id: string) => {
     e.dataTransfer.setData('text/plain', id);
@@ -194,31 +217,43 @@ export default function Pipeline() {
             )}
           </div>
         </div>
-        <div className="flex-1 overflow-x-scroll p-4 scrollbar-always-visible">
-          <div className="flex gap-4 h-full min-w-max">
-            {ETAPAS_ORDER.map(etapa => {
-              const opps = grouped[etapa] || [];
-              const isLost = etapa === 'perdido';
-              const isWon = etapa === 'matricula_fechada';
-              const isOver = dragOverEtapa === etapa;
-              const totalValue = opps.reduce((s, o) => s + (o.valor_estimado || 0), 0);
-              return (
-                <div key={etapa} onDragOver={canEditPipeline ? (e) => handleDragOver(e, etapa) : undefined} onDragLeave={canEditPipeline ? handleDragLeave : undefined} onDrop={canEditPipeline ? (e) => handleDrop(e, etapa) : undefined}
-                  className={`w-72 flex flex-col shrink-0 bg-card/50 rounded-xl border transition-colors ${isOver ? 'border-primary bg-primary/5' : 'border-border'}`}>
-                  <div className="px-4 py-3 border-b border-border">
-                    <div className="flex items-center justify-between">
-                      <h3 className={`text-sm font-semibold ${isLost ? 'text-destructive' : isWon ? 'text-success' : ''}`}>{ETAPA_LABELS[etapa]}</h3>
-                      <span className="bg-muted text-muted-foreground text-xs font-bold rounded-full min-w-[22px] h-[22px] flex items-center justify-center px-1.5">{opps.length}</span>
+        <div className="flex-1 relative">
+          {canScrollLeft && (
+            <button onClick={() => scrollByAmount(-1)} className="absolute left-0 top-0 bottom-0 z-10 w-10 flex items-center justify-center bg-gradient-to-r from-background to-transparent hover:from-background/90 transition-opacity">
+              <ChevronLeft className="w-5 h-5 text-foreground" />
+            </button>
+          )}
+          {canScrollRight && (
+            <button onClick={() => scrollByAmount(1)} className="absolute right-0 top-0 bottom-0 z-10 w-10 flex items-center justify-center bg-gradient-to-l from-background to-transparent hover:from-background/90 transition-opacity">
+              <ChevronRight className="w-5 h-5 text-foreground" />
+            </button>
+          )}
+          <div ref={scrollRef} className="h-full overflow-x-scroll p-4 scrollbar-always-visible">
+            <div className="flex gap-4 h-full min-w-max">
+              {ETAPAS_ORDER.map(etapa => {
+                const opps = grouped[etapa] || [];
+                const isLost = etapa === 'perdido';
+                const isWon = etapa === 'matricula_fechada';
+                const isOver = dragOverEtapa === etapa;
+                const totalValue = opps.reduce((s, o) => s + (o.valor_estimado || 0), 0);
+                return (
+                  <div key={etapa} onDragOver={canEditPipeline ? (e) => handleDragOver(e, etapa) : undefined} onDragLeave={canEditPipeline ? handleDragLeave : undefined} onDrop={canEditPipeline ? (e) => handleDrop(e, etapa) : undefined}
+                    className={`w-72 flex flex-col shrink-0 bg-card/50 rounded-xl border transition-colors ${isOver ? 'border-primary bg-primary/5' : 'border-border'}`}>
+                    <div className="px-4 py-3 border-b border-border">
+                      <div className="flex items-center justify-between">
+                        <h3 className={`text-sm font-semibold ${isLost ? 'text-destructive' : isWon ? 'text-success' : ''}`}>{ETAPA_LABELS[etapa]}</h3>
+                        <span className="bg-muted text-muted-foreground text-xs font-bold rounded-full min-w-[22px] h-[22px] flex items-center justify-center px-1.5">{opps.length}</span>
+                      </div>
+                      {totalValue > 0 && <p className="text-[10px] text-muted-foreground mt-0.5">R$ {totalValue.toLocaleString('pt-BR')}</p>}
                     </div>
-                    {totalValue > 0 && <p className="text-[10px] text-muted-foreground mt-0.5">R$ {totalValue.toLocaleString('pt-BR')}</p>}
+                    <div className="flex-1 overflow-y-auto p-3 space-y-2">
+                      {opps.length === 0 && <p className="text-xs text-muted-foreground text-center py-6">{isOver ? 'Solte aqui' : 'Nenhuma'}</p>}
+                      {opps.map(renderDesktopCard)}
+                    </div>
                   </div>
-                  <div className="flex-1 overflow-y-auto p-3 space-y-2">
-                    {opps.length === 0 && <p className="text-xs text-muted-foreground text-center py-6">{isOver ? 'Solte aqui' : 'Nenhuma'}</p>}
-                    {opps.map(renderDesktopCard)}
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </div>
         <NewLeadForm open={showNewLead} onClose={() => setShowNewLead(false)} />
