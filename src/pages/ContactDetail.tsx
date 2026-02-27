@@ -14,6 +14,7 @@ export default function ContactDetail() {
   const isMobile = useIsMobile();
   const { responsaveis, alunos, oportunidades, conversas, tarefas, updateResponsavel, updateAluno } = useData();
   const [editing, setEditing] = useState(false);
+  const { canEditContacts } = usePermissions();
 
   const headerClass = isMobile
     ? 'bg-primary text-primary-foreground px-4 py-3 flex items-center gap-3'
