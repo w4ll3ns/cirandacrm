@@ -1,11 +1,11 @@
-import { useMemo, useState, DragEvent } from 'react';
+import { useMemo, useState, useRef, useCallback, useEffect, DragEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { ETAPA_LABELS, ETAPAS_ORDER, TEMPERATURA_LABELS, ORIGEM_LABELS } from '@/types';
 import type { EtapaPipeline, Temperatura } from '@/types';
-import { Flame, Thermometer, Snowflake, ChevronRight, Search, Filter, Plus, DollarSign } from 'lucide-react';
+import { Flame, Thermometer, Snowflake, ChevronLeft, ChevronRight, Search, Filter, Plus, DollarSign } from 'lucide-react';
 import { toast } from 'sonner';
 import NewLeadForm from '@/components/NewLeadForm';
 import { usuarios } from '@/data/mock';
