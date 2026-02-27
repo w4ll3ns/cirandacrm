@@ -17,14 +17,14 @@ export default function OpportunityDetail() {
   const [motivoPerda, setMotivoPerda] = useState('');
 
   const opp = oportunidades.find(o => o.id === id);
-  if (!opp) return <div className="p-4 text-center text-muted-foreground">Oportunidade não encontrada</div>;
 
-  const resp = responsaveis.find(r => r.id === opp.responsavel_id);
-  const aluno = alunos.find(a => a.id === opp.aluno_id);
-  const relTarefas = tarefas.filter(t => t.oportunidade_id === opp.id);
-  const relConversas = conversas.filter(c => c.responsavel_id === opp.responsavel_id);
+  const resp = opp ? responsaveis.find(r => r.id === opp.responsavel_id) : null;
+  const aluno = opp ? alunos.find(a => a.id === opp.aluno_id) : null;
+  const relTarefas = opp ? tarefas.filter(t => t.oportunidade_id === opp.id) : [];
+  const relConversas = opp ? conversas.filter(c => c.responsavel_id === opp.responsavel_id) : [];
 
   const handleMove = (etapa: EtapaPipeline) => {
+    if (!opp) return;
     if (etapa === 'matricula_fechada') {
       if (!confirm('Confirmar matrícula fechada?')) return;
       updateOportunidade(opp.id, { etapa, status: 'ganha' });
