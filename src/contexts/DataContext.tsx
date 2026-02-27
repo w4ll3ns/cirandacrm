@@ -10,6 +10,12 @@ interface DataContextType {
   mensagens: Mensagem[];
   tarefas: Tarefa[];
   addMensagem: (msg: Mensagem) => void;
+  addResponsavel: (resp: Responsavel) => void;
+  addAluno: (aluno: Aluno) => void;
+  addOportunidade: (opp: OportunidadeMatricula) => void;
+  addTarefa: (tarefa: Tarefa) => void;
+  updateResponsavel: (id: string, data: Partial<Responsavel>) => void;
+  updateAluno: (id: string, data: Partial<Aluno>) => void;
   updateOportunidade: (id: string, data: Partial<OportunidadeMatricula>) => void;
   updateTarefa: (id: string, data: Partial<Tarefa>) => void;
   updateConversa: (id: string, data: Partial<Conversa>) => void;
@@ -18,8 +24,8 @@ interface DataContextType {
 const DataContext = createContext<DataContextType>({} as DataContextType);
 
 export const DataProvider = ({ children }: { children: ReactNode }) => {
-  const [responsaveis] = useState<Responsavel[]>(mock.responsaveis);
-  const [alunos] = useState<Aluno[]>(mock.alunos);
+  const [responsaveis, setResponsaveis] = useState<Responsavel[]>(mock.responsaveis);
+  const [alunos, setAlunos] = useState<Aluno[]>(mock.alunos);
   const [oportunidades, setOportunidades] = useState<OportunidadeMatricula[]>(mock.oportunidades);
   const [conversas, setConversas] = useState<Conversa[]>(mock.conversas);
   const [mensagens, setMensagens] = useState<Mensagem[]>(mock.mensagens);
@@ -30,6 +36,19 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     setConversas(prev => prev.map(c =>
       c.id === msg.conversa_id ? { ...c, ultima_mensagem_em: msg.enviada_em, atualizado_em: msg.enviada_em } : c
     ));
+  };
+
+  const addResponsavel = (resp: Responsavel) => setResponsaveis(prev => [...prev, resp]);
+  const addAluno = (aluno: Aluno) => setAlunos(prev => [...prev, aluno]);
+  const addOportunidade = (opp: OportunidadeMatricula) => setOportunidades(prev => [...prev, opp]);
+  const addTarefa = (tarefa: Tarefa) => setTarefas(prev => [...prev, tarefa]);
+
+  const updateResponsavel = (id: string, data: Partial<Responsavel>) => {
+    setResponsaveis(prev => prev.map(r => r.id === id ? { ...r, ...data, atualizado_em: new Date().toISOString() } : r));
+  };
+
+  const updateAluno = (id: string, data: Partial<Aluno>) => {
+    setAlunos(prev => prev.map(a => a.id === id ? { ...a, ...data, atualizado_em: new Date().toISOString() } : a));
   };
 
   const updateOportunidade = (id: string, data: Partial<OportunidadeMatricula>) => {
@@ -47,7 +66,8 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   return (
     <DataContext.Provider value={{
       responsaveis, alunos, oportunidades, conversas, mensagens, tarefas,
-      addMensagem, updateOportunidade, updateTarefa, updateConversa,
+      addMensagem, addResponsavel, addAluno, addOportunidade, addTarefa,
+      updateResponsavel, updateAluno, updateOportunidade, updateTarefa, updateConversa,
     }}>
       {children}
     </DataContext.Provider>
