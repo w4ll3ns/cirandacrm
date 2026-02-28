@@ -73,6 +73,7 @@ export default function Pipeline() {
 
   const cycleTemperature = (e: React.MouseEvent, oppId: string, current: Temperatura) => {
     e.stopPropagation();
+    e.preventDefault();
     const idx = TEMP_CYCLE.indexOf(current);
     const next = TEMP_CYCLE[(idx + 1) % 3];
     updateOportunidade(oppId, { temperatura: next });
@@ -161,7 +162,8 @@ export default function Pipeline() {
           {canEditPipeline ? (
             <button
               onClick={(e) => cycleTemperature(e, opp.id, opp.temperatura)}
-              className={`shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium hover:opacity-70 transition-opacity ${TEMP_COLOR[opp.temperatura]}`}
+              onMouseDown={(e) => e.stopPropagation()}
+              className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium hover:opacity-70 transition-opacity ${TEMP_COLOR[opp.temperatura]}`}
               title="Clique para alterar temperatura"
             >
               <TempIcon className="w-3 h-3" /> {TEMPERATURA_LABELS[opp.temperatura]}
