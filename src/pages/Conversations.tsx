@@ -4,6 +4,8 @@ import { Search, MessageCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { Badge } from '@/components/ui/badge';
+import { usuarios } from '@/data/mock';
 import type { StatusConversa } from '@/types';
 import ConversationDetail from './ConversationDetail';
 
@@ -122,6 +124,16 @@ export default function Conversations() {
                 <p className={`text-xs truncate mt-0.5 ${isUnread ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
                   {lastMsg ? (lastMsg.direcao === 'outbound' ? '✓ ' : '') + lastMsg.texto : 'Sem mensagens'}
                 </p>
+                {(() => {
+                  const hist = c.historico_atendentes;
+                  const lastAtendente = hist?.[hist.length - 1];
+                  const usr = lastAtendente ? usuarios.find(u => u.id === lastAtendente.usuario_id) : null;
+                  return usr ? (
+                    <Badge variant="secondary" className="mt-1 text-[10px] px-1.5 py-0 font-normal">
+                      🎧 {usr.nome.split(' ')[0]}
+                    </Badge>
+                  ) : null;
+                })()}
               </div>
               {isUnread && (
                 <div className="w-2.5 h-2.5 rounded-full bg-primary shrink-0" />

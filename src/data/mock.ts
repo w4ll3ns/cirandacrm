@@ -2,7 +2,7 @@ import type {
   UsuarioInterno, Responsavel, Aluno, OportunidadeMatricula,
   Conversa, Mensagem, Tarefa, Origem, EtapaPipeline, Temperatura,
   StatusAluno, StatusOportunidade, StatusConversa, StatusTarefa,
-  PrioridadeTarefa, TipoTarefa, StatusRelacionamento
+  PrioridadeTarefa, TipoTarefa, StatusRelacionamento, HistoricoAtendente
 } from '@/types';
 
 // ── Helpers ──
@@ -197,12 +197,27 @@ for (let i = 0; i < 80; i++) {
   const respId = `resp_${String((i % 50) + 1).padStart(3, '0')}`;
   const daysAgo = Math.max(0, i % 30);
 
+  // Build historico_atendentes: 1-3 previous attendants, last one is current
+  const currentInternoId = INTERNOS[i % 3];
+  const histCount = 1 + (i % 3); // 1 to 3
+  const historico: HistoricoAtendente[] = [];
+  for (let h = 0; h < histCount; h++) {
+    const isLast = h === histCount - 1;
+    const usrId = isLast ? currentInternoId : INTERNOS[(i + h + 1) % 3];
+    historico.push({
+      usuario_id: usrId,
+      inicio_em: d(daysAgo + (histCount - h) * 3),
+      fim_em: isLast ? undefined : d(daysAgo + (histCount - h - 1) * 3),
+    });
+  }
+
   conversas.push({
     id: convId,
     responsavel_id: respId,
     status: STATUS_CONV[i % 4],
     ultima_mensagem_em: d(daysAgo, 9 + (i % 10)),
-    responsavel_interno_id: INTERNOS[i % 3],
+    responsavel_interno_id: currentInternoId,
+    historico_atendentes: historico,
     criado_em: d(daysAgo + 5),
     atualizado_em: d(daysAgo),
   });
