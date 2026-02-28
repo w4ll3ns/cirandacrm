@@ -67,12 +67,19 @@ export interface OportunidadeMatricula {
 
 export type StatusConversa = 'nao_lida' | 'aguardando' | 'resolvida' | 'arquivada';
 
+export interface HistoricoAtendente {
+  usuario_id: string;
+  inicio_em: string;
+  fim_em?: string;
+}
+
 export interface Conversa {
   id: string;
   responsavel_id: string;
   status: StatusConversa;
   ultima_mensagem_em: string;
   responsavel_interno_id: string;
+  historico_atendentes: HistoricoAtendente[];
   criado_em: string;
   atualizado_em: string;
 }
