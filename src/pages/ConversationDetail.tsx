@@ -1,9 +1,12 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Send, MoreVertical, CheckCircle2, Link2, ListTodo } from 'lucide-react';
+import { ArrowLeft, Send, MoreVertical, CheckCircle2, Link2, ListTodo, ChevronDown, ChevronUp } from 'lucide-react';
 import { useData } from '@/contexts/DataContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
+import { usuarios } from '@/data/mock';
 import NewTaskForm from '@/components/NewTaskForm';
 import { ETAPA_LABELS } from '@/types';
 
@@ -17,11 +20,13 @@ export default function ConversationDetail({ embeddedId }: Props) {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const isEmbedded = !!embeddedId;
+  const { usuario } = useAuth();
   const { conversas, mensagens, responsaveis, oportunidades, addMensagem, updateConversa } = useData();
   const [texto, setTexto] = useState('');
   const [showActions, setShowActions] = useState(false);
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [showLinkOpp, setShowLinkOpp] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const conv = conversas.find(c => c.id === id);
@@ -46,6 +51,16 @@ export default function ConversationDetail({ embeddedId }: Props) {
 
   const handleSend = () => {
     if (!texto.trim()) return;
+    // Track attendant change
+    const hist = conv.historico_atendentes || [];
+    const lastAtendente = hist[hist.length - 1];
+    if (usuario && (!lastAtendente || lastAtendente.usuario_id !== usuario.id)) {
+      const now = new Date().toISOString();
+      const updatedHist = lastAtendente
+        ? [...hist.slice(0, -1), { ...lastAtendente, fim_em: now }, { usuario_id: usuario.id, inicio_em: now }]
+        : [...hist, { usuario_id: usuario.id, inicio_em: now }];
+      updateConversa(conv.id, { historico_atendentes: updatedHist, responsavel_interno_id: usuario.id });
+    }
     addMensagem({
       id: `msg_new_${Date.now()}`,
       conversa_id: conv.id,
@@ -99,6 +114,34 @@ export default function ConversationDetail({ embeddedId }: Props) {
         </div>
       )}
 
+      {/* Attendant history */}
+      {conv.historico_atendentes?.length > 0 && (
+        <div className="bg-card border-b border-border px-4 py-2 shrink-0">
+          <button onClick={() => setShowHistory(!showHistory)} className="flex items-center gap-1 text-xs text-muted-foreground font-medium w-full">
+            🎧 Histórico de atendentes ({conv.historico_atendentes.length})
+            {showHistory ? <ChevronUp className="w-3 h-3 ml-auto" /> : <ChevronDown className="w-3 h-3 ml-auto" />}
+          </button>
+          {showHistory && (
+            <div className="mt-2 space-y-1">
+              {conv.historico_atendentes.map((h, idx) => {
+                const usr = usuarios.find(u => u.id === h.usuario_id);
+                const isActive = !h.fim_em;
+                return (
+                  <div key={idx} className="flex items-center gap-2 text-xs">
+                    <Badge variant={isActive ? 'default' : 'secondary'} className="text-[10px] px-1.5 py-0">
+                      {usr?.nome.split(' ')[0] || h.usuario_id}
+                    </Badge>
+                    <span className="text-muted-foreground">
+                      {new Date(h.inicio_em).toLocaleDateString('pt-BR')}
+                      {h.fim_em ? ` → ${new Date(h.fim_em).toLocaleDateString('pt-BR')}` : ' (atual)'}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-2">
         {msgs.map(msg => {
