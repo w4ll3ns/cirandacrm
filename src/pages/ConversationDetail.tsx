@@ -209,6 +209,57 @@ export default function ConversationDetail({ embeddedId }: Props) {
         </div>
       )}
 
+      {/* Transfer modal */}
+      {showTransfer && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowTransfer(false)}>
+          <div className="absolute inset-0 bg-foreground/40" />
+          <div className="relative bg-card rounded-2xl p-5 w-full max-w-sm" onClick={e => e.stopPropagation()}>
+            <h3 className="font-semibold mb-3">Transferir conversa</h3>
+            <label className="text-xs text-muted-foreground font-medium">Novo atendente</label>
+            <select
+              value={transferTo}
+              onChange={e => setTransferTo(e.target.value)}
+              className="w-full mt-1 mb-3 rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              <option value="">Selecione...</option>
+              {usuarios.filter(u => u.ativo && u.id !== conv.responsavel_interno_id).map(u => (
+                <option key={u.id} value={u.id}>{u.nome}</option>
+              ))}
+            </select>
+            <label className="text-xs text-muted-foreground font-medium">Motivo (opcional)</label>
+            <Textarea
+              value={transferMotivo}
+              onChange={e => setTransferMotivo(e.target.value)}
+              placeholder="Ex: Lead precisa de atendimento especializado..."
+              className="mt-1 mb-3 min-h-[60px]"
+            />
+            <div className="flex gap-2">
+              <button onClick={() => { setShowTransfer(false); setTransferTo(''); setTransferMotivo(''); }} className="flex-1 py-2 text-sm text-muted-foreground font-medium rounded-lg">Cancelar</button>
+              <button
+                disabled={!transferTo}
+                onClick={() => {
+                  const now = new Date().toISOString();
+                  const hist = conv.historico_atendentes || [];
+                  const lastH = hist[hist.length - 1];
+                  const updatedHist = lastH
+                    ? [...hist.slice(0, -1), { ...lastH, fim_em: now, motivo: transferMotivo || undefined }]
+                    : [...hist];
+                  updatedHist.push({ usuario_id: transferTo, inicio_em: now });
+                  updateConversa(conv.id, { historico_atendentes: updatedHist, responsavel_interno_id: transferTo });
+                  toast.success('Conversa transferida com sucesso');
+                  setShowTransfer(false);
+                  setTransferTo('');
+                  setTransferMotivo('');
+                }}
+                className="flex-1 py-2 text-sm bg-primary text-primary-foreground font-medium rounded-lg disabled:opacity-50"
+              >
+                Transferir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* New task form */}
       <NewTaskForm open={showTaskForm} onClose={() => setShowTaskForm(false)} defaultResponsavelId={conv.responsavel_id} defaultOportunidadeId={relOpps[0]?.id} />
     </div>
