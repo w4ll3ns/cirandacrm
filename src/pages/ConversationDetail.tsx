@@ -115,6 +115,9 @@ export default function ConversationDetail({ embeddedId }: Props) {
           <button onClick={() => { setShowTaskForm(true); setShowActions(false); }} className="text-xs bg-secondary/10 text-secondary px-3 py-1.5 rounded-full font-medium flex items-center gap-1">
             <ListTodo className="w-3 h-3" /> Criar Tarefa
           </button>
+          <button onClick={() => { setShowTransfer(true); setShowActions(false); }} className="text-xs bg-accent text-accent-foreground px-3 py-1.5 rounded-full font-medium flex items-center gap-1">
+            <ArrowRightLeft className="w-3 h-3" /> Transferir
+          </button>
         </div>
       )}
 
@@ -139,6 +142,7 @@ export default function ConversationDetail({ embeddedId }: Props) {
                       {new Date(h.inicio_em).toLocaleDateString('pt-BR')}
                       {h.fim_em ? ` → ${new Date(h.fim_em).toLocaleDateString('pt-BR')}` : ' (atual)'}
                     </span>
+                    {h.motivo && <p className="text-[10px] text-muted-foreground italic ml-1">— {h.motivo}</p>}
                   </div>
                 );
               })}
