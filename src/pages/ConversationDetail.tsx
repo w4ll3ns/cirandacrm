@@ -85,7 +85,7 @@ export default function ConversationDetail({ embeddedId }: Props) {
   };
 
   return (
-    <div className={`flex flex-col ${isEmbedded ? 'h-full' : 'h-screen'} bg-muted`}>
+    <div className={`flex flex-col ${isEmbedded ? 'h-full' : 'h-[100dvh]'} bg-muted`}>
       {/* Header */}
       <div className={`${isEmbedded ? 'bg-card border-b border-border' : 'bg-primary text-primary-foreground'} px-3 py-3 flex items-center gap-3 shrink-0`}>
         {!isEmbedded && (
@@ -151,7 +151,7 @@ export default function ConversationDetail({ embeddedId }: Props) {
         </div>
       )}
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-2">
+      <div className="flex-1 overflow-y-auto p-4 space-y-2 min-h-0">
         {msgs.map(msg => {
           const isOut = msg.direcao === 'outbound';
           return (
