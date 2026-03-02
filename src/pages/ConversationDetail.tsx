@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Send, MoreVertical, CheckCircle2, Link2, ListTodo, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, Send, MoreVertical, CheckCircle2, Link2, ListTodo, ChevronDown, ChevronUp, ArrowRightLeft } from 'lucide-react';
 import { useData } from '@/contexts/DataContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { usuarios } from '@/data/mock';
 import NewTaskForm from '@/components/NewTaskForm';
 import { ETAPA_LABELS } from '@/types';
+import { Textarea } from '@/components/ui/textarea';
 
 interface Props {
   embeddedId?: string;
@@ -27,6 +28,9 @@ export default function ConversationDetail({ embeddedId }: Props) {
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [showLinkOpp, setShowLinkOpp] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [showTransfer, setShowTransfer] = useState(false);
+  const [transferTo, setTransferTo] = useState('');
+  const [transferMotivo, setTransferMotivo] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const conv = conversas.find(c => c.id === id);
@@ -111,6 +115,9 @@ export default function ConversationDetail({ embeddedId }: Props) {
           <button onClick={() => { setShowTaskForm(true); setShowActions(false); }} className="text-xs bg-secondary/10 text-secondary px-3 py-1.5 rounded-full font-medium flex items-center gap-1">
             <ListTodo className="w-3 h-3" /> Criar Tarefa
           </button>
+          <button onClick={() => { setShowTransfer(true); setShowActions(false); }} className="text-xs bg-accent text-accent-foreground px-3 py-1.5 rounded-full font-medium flex items-center gap-1">
+            <ArrowRightLeft className="w-3 h-3" /> Transferir
+          </button>
         </div>
       )}
 
@@ -135,6 +142,7 @@ export default function ConversationDetail({ embeddedId }: Props) {
                       {new Date(h.inicio_em).toLocaleDateString('pt-BR')}
                       {h.fim_em ? ` → ${new Date(h.fim_em).toLocaleDateString('pt-BR')}` : ' (atual)'}
                     </span>
+                    {h.motivo && <p className="text-[10px] text-muted-foreground italic ml-1">— {h.motivo}</p>}
                   </div>
                 );
               })}
@@ -197,6 +205,57 @@ export default function ConversationDetail({ embeddedId }: Props) {
               </div>
             )}
             <button onClick={() => setShowLinkOpp(false)} className="w-full mt-3 py-2 text-sm text-muted-foreground font-medium">Fechar</button>
+          </div>
+        </div>
+      )}
+
+      {/* Transfer modal */}
+      {showTransfer && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowTransfer(false)}>
+          <div className="absolute inset-0 bg-foreground/40" />
+          <div className="relative bg-card rounded-2xl p-5 w-full max-w-sm" onClick={e => e.stopPropagation()}>
+            <h3 className="font-semibold mb-3">Transferir conversa</h3>
+            <label className="text-xs text-muted-foreground font-medium">Novo atendente</label>
+            <select
+              value={transferTo}
+              onChange={e => setTransferTo(e.target.value)}
+              className="w-full mt-1 mb-3 rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              <option value="">Selecione...</option>
+              {usuarios.filter(u => u.ativo && u.id !== conv.responsavel_interno_id).map(u => (
+                <option key={u.id} value={u.id}>{u.nome}</option>
+              ))}
+            </select>
+            <label className="text-xs text-muted-foreground font-medium">Motivo (opcional)</label>
+            <Textarea
+              value={transferMotivo}
+              onChange={e => setTransferMotivo(e.target.value)}
+              placeholder="Ex: Lead precisa de atendimento especializado..."
+              className="mt-1 mb-3 min-h-[60px]"
+            />
+            <div className="flex gap-2">
+              <button onClick={() => { setShowTransfer(false); setTransferTo(''); setTransferMotivo(''); }} className="flex-1 py-2 text-sm text-muted-foreground font-medium rounded-lg">Cancelar</button>
+              <button
+                disabled={!transferTo}
+                onClick={() => {
+                  const now = new Date().toISOString();
+                  const hist = conv.historico_atendentes || [];
+                  const lastH = hist[hist.length - 1];
+                  const updatedHist = lastH
+                    ? [...hist.slice(0, -1), { ...lastH, fim_em: now, motivo: transferMotivo || undefined }]
+                    : [...hist];
+                  updatedHist.push({ usuario_id: transferTo, inicio_em: now });
+                  updateConversa(conv.id, { historico_atendentes: updatedHist, responsavel_interno_id: transferTo });
+                  toast.success('Conversa transferida com sucesso');
+                  setShowTransfer(false);
+                  setTransferTo('');
+                  setTransferMotivo('');
+                }}
+                className="flex-1 py-2 text-sm bg-primary text-primary-foreground font-medium rounded-lg disabled:opacity-50"
+              >
+                Transferir
+              </button>
+            </div>
           </div>
         </div>
       )}

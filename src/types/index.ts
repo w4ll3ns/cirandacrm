@@ -71,6 +71,7 @@ export interface HistoricoAtendente {
   usuario_id: string;
   inicio_em: string;
   fim_em?: string;
+  motivo?: string;
 }
 
 export interface Conversa {
