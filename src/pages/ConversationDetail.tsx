@@ -75,7 +75,6 @@ export default function ConversationDetail({ embeddedId }: Props) {
       criado_em: new Date().toISOString(),
     });
     setTexto('');
-    toast.success('Mensagem enviada');
   };
 
   const markResolved = () => {
