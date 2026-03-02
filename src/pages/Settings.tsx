@@ -39,7 +39,8 @@ export default function Settings() {
           <span className="text-primary-foreground font-black text-xl">C</span>
         </div>
         <p className="text-sm font-semibold">Escola Ciranda do ABC</p>
-        <p className="text-xs text-muted-foreground">CRM Ciranda ABC · v1.0 Demo</p>
+        <p className="text-xs text-muted-foreground">CRM Ciranda ABC · v1.0</p>
+        <p className="text-[10px] text-muted-foreground/50 mt-1">Desenvolvido por WS Soluções Digitais</p>
       </div>
 
       {/* Users (admin only) */}

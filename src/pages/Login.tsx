@@ -79,7 +79,7 @@ export default function Login() {
             <p className="text-muted-foreground text-sm mt-1">Acesse sua conta do CRM</p>
           </div>
           {profileSelector}
-          <p className="text-muted-foreground/40 text-xs mt-8">Versão demo · Dados simulados</p>
+          <p className="text-muted-foreground/40 text-xs mt-8">Desenvolvido por WS Soluções Digitais</p>
         </div>
       </div>
     );
@@ -93,7 +93,7 @@ export default function Login() {
         <p className="text-primary-foreground/70 text-sm mt-1">CRM Escolar</p>
       </div>
       {profileSelector}
-      <p className="text-primary-foreground/40 text-xs mt-8">Versão demo · Dados simulados</p>
+      <p className="text-primary-foreground/40 text-xs mt-8">Desenvolvido por WS Soluções Digitais</p>
     </div>
   );
 }
