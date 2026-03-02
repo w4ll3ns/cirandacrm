@@ -202,7 +202,7 @@ export default function ConversationDetail({ embeddedId }: Props) {
       )}
 
       {/* New task form */}
-      <NewTaskForm open={showTaskForm} onClose={() => setShowTaskForm(false)} defaultResponsavelId={conv.responsavel_id} />
+      <NewTaskForm open={showTaskForm} onClose={() => setShowTaskForm(false)} defaultResponsavelId={conv.responsavel_id} defaultOportunidadeId={relOpps[0]?.id} />
     </div>
   );
 }

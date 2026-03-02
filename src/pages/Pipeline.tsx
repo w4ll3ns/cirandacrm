@@ -120,9 +120,19 @@ export default function Pipeline() {
             <p className="font-semibold text-sm truncate">{aluno?.nome || 'Aluno'}</p>
             <p className="text-xs text-muted-foreground truncate">{resp?.nome || 'Responsável'}</p>
           </div>
-          <span className={`shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${TEMP_COLOR[opp.temperatura]}`}>
-            <TempIcon className="w-3 h-3" /> {TEMPERATURA_LABELS[opp.temperatura]}
-          </span>
+          {canEditPipeline ? (
+            <button
+              onClick={(e) => { e.stopPropagation(); cycleTemperature(e, opp.id, opp.temperatura); }}
+              className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium hover:opacity-70 transition-opacity ${TEMP_COLOR[opp.temperatura]}`}
+              title="Clique para alterar temperatura"
+            >
+              <TempIcon className="w-3 h-3" /> {TEMPERATURA_LABELS[opp.temperatura]}
+            </button>
+          ) : (
+            <span className={`shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${TEMP_COLOR[opp.temperatura]}`}>
+              <TempIcon className="w-3 h-3" /> {TEMPERATURA_LABELS[opp.temperatura]}
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
           {resp?.whatsapp && <span>📱 {resp.whatsapp}</span>}
@@ -240,7 +250,7 @@ export default function Pipeline() {
                 const totalValue = opps.reduce((s, o) => s + (o.valor_estimado || 0), 0);
                 return (
                   <div key={etapa} onDragOver={canEditPipeline ? (e) => handleDragOver(e, etapa) : undefined} onDragLeave={canEditPipeline ? handleDragLeave : undefined} onDrop={canEditPipeline ? (e) => handleDrop(e, etapa) : undefined}
-                    className={`w-72 flex flex-col shrink-0 bg-card/50 rounded-xl border transition-colors ${isOver ? 'border-primary bg-primary/5' : 'border-border'}`}>
+                    className={`w-72 flex flex-col shrink-0 bg-card/50 rounded-xl border transition-all duration-200 ${isOver ? 'border-primary bg-primary/5 shadow-lg ring-2 ring-primary/30 scale-[1.01]' : 'border-border'}`}>
                     <div className="px-4 py-3 border-b border-border">
                       <div className="flex items-center justify-between">
                         <h3 className={`text-sm font-semibold ${isLost ? 'text-destructive' : isWon ? 'text-success' : ''}`}>{ETAPA_LABELS[etapa]}</h3>
@@ -249,7 +259,7 @@ export default function Pipeline() {
                       {totalValue > 0 && <p className="text-[10px] text-muted-foreground mt-0.5">R$ {totalValue.toLocaleString('pt-BR')}</p>}
                     </div>
                     <div className="flex-1 overflow-y-auto p-3 space-y-2">
-                      {opps.length === 0 && <p className="text-xs text-muted-foreground text-center py-6">{isOver ? 'Solte aqui' : 'Nenhuma'}</p>}
+                      {opps.length === 0 && <p className={`text-xs text-center py-6 ${isOver ? 'text-primary font-semibold' : 'text-muted-foreground'}`}>{isOver ? '↓ Solte aqui ↓' : 'Nenhuma'}</p>}
                       {opps.map(renderDesktopCard)}
                     </div>
                   </div>

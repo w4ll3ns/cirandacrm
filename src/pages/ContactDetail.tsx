@@ -5,7 +5,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { ORIGEM_LABELS, ETAPA_LABELS } from '@/types';
 import type { Origem } from '@/types';
 import { toast } from 'sonner';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { usePermissions } from '@/hooks/usePermissions';
 
 export default function ContactDetail() {
@@ -40,6 +40,12 @@ function RespDetail({ id, editing, setEditing, headerClass, backBtn, isMobile, c
   const [whatsapp, setWhatsapp] = useState(resp?.whatsapp || '');
   const [email, setEmail] = useState(resp?.email || '');
   const [origem, setOrigem] = useState<Origem>(resp?.origem || 'whatsapp');
+
+  useEffect(() => {
+    if (resp && !editing) {
+      setNome(resp.nome); setWhatsapp(resp.whatsapp); setEmail(resp.email || ''); setOrigem(resp.origem);
+    }
+  }, [resp?.nome, resp?.whatsapp, resp?.email, resp?.origem, editing]);
 
   if (!resp) return <div className="p-4 text-muted-foreground text-center">Não encontrado</div>;
 
@@ -163,6 +169,12 @@ function AlunoDetail({ id, editing, setEditing, headerClass, backBtn, isMobile, 
   const [nome, setNome] = useState(aluno?.nome || '');
   const [serie, setSerie] = useState(aluno?.serie_turma_interesse || '');
   const [obs, setObs] = useState(aluno?.observacoes || '');
+
+  useEffect(() => {
+    if (aluno && !editing) {
+      setNome(aluno.nome); setSerie(aluno.serie_turma_interesse); setObs(aluno.observacoes || '');
+    }
+  }, [aluno?.nome, aluno?.serie_turma_interesse, aluno?.observacoes, editing]);
 
   if (!aluno) return <div className="p-4 text-muted-foreground text-center">Não encontrado</div>;
 
