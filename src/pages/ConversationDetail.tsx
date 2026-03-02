@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Send, MoreVertical, CheckCircle2, Link2, ListTodo, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, Send, MoreVertical, CheckCircle2, Link2, ListTodo, ChevronDown, ChevronUp, ArrowRightLeft } from 'lucide-react';
 import { useData } from '@/contexts/DataContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { usuarios } from '@/data/mock';
 import NewTaskForm from '@/components/NewTaskForm';
 import { ETAPA_LABELS } from '@/types';
+import { Textarea } from '@/components/ui/textarea';
 
 interface Props {
   embeddedId?: string;
@@ -27,6 +28,9 @@ export default function ConversationDetail({ embeddedId }: Props) {
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [showLinkOpp, setShowLinkOpp] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [showTransfer, setShowTransfer] = useState(false);
+  const [transferTo, setTransferTo] = useState('');
+  const [transferMotivo, setTransferMotivo] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const conv = conversas.find(c => c.id === id);
