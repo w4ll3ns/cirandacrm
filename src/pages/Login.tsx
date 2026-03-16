@@ -88,8 +88,8 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-primary flex flex-col items-center justify-center p-6">
       <div className="mb-10 text-center">
-        <img src="/logo.png" alt="Ciranda ABC" className="w-24 h-24 object-contain mx-auto mb-4 drop-shadow-lg" />
-        <h1 className="text-2xl font-bold text-primary-foreground">Ciranda ABC</h1>
+        <img src="/logo.png" alt="Hora de Aprender" className="w-24 h-24 object-contain mx-auto mb-4 drop-shadow-lg" />
+        <h1 className="text-2xl font-bold text-primary-foreground">Hora de Aprender</h1>
         <p className="text-primary-foreground/70 text-sm mt-1">CRM Escolar</p>
       </div>
       {profileSelector}

@@ -54,10 +54,10 @@ export default function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader>
         <div className="flex items-center gap-3 px-2 py-2">
-          <img src="/logo.png" alt="Ciranda ABC" className="w-9 h-9 rounded-xl object-contain shrink-0" />
+          <img src="/logo.png" alt="Hora de Aprender" className="w-9 h-9 rounded-xl object-contain shrink-0" />
           {!collapsed && (
             <div className="min-w-0">
-              <p className="font-bold text-sm truncate">Ciranda ABC</p>
+              <p className="font-bold text-sm truncate">Hora de Aprender</p>
               <p className="text-[10px] text-muted-foreground truncate">CRM Escolar</p>
             </div>
           )}

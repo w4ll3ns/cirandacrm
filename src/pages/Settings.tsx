@@ -36,10 +36,10 @@ export default function Settings() {
       {/* Logo placeholder */}
       <div className="bg-card rounded-xl p-6 border border-border text-center">
         <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center mx-auto mb-3">
-          <span className="text-primary-foreground font-black text-xl">C</span>
+          <span className="text-primary-foreground font-black text-xl">H</span>
         </div>
-        <p className="text-sm font-semibold">Escola Ciranda do ABC</p>
-        <p className="text-xs text-muted-foreground">CRM Ciranda ABC · v1.0</p>
+        <p className="text-sm font-semibold">Centro Educacional Hora de Aprender</p>
+        <p className="text-xs text-muted-foreground">CRM Hora de Aprender · v1.0</p>
         <p className="text-[10px] text-muted-foreground/50 mt-1">Desenvolvido por WS Soluções Digitais</p>
       </div>
 
