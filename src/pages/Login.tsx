@@ -53,8 +53,8 @@ export default function Login() {
       <div className="min-h-screen flex">
         {/* Left branding panel */}
          <div className="hidden md:flex flex-1 bg-primary flex-col items-center justify-center p-12">
-          <img src="/logo.png" alt="Ciranda ABC" className="w-[120px] h-[120px] object-contain mb-6 drop-shadow-xl" />
-          <h1 className="text-3xl font-bold text-primary-foreground mb-2">Ciranda ABC</h1>
+          <img src="/logo.png" alt="Hora de Aprender" className="w-[120px] h-[120px] object-contain mb-6 drop-shadow-xl" />
+          <h1 className="text-3xl font-bold text-primary-foreground mb-2">Centro Educacional Hora de Aprender</h1>
           <p className="text-primary-foreground/70 text-center max-w-xs">
             CRM Escolar para gerenciar matrículas, leads e comunicação com famílias.
           </p>
