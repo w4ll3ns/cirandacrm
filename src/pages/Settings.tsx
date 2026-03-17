@@ -1,17 +1,16 @@
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, LogOut, WifiOff, User, Shield, Bell } from 'lucide-react';
+import { ArrowLeft, LogOut, User, Bell } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { usePermissions } from '@/hooks/usePermissions';
-import { useProfiles } from '@/hooks/useProfiles';
-import { toast } from 'sonner';
+import TeamManagement from '@/components/TeamManagement';
+import ZapiConfig from '@/components/ZapiConfig';
 
 export default function Settings() {
   const { usuario, logout } = useAuth();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const { canManageSettings } = usePermissions();
-  const { profiles } = useProfiles();
 
   const handleLogout = async () => {
     await logout();
@@ -44,43 +43,13 @@ export default function Settings() {
 
       {canManageSettings && (
         <div className="bg-card rounded-xl p-4 border border-border">
-          <h3 className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wider flex items-center gap-2">
-            <Shield className="w-3.5 h-3.5" /> Equipe
-          </h3>
-          {profiles.filter(p => p.active).map(u => (
-            <div key={u.id} className="py-2 flex items-center gap-3 text-sm">
-              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">
-                {u.name.charAt(0)}
-              </div>
-              <div className="flex-1">
-                <p className="font-medium">{u.name}</p>
-                <p className="text-xs text-muted-foreground capitalize">{u.role || 'atendente'}</p>
-              </div>
-              <span className="w-2 h-2 rounded-full bg-success" />
-            </div>
-          ))}
+          <TeamManagement />
         </div>
       )}
 
       {canManageSettings && (
         <div className="bg-card rounded-xl p-4 border border-border">
-          <h3 className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wider">Integrações</h3>
-          <div className="space-y-3">
-            {[{ name: 'WhatsApp API' }, { name: 'Webhooks' }].map(({ name }) => (
-              <div key={name} className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <WifiOff className="w-4 h-4 text-muted-foreground" />
-                  <div>
-                    <p className="text-sm font-medium">{name}</p>
-                    <p className="text-xs text-muted-foreground">Não conectado</p>
-                  </div>
-                </div>
-                <button onClick={() => toast.info('Funcionalidade disponível em breve')} className="text-xs bg-primary/10 text-primary px-3 py-1.5 rounded-full font-medium">
-                  Configurar
-                </button>
-              </div>
-            ))}
-          </div>
+          <ZapiConfig />
         </div>
       )}
 
