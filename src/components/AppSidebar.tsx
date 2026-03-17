@@ -1,4 +1,4 @@
-import { Home, Kanban, MessageCircle, Users, CheckSquare, Settings, LogOut } from 'lucide-react';
+import { Home, Kanban, MessageCircle, Users, CheckSquare, Settings, LogOut, Workflow } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
