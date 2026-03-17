@@ -12,8 +12,8 @@ export default function Settings() {
   const isMobile = useIsMobile();
   const { canManageSettings } = usePermissions();
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate('/');
   };
 
