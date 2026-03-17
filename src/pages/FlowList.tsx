@@ -43,11 +43,26 @@ export default function FlowList() {
   const [flows, setFlows] = useState<Flow[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deactivateId, setDeactivateId] = useState<string | null>(null);
+  const [sessionCounts, setSessionCounts] = useState<Record<string, number>>({});
 
   const fetchFlows = async () => {
     const { data } = await supabase.from('conversation_flows').select('*').order('updated_at', { ascending: false });
-    setFlows((data || []) as Flow[]);
+    const flowList = (data || []) as Flow[];
+    setFlows(flowList);
     setLoading(false);
+
+    // Fetch session counts
+    if (flowList.length > 0) {
+      const { data: sessions } = await supabase
+        .from('conversation_flow_sessions')
+        .select('flow_id');
+      if (sessions) {
+        const counts: Record<string, number> = {};
+        sessions.forEach((s: any) => { counts[s.flow_id] = (counts[s.flow_id] || 0) + 1; });
+        setSessionCounts(counts);
+      }
+    }
   };
 
   useEffect(() => { fetchFlows(); }, []);
@@ -73,50 +88,52 @@ export default function FlowList() {
     }).select('id').single();
     if (error) { toast.error('Erro ao duplicar'); return; }
 
-    // Copy nodes
     const { data: nodes } = await supabase.from('flow_nodes').select('*').eq('flow_id', flow.id);
     if (nodes && nodes.length > 0) {
       const idMap: Record<string, string> = {};
       for (const node of nodes) {
         const { data: newNode } = await supabase.from('flow_nodes').insert({
-          flow_id: newFlow.id,
-          type: node.type,
-          title: node.title,
-          config: node.config,
-          position_x: node.position_x,
-          position_y: node.position_y,
+          flow_id: newFlow.id, type: node.type, title: node.title,
+          config: node.config, position_x: node.position_x, position_y: node.position_y,
         }).select('id').single();
         if (newNode) idMap[node.id] = newNode.id;
       }
-
-      // Copy edges
       const { data: edges } = await supabase.from('flow_edges').select('*').eq('flow_id', flow.id);
       if (edges) {
         for (const edge of edges) {
           if (idMap[edge.source_node_id] && idMap[edge.target_node_id]) {
             await supabase.from('flow_edges').insert({
-              flow_id: newFlow.id,
-              source_node_id: idMap[edge.source_node_id],
-              target_node_id: idMap[edge.target_node_id],
-              source_handle: edge.source_handle,
-              condition_type: edge.condition_type,
-              condition_value: edge.condition_value,
+              flow_id: newFlow.id, source_node_id: idMap[edge.source_node_id],
+              target_node_id: idMap[edge.target_node_id], source_handle: edge.source_handle,
+              condition_type: edge.condition_type, condition_value: edge.condition_value,
               priority_order: edge.priority_order,
             });
           }
         }
       }
     }
-
     toast.success('Fluxo duplicado!');
     fetchFlows();
   };
 
   const toggleActive = async (flow: Flow) => {
-    const newAtivo = !flow.ativo;
-    const newStatus = newAtivo ? 'active' : 'inactive';
-    await supabase.from('conversation_flows').update({ ativo: newAtivo, status: newStatus as any }).eq('id', flow.id);
-    toast.success(newAtivo ? 'Fluxo ativado' : 'Fluxo desativado');
+    if (flow.ativo) {
+      setDeactivateId(flow.id);
+      return;
+    }
+    await doToggle(flow.id, true);
+  };
+
+  const confirmDeactivate = async () => {
+    if (!deactivateId) return;
+    await doToggle(deactivateId, false);
+    setDeactivateId(null);
+  };
+
+  const doToggle = async (flowId: string, activate: boolean) => {
+    const newStatus = activate ? 'active' : 'inactive';
+    await supabase.from('conversation_flows').update({ ativo: activate, status: newStatus as any }).eq('id', flowId);
+    toast.success(activate ? 'Fluxo ativado' : 'Fluxo desativado');
     fetchFlows();
   };
 
@@ -154,6 +171,7 @@ export default function FlowList() {
                 <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Nome</th>
                 <th className="text-left px-4 py-2.5 font-medium text-muted-foreground hidden md:table-cell">Gatilho</th>
                 <th className="text-left px-4 py-2.5 font-medium text-muted-foreground hidden md:table-cell">Status</th>
+                <th className="text-center px-4 py-2.5 font-medium text-muted-foreground hidden md:table-cell">Execuções</th>
                 <th className="text-center px-4 py-2.5 font-medium text-muted-foreground">Ativo</th>
                 <th className="text-right px-4 py-2.5 font-medium text-muted-foreground">Ações</th>
               </tr>
@@ -173,6 +191,9 @@ export default function FlowList() {
                     <td className="px-4 py-3 hidden md:table-cell">
                       <Badge variant={si.variant} className="text-[10px]">{si.label}</Badge>
                     </td>
+                    <td className="px-4 py-3 hidden md:table-cell text-center text-xs text-muted-foreground">
+                      {sessionCounts[flow.id] || 0}
+                    </td>
                     <td className="px-4 py-3 text-center">
                       <Switch checked={flow.ativo} onCheckedChange={() => toggleActive(flow)} />
                     </td>
@@ -191,6 +212,7 @@ export default function FlowList() {
         </div>
       )}
 
+      {/* Delete confirmation */}
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -200,6 +222,22 @@ export default function FlowList() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={deleteFlow} className="bg-destructive text-destructive-foreground">Excluir</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Deactivate confirmation */}
+      <AlertDialog open={!!deactivateId} onOpenChange={() => setDeactivateId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Desativar fluxo?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Sessões em andamento continuarão até serem concluídas. Novas conversas não ativarão este fluxo.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeactivate}>Desativar</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

@@ -1,9 +1,10 @@
-import { Home, Kanban, MessageCircle, Users, CheckSquare } from 'lucide-react';
+import { Home, Kanban, MessageCircle, Users, CheckSquare, Workflow } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useData } from '@/contexts/DataContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePermissions } from '@/hooks/usePermissions';
 
-const tabs = [
+const baseTabs = [
   { path: '/app', icon: Home, label: 'Início' },
   { path: '/app/pipeline', icon: Kanban, label: 'Pipeline' },
   { path: '/app/conversas', icon: MessageCircle, label: 'Conversas' },
@@ -16,6 +17,11 @@ export default function BottomNav() {
   const navigate = useNavigate();
   const { conversas, tarefas } = useData();
   const { usuario } = useAuth();
+  const { canViewFlows } = usePermissions();
+
+  const tabs = canViewFlows
+    ? [...baseTabs, { path: '/app/fluxos', icon: Workflow, label: 'Fluxos' }]
+    : baseTabs;
 
   const unread = conversas.filter(c => c.status === 'nao_lida' &&
     (usuario?.perfil === 'admin' || c.assigned_user_id === usuario?.id)).length;

@@ -12,6 +12,7 @@ import { flowNodeTypes, nodeLabels } from '@/components/flow/FlowNodeTypes';
 import NodePalette from '@/components/flow/NodePalette';
 import NodeProperties from '@/components/flow/NodeProperties';
 import FlowToolbar from '@/components/flow/FlowToolbar';
+import FlowTestChat from '@/components/flow/FlowTestChat';
 import { useAuth } from '@/contexts/AuthContext';
 
 function FlowBuilderInner() {
@@ -26,6 +27,8 @@ function FlowBuilderInner() {
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [testOpen, setTestOpen] = useState(false);
+  const [highlightedNodeId, setHighlightedNodeId] = useState<string | null>(null);
 
   // Load flow
   useEffect(() => {
@@ -261,7 +264,7 @@ function FlowBuilderInner() {
   };
 
   const testFlow = () => {
-    toast.info('Modo de teste: em desenvolvimento. Salve e ative o fluxo para testá-lo em uma conversa.');
+    setTestOpen(true);
   };
 
   if (loading) {
@@ -319,6 +322,14 @@ function FlowBuilderInner() {
           />
         )}
       </div>
+
+      <FlowTestChat
+        open={testOpen}
+        onClose={() => { setTestOpen(false); setHighlightedNodeId(null); }}
+        nodes={nodes}
+        edges={edges}
+        onHighlightNode={setHighlightedNodeId}
+      />
     </div>
   );
 }
