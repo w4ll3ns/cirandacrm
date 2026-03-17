@@ -264,7 +264,7 @@ function FlowBuilderInner() {
   };
 
   const testFlow = () => {
-    toast.info('Modo de teste: em desenvolvimento. Salve e ative o fluxo para testá-lo em uma conversa.');
+    setTestOpen(true);
   };
 
   if (loading) {
