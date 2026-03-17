@@ -1,8 +1,7 @@
 import { useMemo } from 'react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, FunnelChart, Funnel, LabelList } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { useData } from '@/contexts/DataContext';
 import { ETAPA_LABELS, ETAPAS_ORDER, ORIGEM_LABELS } from '@/types';
-import type { EtapaPipeline, Origem } from '@/types';
 
 const COLORS = [
   'hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(--success))',
@@ -25,7 +24,7 @@ export default function ReportsPanel() {
     const map: Record<string, number> = {};
     oportunidades.forEach(o => {
       const resp = responsaveis.find(r => r.id === o.responsavel_id);
-      if (resp) {
+      if (resp?.origem) {
         const label = ORIGEM_LABELS[resp.origem] || resp.origem;
         map[label] = (map[label] || 0) + 1;
       }
@@ -49,7 +48,6 @@ export default function ReportsPanel() {
 
   return (
     <div className="space-y-6">
-      {/* Conversion KPI */}
       <div className="bg-card rounded-xl p-5 border border-border text-center">
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Taxa de Conversão</p>
         <p className="text-4xl font-bold text-success">{conversionRate}%</p>
@@ -59,7 +57,6 @@ export default function ReportsPanel() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Funnel */}
         <div className="bg-card rounded-xl p-5 border border-border">
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">Funil de Conversão</h3>
           <ResponsiveContainer width="100%" height={250}>
@@ -76,7 +73,6 @@ export default function ReportsPanel() {
           </ResponsiveContainer>
         </div>
 
-        {/* Origem */}
         <div className="bg-card rounded-xl p-5 border border-border">
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">Leads por Origem</h3>
           <ResponsiveContainer width="100%" height={250}>
@@ -91,7 +87,6 @@ export default function ReportsPanel() {
           </ResponsiveContainer>
         </div>
 
-        {/* Motivos de perda */}
         <div className="bg-card rounded-xl p-5 border border-border">
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">Motivos de Perda</h3>
           <ResponsiveContainer width="100%" height={200}>
@@ -104,7 +99,6 @@ export default function ReportsPanel() {
           </ResponsiveContainer>
         </div>
 
-        {/* Pipeline value */}
         <div className="bg-card rounded-xl p-5 border border-border">
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">Valor do Pipeline</h3>
           <div className="space-y-3">

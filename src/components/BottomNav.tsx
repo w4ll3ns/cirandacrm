@@ -18,8 +18,8 @@ export default function BottomNav() {
   const { usuario } = useAuth();
 
   const unread = conversas.filter(c => c.status === 'nao_lida' &&
-    (usuario?.perfil === 'admin' || c.responsavel_interno_id === usuario?.id)).length;
-  const overdue = tarefas.filter(t => t.status === 'atrasada' &&
+    (usuario?.perfil === 'admin' || c.assigned_user_id === usuario?.id)).length;
+  const overdue = tarefas.filter(t => t.status === 'pendente' && t.due_date && new Date(t.due_date) < new Date() &&
     (usuario?.perfil === 'admin' || t.responsavel_interno_id === usuario?.id)).length;
 
   const isActive = (path: string) => {
@@ -34,13 +34,7 @@ export default function BottomNav() {
           const active = isActive(path);
           const badge = label === 'Conversas' ? unread : label === 'Tarefas' ? overdue : 0;
           return (
-            <button
-              key={path}
-              onClick={() => navigate(path)}
-              className={`flex flex-col items-center justify-center gap-0.5 flex-1 h-full transition-colors relative ${
-                active ? 'text-primary' : 'text-muted-foreground'
-              }`}
-            >
+            <button key={path} onClick={() => navigate(path)} className={`flex flex-col items-center justify-center gap-0.5 flex-1 h-full transition-colors relative ${active ? 'text-primary' : 'text-muted-foreground'}`}>
               <div className="relative">
                 <Icon className="w-5 h-5" />
                 {badge > 0 && (

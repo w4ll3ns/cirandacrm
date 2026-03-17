@@ -14,7 +14,7 @@ type HomeTab = 'resumo' | 'relatorios';
 
 export default function Home() {
   const { usuario } = useAuth();
-  const { oportunidades, tarefas, conversas } = useData();
+  const { oportunidades, tarefas, conversas, loading } = useData();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [periodo, setPeriodo] = useState<Periodo>('hoje');
@@ -22,7 +22,7 @@ export default function Home() {
   const [homeTab, setHomeTab] = useState<HomeTab>('resumo');
   const { canViewReports } = usePermissions();
 
-  const isOwn = (internoId: string) => usuario?.perfil === 'admin' || internoId === usuario?.id;
+  const isOwn = (internoId: string | null) => usuario?.perfil === 'admin' || internoId === usuario?.id;
 
   const kpis = useMemo(() => {
     const now = new Date();
@@ -35,21 +35,21 @@ export default function Home() {
     const myOpps = oportunidades.filter(o => isOwn(o.responsavel_interno_id));
     const myTasks = tarefas.filter(t => isOwn(t.responsavel_interno_id));
     return {
-      novosLeads: myOpps.filter(o => o.etapa === 'novo_lead' && filterDate(o.criado_em)).length,
+      novosLeads: myOpps.filter(o => o.etapa === 'novo_lead' && filterDate(o.created_at)).length,
       emContato: myOpps.filter(o => o.etapa === 'primeiro_contato').length,
       visitasAgendadas: myOpps.filter(o => o.etapa === 'visita_agendada').length,
-      followupsAtrasados: myTasks.filter(t => t.status === 'atrasada').length,
-      matriculasMes: myOpps.filter(o => o.etapa === 'matricula_fechada' && filterDate(o.atualizado_em)).length,
-      naoLidas: conversas.filter(c => c.status === 'nao_lida' && isOwn(c.responsavel_interno_id)).length,
+      followupsAtrasados: myTasks.filter(t => t.status === 'pendente' && t.due_date && new Date(t.due_date) < now).length,
+      matriculasMes: myOpps.filter(o => o.etapa === 'matricula_fechada' && filterDate(o.updated_at)).length,
+      naoLidas: conversas.filter(c => c.status === 'nao_lida' && isOwn(c.assigned_user_id)).length,
     };
   }, [periodo, oportunidades, tarefas, conversas, usuario]);
 
   const tarefasPrioritarias = useMemo(() => {
     return tarefas
-      .filter(t => isOwn(t.responsavel_interno_id) && t.status !== 'concluida')
+      .filter(t => isOwn(t.responsavel_interno_id) && t.status !== 'concluida' && t.status !== 'cancelada')
       .sort((a, b) => {
-        const prioOrder = { alta: 0, media: 1, baixa: 2 };
-        return prioOrder[a.prioridade] - prioOrder[b.prioridade];
+        const prioOrder: Record<string, number> = { urgente: 0, alta: 1, media: 2, baixa: 3 };
+        return (prioOrder[a.prioridade] || 3) - (prioOrder[b.prioridade] || 3);
       })
       .slice(0, isMobile ? 5 : 8);
   }, [tarefas, usuario, isMobile]);
@@ -61,9 +61,16 @@ export default function Home() {
     { label: 'Matrículas no Mês', value: kpis.matriculasMes, icon: Trophy, color: 'text-success' },
   ];
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
+
   return (
     <div className="p-4 md:p-6 lg:p-8 space-y-5 max-w-7xl mx-auto">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex gap-2">
           {([['hoje', 'Hoje'], ['7dias', '7 dias'], ['mes', 'Mês']] as const).map(([key, label]) => (
@@ -86,12 +93,10 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Reports tab */}
       {homeTab === 'relatorios' && !isMobile ? (
         <ReportsPanel />
       ) : (
         <>
-          {/* KPI Grid */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
             {kpiCards.map(({ label, value, icon: Icon, color }) => (
               <div key={label} className="bg-card rounded-xl p-4 md:p-5 border border-border">
@@ -104,7 +109,6 @@ export default function Home() {
             ))}
           </div>
 
-          {/* Main content */}
           <div className={`${isMobile ? 'space-y-5' : 'grid grid-cols-3 gap-6'}`}>
             <div className={`${isMobile ? '' : 'col-span-2'} space-y-5`}>
               {kpis.naoLidas > 0 && (
@@ -128,12 +132,11 @@ export default function Home() {
               <div className="space-y-2">
                 {tarefasPrioritarias.map(t => (
                   <div key={t.id} className="bg-card rounded-xl p-3 border border-border flex items-center gap-3">
-                    <div className={`w-2 h-2 rounded-full shrink-0 ${t.prioridade === 'alta' ? 'bg-secondary' : t.prioridade === 'media' ? 'bg-accent' : 'bg-muted-foreground/30'}`} />
+                    <div className={`w-2 h-2 rounded-full shrink-0 ${t.prioridade === 'alta' || t.prioridade === 'urgente' ? 'bg-secondary' : t.prioridade === 'media' ? 'bg-accent' : 'bg-muted-foreground/30'}`} />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{t.titulo}</p>
-                      <p className="text-xs text-muted-foreground">{TIPO_TAREFA_LABELS[t.tipo]}</p>
+                      <p className="text-xs text-muted-foreground">{TIPO_TAREFA_LABELS[t.tipo || ''] || t.tipo || 'Tarefa'}</p>
                     </div>
-                    {t.status === 'atrasada' && <span className="text-[10px] bg-destructive/10 text-destructive px-2 py-0.5 rounded-full font-medium">Atrasada</span>}
                   </div>
                 ))}
                 {tarefasPrioritarias.length === 0 && <p className="text-sm text-muted-foreground text-center py-6">Nenhuma tarefa pendente 🎉</p>}
@@ -143,7 +146,6 @@ export default function Home() {
         </>
       )}
 
-      {/* FAB - mobile only */}
       {isMobile && (
         <button onClick={() => setShowNewLead(true)} className="fixed bottom-20 right-4 w-14 h-14 bg-secondary text-secondary-foreground rounded-full shadow-lg flex items-center justify-center active:scale-95 transition-transform z-30">
           <Plus className="w-6 h-6" />

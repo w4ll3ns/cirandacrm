@@ -4,18 +4,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { NavLink } from '@/components/NavLink';
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarHeader,
-  SidebarFooter,
-  SidebarSeparator,
-  useSidebar,
+  Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
+  SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter,
+  SidebarSeparator, useSidebar,
 } from '@/components/ui/sidebar';
 
 const navItems = [
@@ -35,8 +26,8 @@ export default function AppSidebar() {
   const location = useLocation();
 
   const unread = conversas.filter(c => c.status === 'nao_lida' &&
-    (usuario?.perfil === 'admin' || c.responsavel_interno_id === usuario?.id)).length;
-  const overdue = tarefas.filter(t => t.status === 'atrasada' &&
+    (usuario?.perfil === 'admin' || c.assigned_user_id === usuario?.id)).length;
+  const overdue = tarefas.filter(t => t.status === 'pendente' && t.due_date && new Date(t.due_date) < new Date() &&
     (usuario?.perfil === 'admin' || t.responsavel_interno_id === usuario?.id)).length;
 
   const getBadge = (label: string) => {
@@ -75,15 +66,8 @@ export default function AppSidebar() {
                 const badge = getBadge(item.label);
                 return (
                   <SidebarMenuItem key={item.path}>
-                    <SidebarMenuButton asChild isActive={
-                      item.end ? location.pathname === item.path : location.pathname.startsWith(item.path)
-                    }>
-                      <NavLink
-                        to={item.path}
-                        end={item.end}
-                        className="flex items-center gap-2"
-                        activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                      >
+                    <SidebarMenuButton asChild isActive={item.end ? location.pathname === item.path : location.pathname.startsWith(item.path)}>
+                      <NavLink to={item.path} end={item.end} className="flex items-center gap-2" activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium">
                         <item.icon className="h-4 w-4 shrink-0" />
                         {!collapsed && <span className="flex-1">{item.label}</span>}
                         {!collapsed && badge > 0 && (

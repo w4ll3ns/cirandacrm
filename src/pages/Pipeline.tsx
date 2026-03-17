@@ -5,22 +5,23 @@ import { useData } from '@/contexts/DataContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { ETAPA_LABELS, ETAPAS_ORDER, TEMPERATURA_LABELS, ORIGEM_LABELS } from '@/types';
 import type { EtapaPipeline, Temperatura } from '@/types';
-import { Flame, Thermometer, Snowflake, ChevronLeft, ChevronRight, Search, Filter, Plus, DollarSign } from 'lucide-react';
+import { Flame, Thermometer, Snowflake, ChevronLeft, ChevronRight, Search, Plus, DollarSign } from 'lucide-react';
 import { toast } from 'sonner';
 import NewLeadForm from '@/components/NewLeadForm';
-import { usuarios } from '@/data/mock';
+import { useProfiles } from '@/hooks/useProfiles';
 import { usePermissions } from '@/hooks/usePermissions';
 
-const TEMP_ICON = { quente: Flame, morno: Thermometer, frio: Snowflake };
-const TEMP_COLOR = { quente: 'bg-destructive/10 text-destructive', morno: 'bg-secondary/10 text-secondary', frio: 'bg-cold/10 text-cold' };
+const TEMP_ICON: Record<string, any> = { quente: Flame, morno: Thermometer, frio: Snowflake };
+const TEMP_COLOR: Record<string, string> = { quente: 'bg-destructive/10 text-destructive', morno: 'bg-secondary/10 text-secondary', frio: 'bg-cold/10 text-cold' };
 const TEMP_CYCLE: Temperatura[] = ['frio', 'morno', 'quente'];
 
 export default function Pipeline() {
   const { usuario } = useAuth();
-  const { oportunidades, responsaveis, alunos, updateOportunidade } = useData();
+  const { oportunidades, responsaveis, alunos, updateOportunidade, loading } = useData();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const { canEditPipeline, canFilterByResponsavel } = usePermissions();
+  const { profiles } = useProfiles();
   const [activeEtapa, setActiveEtapa] = useState<EtapaPipeline>('novo_lead');
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOverEtapa, setDragOverEtapa] = useState<EtapaPipeline | null>(null);
@@ -71,10 +72,11 @@ export default function Pipeline() {
     setDraggingId(null); setDragOverEtapa(null);
   };
 
-  const cycleTemperature = (e: React.MouseEvent, oppId: string, current: Temperatura) => {
+  const cycleTemperature = (e: React.MouseEvent, oppId: string, current: string | null) => {
     e.stopPropagation();
     e.preventDefault();
-    const idx = TEMP_CYCLE.indexOf(current);
+    const temp = (current || 'morno') as Temperatura;
+    const idx = TEMP_CYCLE.indexOf(temp);
     const next = TEMP_CYCLE[(idx + 1) % 3];
     updateOportunidade(oppId, { temperatura: next });
     toast.success(`Temperatura: ${TEMPERATURA_LABELS[next]}`);
@@ -89,7 +91,7 @@ export default function Pipeline() {
       list = list.filter(o => {
         const resp = responsaveis.find(r => r.id === o.responsavel_id);
         const aluno = alunos.find(a => a.id === o.aluno_id);
-        return resp?.nome.toLowerCase().includes(q) || aluno?.nome.toLowerCase().includes(q) || resp?.whatsapp.includes(q);
+        return resp?.nome.toLowerCase().includes(q) || aluno?.nome.toLowerCase().includes(q) || (resp?.whatsapp || resp?.telefone || '').includes(q);
       });
     }
     if (filterTemp !== 'todas') list = list.filter(o => o.temperatura === filterTemp);
@@ -105,12 +107,13 @@ export default function Pipeline() {
   }, [myOpps]);
 
   const getResp = (id: string) => responsaveis.find(r => r.id === id);
-  const getAluno = (id: string) => alunos.find(a => a.id === id);
+  const getAluno = (id: string | null) => id ? alunos.find(a => a.id === id) : undefined;
 
   const renderCard = (opp: typeof myOpps[0]) => {
     const resp = getResp(opp.responsavel_id);
     const aluno = getAluno(opp.aluno_id);
-    const TempIcon = TEMP_ICON[opp.temperatura];
+    const temp = (opp.temperatura || 'morno') as Temperatura;
+    const TempIcon = TEMP_ICON[temp] || Thermometer;
     const followup = opp.proximo_followup_em ? new Date(opp.proximo_followup_em).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : null;
 
     return (
@@ -121,22 +124,20 @@ export default function Pipeline() {
             <p className="text-xs text-muted-foreground truncate">{resp?.nome || 'Responsável'}</p>
           </div>
           {canEditPipeline ? (
-            <button
-              onClick={(e) => { e.stopPropagation(); cycleTemperature(e, opp.id, opp.temperatura); }}
-              className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium hover:opacity-70 transition-opacity ${TEMP_COLOR[opp.temperatura]}`}
-              title="Clique para alterar temperatura"
-            >
-              <TempIcon className="w-3 h-3" /> {TEMPERATURA_LABELS[opp.temperatura]}
+            <button onClick={(e) => { e.stopPropagation(); cycleTemperature(e, opp.id, opp.temperatura); }}
+              className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium hover:opacity-70 transition-opacity ${TEMP_COLOR[temp] || TEMP_COLOR.morno}`}
+              title="Clique para alterar temperatura">
+              <TempIcon className="w-3 h-3" /> {TEMPERATURA_LABELS[temp] || 'Morno'}
             </button>
           ) : (
-            <span className={`shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${TEMP_COLOR[opp.temperatura]}`}>
-              <TempIcon className="w-3 h-3" /> {TEMPERATURA_LABELS[opp.temperatura]}
+            <span className={`shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${TEMP_COLOR[temp] || TEMP_COLOR.morno}`}>
+              <TempIcon className="w-3 h-3" /> {TEMPERATURA_LABELS[temp] || 'Morno'}
             </span>
           )}
         </div>
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
-          {resp?.whatsapp && <span>📱 {resp.whatsapp}</span>}
-          {resp && <span>· {ORIGEM_LABELS[resp.origem]}</span>}
+          {(resp?.whatsapp || resp?.telefone) && <span>📱 {resp?.whatsapp || resp?.telefone}</span>}
+          {resp?.origem && <span>· {ORIGEM_LABELS[resp.origem] || resp.origem}</span>}
         </div>
         {opp.valor_estimado && (
           <div className="mt-1.5 text-xs text-success font-medium flex items-center gap-1">
@@ -151,42 +152,34 @@ export default function Pipeline() {
   const renderDesktopCard = (opp: typeof myOpps[0]) => {
     const resp = getResp(opp.responsavel_id);
     const aluno = getAluno(opp.aluno_id);
-    const TempIcon = TEMP_ICON[opp.temperatura];
+    const temp = (opp.temperatura || 'morno') as Temperatura;
+    const TempIcon = TEMP_ICON[temp] || Thermometer;
     const followup = opp.proximo_followup_em ? new Date(opp.proximo_followup_em).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : null;
     const isDragging = draggingId === opp.id;
 
     return (
-      <div
-        key={opp.id}
-        draggable={canEditPipeline}
-        onDragStart={canEditPipeline ? (e) => handleDragStart(e, opp.id) : undefined}
-        onDragEnd={canEditPipeline ? handleDragEnd : undefined}
-        onClick={() => navigate(`/app/oportunidades/${opp.id}`)}
-        className={`w-full bg-card rounded-xl p-4 border border-border text-left transition-all hover:shadow-md hover:border-primary/30 ${canEditPipeline ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'} ${isDragging ? 'opacity-40 scale-95' : ''}`}
-      >
+      <div key={opp.id} draggable={canEditPipeline} onDragStart={canEditPipeline ? (e) => handleDragStart(e, opp.id) : undefined} onDragEnd={canEditPipeline ? handleDragEnd : undefined} onClick={() => navigate(`/app/oportunidades/${opp.id}`)}
+        className={`w-full bg-card rounded-xl p-4 border border-border text-left transition-all hover:shadow-md hover:border-primary/30 ${canEditPipeline ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'} ${isDragging ? 'opacity-40 scale-95' : ''}`}>
         <div className="flex items-start justify-between gap-2 mb-2">
           <div className="min-w-0 flex-1">
             <p className="font-semibold text-sm truncate">{aluno?.nome || 'Aluno'}</p>
             <p className="text-xs text-muted-foreground truncate">{resp?.nome || 'Responsável'}</p>
           </div>
           {canEditPipeline ? (
-            <button
-              onClick={(e) => cycleTemperature(e, opp.id, opp.temperatura)}
-              onMouseDown={(e) => e.stopPropagation()}
-              className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium hover:opacity-70 transition-opacity ${TEMP_COLOR[opp.temperatura]}`}
-              title="Clique para alterar temperatura"
-            >
-              <TempIcon className="w-3 h-3" /> {TEMPERATURA_LABELS[opp.temperatura]}
+            <button onClick={(e) => cycleTemperature(e, opp.id, opp.temperatura)} onMouseDown={(e) => e.stopPropagation()}
+              className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium hover:opacity-70 transition-opacity ${TEMP_COLOR[temp] || TEMP_COLOR.morno}`}
+              title="Clique para alterar temperatura">
+              <TempIcon className="w-3 h-3" /> {TEMPERATURA_LABELS[temp] || 'Morno'}
             </button>
           ) : (
-            <span className={`shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${TEMP_COLOR[opp.temperatura]}`}>
-              <TempIcon className="w-3 h-3" /> {TEMPERATURA_LABELS[opp.temperatura]}
+            <span className={`shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${TEMP_COLOR[temp] || TEMP_COLOR.morno}`}>
+              <TempIcon className="w-3 h-3" /> {TEMPERATURA_LABELS[temp] || 'Morno'}
             </span>
           )}
         </div>
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
-          {resp?.whatsapp && <span>📱 {resp.whatsapp}</span>}
-          {resp && <span>· {ORIGEM_LABELS[resp.origem]}</span>}
+          {(resp?.whatsapp || resp?.telefone) && <span>📱 {resp?.whatsapp || resp?.telefone}</span>}
+          {resp?.origem && <span>· {ORIGEM_LABELS[resp.origem] || resp.origem}</span>}
         </div>
         {opp.valor_estimado && (
           <div className="mt-1.5 text-xs text-success font-medium flex items-center gap-1">
@@ -197,6 +190,10 @@ export default function Pipeline() {
       </div>
     );
   };
+
+  if (loading) {
+    return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
+  }
 
   // Desktop
   if (!isMobile) {
@@ -209,7 +206,6 @@ export default function Pipeline() {
               <Plus className="w-4 h-4" /> Novo Lead
             </button>
           </div>
-          {/* Filters */}
           <div className="flex items-center gap-3 flex-wrap">
             <div className="relative flex-1 max-w-xs">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -224,7 +220,7 @@ export default function Pipeline() {
             {canFilterByResponsavel && (
               <select value={filterResp} onChange={e => setFilterResp(e.target.value)} className="bg-card border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
                 <option value="">Todos responsáveis</option>
-                {usuarios.map(u => <option key={u.id} value={u.id}>{u.nome}</option>)}
+                {profiles.filter(p => p.active).map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
               </select>
             )}
           </div>
