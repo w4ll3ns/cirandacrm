@@ -139,10 +139,17 @@ export default function ZapiConfig() {
       ))}
 
       {instances.length > 0 && (
-        <div className="bg-muted/50 rounded-lg p-3">
+        <div className="bg-muted/50 rounded-lg p-3 space-y-2">
           <p className="text-[10px] font-semibold text-muted-foreground uppercase mb-1">URL do Webhook</p>
           <p className="text-xs text-foreground break-all font-mono bg-background rounded px-2 py-1 select-all">{webhookUrl}</p>
-          <p className="text-[10px] text-muted-foreground mt-1">Cole esta URL nas configurações de webhook da Z-API</p>
+          <div className="bg-primary/5 rounded-lg px-3 py-2 space-y-1">
+            <p className="text-[10px] font-semibold text-primary">📋 Configuração no painel Z-API:</p>
+            <p className="text-[10px] text-muted-foreground">Use esta mesma URL nos dois campos:</p>
+            <ul className="text-[10px] text-muted-foreground list-disc list-inside space-y-0.5">
+              <li><strong>Webhook Received</strong> — para receber mensagens</li>
+              <li><strong>Webhook Message Status</strong> — para confirmação de entrega (✓✓) e leitura</li>
+            </ul>
+          </div>
         </div>
       )}
 

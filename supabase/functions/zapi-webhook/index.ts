@@ -6,6 +6,14 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// Map Z-API status to internal status
+const STATUS_MAP: Record<string, string> = {
+  SENT: "sent",
+  RECEIVED: "delivered",
+  READ: "read",
+  PLAYED: "read",
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -29,10 +37,56 @@ Deno.serve(async (req) => {
     // Log the webhook event
     await supabase.from("webhook_events").insert({
       provider: "zapi",
-      event_type: payload.event || "message",
+      event_type: payload.type || payload.event || "message",
       external_event_id: payload.messageId || null,
       payload,
     });
+
+    // ─── Handle MessageStatusCallback ───
+    if (payload.type === "MessageStatusCallback") {
+      const zapiStatus = payload.status; // SENT, RECEIVED, READ, PLAYED
+      const ids: string[] = payload.ids || [];
+      const mappedStatus = STATUS_MAP[zapiStatus];
+
+      if (!mappedStatus || ids.length === 0) {
+        return new Response(JSON.stringify({ ok: true, skipped: true, reason: "unknown_status_or_no_ids" }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const now = new Date().toISOString();
+      let updated = 0;
+
+      for (const externalId of ids) {
+        const updateFields: Record<string, string> = { status: mappedStatus };
+
+        if (mappedStatus === "delivered") {
+          updateFields.delivered_at = now;
+        } else if (mappedStatus === "read") {
+          updateFields.delivered_at = now; // ensure delivered_at is set
+          updateFields.read_at = now;
+        }
+
+        const { data } = await supabase
+          .from("messages")
+          .update(updateFields)
+          .eq("external_message_id", externalId)
+          .eq("direction", "outbound")
+          .select("id");
+
+        if (data && data.length > 0) updated += data.length;
+      }
+
+      console.log(`Status update: ${zapiStatus} → ${mappedStatus}, updated ${updated} messages`);
+
+      return new Response(JSON.stringify({ ok: true, status_update: true, mapped: mappedStatus, updated }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ─── Handle incoming messages (existing logic) ───
 
     // Only process incoming messages
     if (!payload.text && !payload.image && !payload.audio && !payload.document) {
