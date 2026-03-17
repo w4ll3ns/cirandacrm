@@ -18,7 +18,7 @@ const STATUS_FILTER: { key: ConversationStatus | 'todas'; label: string }[] = [
 
 export default function Conversations() {
   const { usuario } = useAuth();
-  const { conversas = [], mensagens = [], responsaveis = [], loading, updateConversa } = useData();
+  const { conversas = [], lastMessages, responsaveis = [], loading, updateConversa } = useData();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [busca, setBusca] = useState('');

@@ -40,7 +40,8 @@ export default function ConversationDetail({ embeddedId }: Props) {
   const isMobile = useIsMobile();
   const isEmbedded = !!embeddedId;
   const { usuario } = useAuth();
-  const { conversas, mensagens, responsaveis, oportunidades, addMensagem, updateConversa, updateOportunidade } = useData();
+  const { conversas, getMensagens, fetchMensagens, responsaveis, oportunidades, addMensagem, updateConversa, updateOportunidade } = useData();
+  const [msgsLoading, setMsgsLoading] = useState(true);
   const { profiles } = useProfiles();
   const [texto, setTexto] = useState('');
   const [sending, setSending] = useState(false);
