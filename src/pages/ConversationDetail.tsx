@@ -93,7 +93,7 @@ function MediaRenderer({ msg }: { msg: any }) {
 
   // Fallback: text only
   if (msg.content_text) {
-    return <p className="text-sm">{msg.content_text}</p>;
+    return <p className="text-sm whitespace-pre-wrap">{msg.content_text}</p>;
   }
 
   return null;
