@@ -163,7 +163,7 @@ Deno.serve(async (req) => {
     // Find or create conversation
     let { data: conversation } = await supabase
       .from("conversations")
-      .select("id")
+      .select("id, oportunidade_id")
       .eq("responsavel_id", responsavel.id)
       .in("status", ["nao_lida", "aguardando", "em_atendimento"])
       .order("created_at", { ascending: false })
