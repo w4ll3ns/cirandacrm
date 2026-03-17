@@ -163,7 +163,7 @@ Deno.serve(async (req) => {
     // Find or create conversation
     let { data: conversation } = await supabase
       .from("conversations")
-      .select("id")
+      .select("id, oportunidade_id")
       .eq("responsavel_id", responsavel.id)
       .in("status", ["nao_lida", "aguardando", "em_atendimento"])
       .order("created_at", { ascending: false })
@@ -189,6 +189,39 @@ Deno.serve(async (req) => {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // ─── Find or create oportunidade ───
+    let { data: oportunidade } = await supabase
+      .from("oportunidades")
+      .select("id")
+      .eq("responsavel_id", responsavel.id)
+      .eq("status", "aberta")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!oportunidade) {
+      const { data: newOp } = await supabase
+        .from("oportunidades")
+        .insert({
+          responsavel_id: responsavel.id,
+          etapa: "novo_lead",
+          temperatura: "morno",
+          status: "aberta",
+          origem: "whatsapp",
+        })
+        .select("id")
+        .single();
+      oportunidade = newOp;
+    }
+
+    // Link oportunidade to conversation if not already linked
+    if (oportunidade && !conversation.oportunidade_id) {
+      await supabase
+        .from("conversations")
+        .update({ oportunidade_id: oportunidade.id })
+        .eq("id", conversation.id);
     }
 
     // Determine message type
