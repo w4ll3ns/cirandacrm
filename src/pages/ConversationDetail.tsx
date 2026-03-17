@@ -52,6 +52,12 @@ export default function ConversationDetail({ embeddedId }: Props) {
   const [showLinkOpp, setShowLinkOpp] = useState(false);
   const [showTransfer, setShowTransfer] = useState(false);
   const [showResolveModal, setShowResolveModal] = useState(false);
+  const [showEditContact, setShowEditContact] = useState(false);
+  const [editNome, setEditNome] = useState('');
+  const [editWhatsapp, setEditWhatsapp] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editOrigem, setEditOrigem] = useState('');
+  const [savingContact, setSavingContact] = useState(false);
   const [transferTo, setTransferTo] = useState('');
   const [transferMotivo, setTransferMotivo] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
