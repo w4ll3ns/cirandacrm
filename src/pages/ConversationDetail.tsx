@@ -16,7 +16,7 @@ function MessageStatusIcon({ status }: { status: string }) {
     case 'pending': return <Clock className="w-3 h-3 text-primary-foreground/50" />;
     case 'sent': return <Check className="w-3 h-3 text-primary-foreground/60" />;
     case 'delivered': return <CheckCheck className="w-3 h-3 text-primary-foreground/60" />;
-    case 'read': return <CheckCheck className="w-3 h-3 text-sky-300" />;
+    case 'read': return <CheckCheck className="w-3 h-3 text-accent-foreground" />;
     case 'failed': return <AlertCircle className="w-3 h-3 text-destructive" />;
     default: return <Clock className="w-3 h-3 text-primary-foreground/50" />;
   }
