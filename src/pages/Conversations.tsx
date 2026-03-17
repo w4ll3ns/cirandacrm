@@ -6,6 +6,7 @@ import { useData } from '@/contexts/DataContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import type { ConversationStatus } from '@/types';
 import ConversationDetail from './ConversationDetail';
+import { useInboundNotification } from '@/hooks/useInboundNotification';
 
 const STATUS_FILTER: { key: ConversationStatus | 'todas'; label: string }[] = [
   { key: 'todas', label: 'Todas' },
