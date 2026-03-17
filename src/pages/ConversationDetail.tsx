@@ -53,19 +53,21 @@ export default function ConversationDetail({ embeddedId }: Props) {
   if (!conv) return <div className="p-4 text-muted-foreground text-center">Conversa não encontrada</div>;
 
   const handleSend = async () => {
-    if (!texto.trim()) return;
-    await addMensagem({
-      conversation_id: conv.id,
-      direction: 'outbound',
-      sender_type: 'usuario',
-      content_text: texto.trim(),
-      type: 'text',
-    });
-    // Update assigned user if needed
-    if (usuario && conv.assigned_user_id !== usuario.id) {
-      await updateConversa(conv.id, { assigned_user_id: usuario.id });
+    if (!texto.trim() || sending) return;
+    setSending(true);
+    try {
+      const phone = resp?.whatsapp || resp?.telefone || conv.telefone;
+      const { data, error } = await supabase.functions.invoke('zapi-send', {
+        body: { conversation_id: conv.id, message: texto.trim(), phone },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setTexto('');
+    } catch (err: any) {
+      toast.error(err?.message || 'Erro ao enviar mensagem');
+    } finally {
+      setSending(false);
     }
-    setTexto('');
   };
 
   const markResolved = () => {
