@@ -91,6 +91,38 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Validate client_token before calling Z-API
+    if (!instance.client_token) {
+      // Save message as failed with clear reason
+      const failReason = "client_token_missing";
+      let msgId: string;
+      if (retry_message_id) {
+        await supabase.from("messages").update({ status: "failed", sent_at: new Date().toISOString() }).eq("id", retry_message_id);
+        msgId = retry_message_id;
+      } else {
+        const { data: msgData, error: msgError } = await supabase.from("messages").insert({
+          conversation_id,
+          direction: "outbound",
+          sender_type: "usuario",
+          content_text: message,
+          type: "text",
+          status: "failed",
+          sent_at: new Date().toISOString(),
+        }).select("id").single();
+        if (msgError) throw msgError;
+        msgId = msgData.id;
+      }
+
+      return new Response(JSON.stringify({
+        error: "Client Token não configurado na instância Z-API. Vá em Configurações > WhatsApp e adicione o Client Token.",
+        error_code: failReason,
+        message_id: msgId,
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Send via Z-API
     const targetPhone = phone || body.target_phone;
     if (!targetPhone) {
@@ -103,12 +135,43 @@ Deno.serve(async (req) => {
     const zapiUrl = `https://api.z-api.io/instances/${instance.instance_id}/token/${instance.token}/send-text`;
     const zapiResponse = await fetch(zapiUrl, {
       method: "POST",
-      headers: { "Content-Type": "application/json", "Client-Token": instance.client_token || "" },
+      headers: { "Content-Type": "application/json", "Client-Token": instance.client_token },
       body: JSON.stringify({ phone: targetPhone, message }),
     });
 
     const zapiData = await zapiResponse.json();
     console.log("Z-API response:", JSON.stringify(zapiData));
+
+    // Check for Z-API error in response body
+    if (zapiData.error) {
+      const status = "failed";
+      let msgId: string;
+      if (retry_message_id) {
+        await supabase.from("messages").update({ status, sent_at: new Date().toISOString() }).eq("id", retry_message_id);
+        msgId = retry_message_id;
+      } else {
+        const { data: msgData, error: msgError } = await supabase.from("messages").insert({
+          conversation_id,
+          direction: "outbound",
+          sender_type: "usuario",
+          content_text: message,
+          type: "text",
+          status,
+          sent_at: new Date().toISOString(),
+        }).select("id").single();
+        if (msgError) throw msgError;
+        msgId = msgData.id;
+      }
+
+      return new Response(JSON.stringify({
+        error: `Erro Z-API: ${zapiData.error}`,
+        error_code: "zapi_error",
+        message_id: msgId,
+      }), {
+        status: 502,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const status = zapiResponse.ok ? "sent" : "failed";
     const externalId = zapiData.zapiMessageId || zapiData.messageId || null;

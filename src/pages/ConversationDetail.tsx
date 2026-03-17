@@ -80,7 +80,10 @@ export default function ConversationDetail({ embeddedId }: Props) {
         body: { conversation_id: conv.id, message: texto.trim(), phone },
       });
       if (error) throw error;
-      if (data?.error) throw new Error(data.error);
+      if (data?.error) {
+        toast.error(data.error);
+        return;
+      }
       setTexto('');
     } catch (err: any) {
       toast.error(err?.message || 'Erro ao enviar mensagem');
@@ -98,7 +101,10 @@ export default function ConversationDetail({ embeddedId }: Props) {
         body: { conversation_id: conv.id, message: msg.content_text, phone, retry_message_id: msg.id },
       });
       if (error) throw error;
-      if (data?.error) throw new Error(data.error);
+      if (data?.error) {
+        toast.error(data.error);
+        return;
+      }
     } catch (err: any) {
       toast.error(err?.message || 'Erro ao reenviar mensagem');
     } finally {
