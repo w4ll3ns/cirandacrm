@@ -514,7 +514,7 @@ export default function ConversationDetail({ embeddedId }: Props) {
                 {hasMedia ? (
                   <MediaRenderer msg={msg} />
                 ) : (
-                  <p className="text-sm">{msg.content_text}</p>
+                  <p className="text-sm whitespace-pre-wrap">{msg.content_text}</p>
                 )}
                 <div className={`flex items-center gap-1 mt-1 ${isOut ? 'justify-end' : ''}`}>
                   <span className={`text-[10px] ${isOut ? 'text-primary-foreground/60' : 'text-muted-foreground'}`}>
