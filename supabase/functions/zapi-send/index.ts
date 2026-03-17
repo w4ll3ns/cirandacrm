@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { conversation_id, message, phone } = body;
+    const { conversation_id, message, phone, retry_message_id } = body;
 
     if (!conversation_id || !message) {
       return new Response(JSON.stringify({ error: "Missing conversation_id or message" }), {
