@@ -160,7 +160,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Find or create conversation
+    // Find or create conversation — prefer active, then reopen resolved, then create new
     let { data: conversation } = await supabase
       .from("conversations")
       .select("id, oportunidade_id")
@@ -170,6 +170,27 @@ Deno.serve(async (req) => {
       .limit(1)
       .maybeSingle();
 
+    // If no active conversation, try to reopen the most recent one (resolvida/arquivada)
+    if (!conversation) {
+      const { data: closedConv } = await supabase
+        .from("conversations")
+        .select("id, oportunidade_id")
+        .eq("responsavel_id", responsavel.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (closedConv) {
+        await supabase
+          .from("conversations")
+          .update({ status: "nao_lida" })
+          .eq("id", closedConv.id);
+        conversation = closedConv;
+        console.log(`Reopened closed conversation ${closedConv.id}`);
+      }
+    }
+
+    // Only create a brand new conversation if none exists at all
     if (!conversation) {
       const { data: newConv } = await supabase
         .from("conversations")
