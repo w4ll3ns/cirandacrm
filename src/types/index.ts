@@ -34,7 +34,7 @@ export interface Aluno {
   updated_at: string;
 }
 
-export type EtapaPipeline = 'novo_lead' | 'primeiro_contato' | 'qualificado' | 'visita_agendada' | 'proposta_valores' | 'documentacao' | 'matricula_fechada' | 'perdido';
+export type EtapaPipeline = string;
 export type Temperatura = 'quente' | 'morno' | 'frio';
 export type StatusOportunidade = 'aberta' | 'ganha' | 'perdida';
 
