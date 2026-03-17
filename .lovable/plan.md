@@ -1,40 +1,21 @@
 
 
-# Criar Oportunidades Retroativas para Contatos sem Oportunidade
+# Remover Conversa Duplicada do Contato Wallen Santiago
 
-## Problema
-Contatos criados antes da lógica de criação automática de oportunidades no webhook não possuem oportunidade vinculada, ficando invisíveis no pipeline e dashboard.
+## Situação Atual
 
-## Solução
-Executar um SQL via insert tool para criar oportunidades para todos os `responsaveis` que não possuem nenhuma oportunidade, e vincular às conversas existentes.
+| Conversa | Criada em | Mensagens | Status |
+|---|---|---|---|
+| `0dd6bede` (primeira) | 17/03 01:53 | 12 | resolvida |
+| `562e64cf` (segunda) | 17/03 03:38 | 1 | em_atendimento |
 
-### SQL a executar (via insert tool, não migration)
+A segunda conversa foi criada antes da correção do webhook que agora reabre conversas resolvidas.
 
-1. **Inserir oportunidades** para responsáveis sem oportunidade:
-```sql
-INSERT INTO oportunidades (responsavel_id, etapa, temperatura, status, origem)
-SELECT r.id, 'novo_lead', 'morno', 'aberta', COALESCE(r.origem, 'outro')
-FROM responsaveis r
-WHERE NOT EXISTS (
-  SELECT 1 FROM oportunidades o WHERE o.responsavel_id = r.id
-);
-```
+## Plano
 
-2. **Vincular oportunidades às conversas** que não têm `oportunidade_id`:
-```sql
-UPDATE conversations c
-SET oportunidade_id = (
-  SELECT o.id FROM oportunidades o
-  WHERE o.responsavel_id = c.responsavel_id
-  AND o.status = 'aberta'
-  ORDER BY o.created_at DESC
-  LIMIT 1
-)
-WHERE c.oportunidade_id IS NULL;
-```
+1. **Mover a mensagem** da segunda conversa para a primeira (preservar histórico)
+2. **Reabrir a primeira conversa** (status → `nao_lida`, atualizar `ultima_mensagem_em`)
+3. **Deletar a segunda conversa** (sem mensagens restantes)
 
-### Resultado
-- Todos os contatos existentes aparecerão na coluna "Novo Lead" do pipeline
-- Conversas existentes serão vinculadas às suas oportunidades
-- Nenhuma alteração de código necessária
+Isso garante que nenhuma mensagem seja perdida e o contato fique com apenas uma conversa contendo todo o histórico.
 
