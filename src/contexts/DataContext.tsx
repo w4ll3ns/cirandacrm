@@ -264,38 +264,49 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
             setConversas(freshConvs as unknown as Conversa[]);
             pollInterval = 5000; // Reset on changes
 
-            // Refresh last messages
+            // Fetch preview msgs and cache msgs in parallel, then update state together
             const convIds = freshConvs.map((c: any) => c.id);
-            if (convIds.length > 0) {
-              const { data: previewMsgs } = await supabase
-                .from('messages')
-                .select('*')
-                .in('conversation_id', convIds)
-                .order('created_at', { ascending: false })
-                .limit(convIds.length * 2);
+            const fetchedConvIds = Array.from(fetchedConvsRef.current);
 
-              if (previewMsgs && previewMsgs.length > 0) {
-                const lastMap = new Map<string, Mensagem>();
-                for (const msg of previewMsgs as unknown as Mensagem[]) {
+            if (convIds.length > 0) {
+              const [previewResult, ...cacheResults] = await Promise.all([
+                supabase.from('messages').select('*')
+                  .in('conversation_id', convIds)
+                  .order('created_at', { ascending: false })
+                  .limit(convIds.length * 2),
+                ...fetchedConvIds.map(convId =>
+                  supabase.from('messages').select('*')
+                    .eq('conversation_id', convId)
+                    .order('created_at', { ascending: true })
+                    .then(r => ({ convId, data: r.data }))
+                ),
+              ]);
+
+              // Build all data before any setState
+              const lastMap = new Map<string, Mensagem>();
+              if (previewResult.data && previewResult.data.length > 0) {
+                for (const msg of previewResult.data as unknown as Mensagem[]) {
                   if (!lastMap.has(msg.conversation_id)) {
                     lastMap.set(msg.conversation_id, msg);
                   }
                 }
-                setLastMessages(lastMap);
               }
-            }
 
-            // Refresh message cache for fetched conversations
-            for (const convId of fetchedConvsRef.current) {
-              const { data: msgs } = await supabase
-                .from('messages')
-                .select('*')
-                .eq('conversation_id', convId)
-                .order('created_at', { ascending: true });
-              if (msgs) {
+              const newCacheEntries = new Map<string, Mensagem[]>();
+              for (const result of cacheResults as { convId: string; data: any }[]) {
+                if (result.data) {
+                  newCacheEntries.set(result.convId, result.data as unknown as Mensagem[]);
+                }
+              }
+
+              // Update both states together (React 18 batching ensures single re-render)
+              if (lastMap.size > 0) setLastMessages(lastMap);
+              if (newCacheEntries.size > 0) {
                 setMsgCache(prev => {
                   const next = new Map(prev);
-                  next.set(convId, msgs as unknown as Mensagem[]);
+                  for (const [convId, msgs] of newCacheEntries) {
+                    next.set(convId, msgs);
+                  }
                   return next;
                 });
               }
