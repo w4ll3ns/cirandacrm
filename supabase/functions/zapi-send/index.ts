@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { conversation_id, message, phone } = body;
+    const { conversation_id, message, phone, retry_message_id } = body;
 
     if (!conversation_id || !message) {
       return new Response(JSON.stringify({ error: "Missing conversation_id or message" }), {
@@ -62,24 +62,30 @@ Deno.serve(async (req) => {
 
     if (!instance) {
       // No Z-API instance configured — just save the message locally
-      const { data: msgData, error: msgError } = await supabase.from("messages").insert({
-        conversation_id,
-        direction: "outbound",
-        sender_type: "usuario",
-        content_text: message,
-        type: "text",
-        status: "pending",
-        sent_at: new Date().toISOString(),
-      }).select("id").single();
-
-      if (msgError) throw msgError;
+      let msgId: string;
+      if (retry_message_id) {
+        await supabase.from("messages").update({ status: "pending", sent_at: new Date().toISOString() }).eq("id", retry_message_id);
+        msgId = retry_message_id;
+      } else {
+        const { data: msgData, error: msgError } = await supabase.from("messages").insert({
+          conversation_id,
+          direction: "outbound",
+          sender_type: "usuario",
+          content_text: message,
+          type: "text",
+          status: "pending",
+          sent_at: new Date().toISOString(),
+        }).select("id").single();
+        if (msgError) throw msgError;
+        msgId = msgData.id;
+      }
 
       await supabase.from("conversations").update({
         ultima_mensagem_em: new Date().toISOString(),
         assigned_user_id: user.id,
       }).eq("id", conversation_id);
 
-      return new Response(JSON.stringify({ ok: true, sent_via: "local", message_id: msgData.id }), {
+      return new Response(JSON.stringify({ ok: true, sent_via: "local", message_id: msgId }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -105,20 +111,31 @@ Deno.serve(async (req) => {
     console.log("Z-API response:", JSON.stringify(zapiData));
 
     const status = zapiResponse.ok ? "sent" : "failed";
+    const externalId = zapiData.zapiMessageId || zapiData.messageId || null;
 
-    // Save message
-    const { data: msgData, error: msgError } = await supabase.from("messages").insert({
-      conversation_id,
-      direction: "outbound",
-      sender_type: "usuario",
-      content_text: message,
-      type: "text",
-      status,
-      sent_at: new Date().toISOString(),
-      external_message_id: zapiData.zapiMessageId || zapiData.messageId || null,
-    }).select("id").single();
-
-    if (msgError) throw msgError;
+    // Save or update message
+    let msgId: string;
+    if (retry_message_id) {
+      await supabase.from("messages").update({
+        status,
+        sent_at: new Date().toISOString(),
+        external_message_id: externalId,
+      }).eq("id", retry_message_id);
+      msgId = retry_message_id;
+    } else {
+      const { data: msgData, error: msgError } = await supabase.from("messages").insert({
+        conversation_id,
+        direction: "outbound",
+        sender_type: "usuario",
+        content_text: message,
+        type: "text",
+        status,
+        sent_at: new Date().toISOString(),
+        external_message_id: externalId,
+      }).select("id").single();
+      if (msgError) throw msgError;
+      msgId = msgData.id;
+    }
 
     // Update conversation
     await supabase.from("conversations").update({
@@ -130,7 +147,7 @@ Deno.serve(async (req) => {
     // If failed, queue for retry
     if (!zapiResponse.ok) {
       await supabase.from("message_queue").insert({
-        message_id: msgData.id,
+        message_id: msgId,
         queue_type: "send",
         status: "pending",
         payload: { phone: targetPhone, message, conversation_id },
