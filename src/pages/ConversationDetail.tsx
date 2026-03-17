@@ -1,13 +1,14 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Send, MoreVertical, CheckCircle2, Link2, ListTodo, ArrowRightLeft, Clock, Check, CheckCheck, AlertCircle, Loader2 } from 'lucide-react';
+import { ArrowLeft, Send, MoreVertical, CheckCircle2, Link2, ListTodo, ArrowRightLeft, Clock, Check, CheckCheck, AlertCircle, Loader2, ExternalLink, Unlink } from 'lucide-react';
 import { useData } from '@/contexts/DataContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
 import { useProfiles } from '@/hooks/useProfiles';
 import NewTaskForm from '@/components/NewTaskForm';
-import { ETAPA_LABELS } from '@/types';
+import { ETAPA_LABELS, ETAPAS_ORDER } from '@/types';
+import type { EtapaPipeline } from '@/types';
 import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -39,7 +40,7 @@ export default function ConversationDetail({ embeddedId }: Props) {
   const isMobile = useIsMobile();
   const isEmbedded = !!embeddedId;
   const { usuario } = useAuth();
-  const { conversas, mensagens, responsaveis, oportunidades, addMensagem, updateConversa } = useData();
+  const { conversas, mensagens, responsaveis, oportunidades, addMensagem, updateConversa, updateOportunidade } = useData();
   const { profiles } = useProfiles();
   const [texto, setTexto] = useState('');
   const [sending, setSending] = useState(false);
@@ -48,6 +49,7 @@ export default function ConversationDetail({ embeddedId }: Props) {
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [showLinkOpp, setShowLinkOpp] = useState(false);
   const [showTransfer, setShowTransfer] = useState(false);
+  const [showResolveModal, setShowResolveModal] = useState(false);
   const [transferTo, setTransferTo] = useState('');
   const [transferMotivo, setTransferMotivo] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -59,6 +61,14 @@ export default function ConversationDetail({ embeddedId }: Props) {
   );
 
   const relOpps = resp ? oportunidades.filter(o => o.responsavel_id === resp.id) : [];
+  const linkedOpp = conv?.oportunidade_id ? oportunidades.find(o => o.id === conv.oportunidade_id) : null;
+
+  // Auto-mark as em_atendimento when opening an unread conversation
+  useEffect(() => {
+    if (conv && conv.status === 'nao_lida') {
+      updateConversa(conv.id, { status: 'em_atendimento' });
+    }
+  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -112,15 +122,51 @@ export default function ConversationDetail({ embeddedId }: Props) {
     }
   };
 
-  const markResolved = () => {
+  const handleResolve = () => {
+    if (linkedOpp && linkedOpp.status === 'aberta') {
+      setShowResolveModal(true);
+    } else {
+      updateConversa(conv.id, { status: 'resolvida' });
+      toast.success('Conversa marcada como resolvida');
+    }
+    setShowActions(false);
+  };
+
+  const resolveOnly = () => {
     updateConversa(conv.id, { status: 'resolvida' });
     toast.success('Conversa marcada como resolvida');
-    setShowActions(false);
+    setShowResolveModal(false);
+  };
+
+  const resolveAndAdvance = async () => {
+    if (!linkedOpp) return;
+    const currentIdx = ETAPAS_ORDER.indexOf(linkedOpp.etapa);
+    const nextEtapa = currentIdx >= 0 && currentIdx < ETAPAS_ORDER.length - 2
+      ? ETAPAS_ORDER[currentIdx + 1]
+      : linkedOpp.etapa;
+
+    if (nextEtapa !== linkedOpp.etapa) {
+      await updateOportunidade(linkedOpp.id, { etapa: nextEtapa as any });
+    }
+    await updateConversa(conv.id, { status: 'resolvida' });
+    toast.success(`Conversa resolvida. Oportunidade avançada para "${ETAPA_LABELS[nextEtapa]}"`);
+    setShowResolveModal(false);
+  };
+
+  const handleLinkOpp = async (oppId: string) => {
+    await updateConversa(conv.id, { oportunidade_id: oppId });
+    toast.success('Oportunidade vinculada à conversa');
+    setShowLinkOpp(false);
+  };
+
+  const handleUnlinkOpp = async () => {
+    await updateConversa(conv.id, { oportunidade_id: null });
+    toast.success('Oportunidade desvinculada');
+    setShowLinkOpp(false);
   };
 
   const handleTransfer = async () => {
     if (!transferTo) return;
-    // Record assignment history
     await supabase.from('conversation_assignments_history').insert({
       conversation_id: conv.id,
       previous_user_id: conv.assigned_user_id,
@@ -157,7 +203,7 @@ export default function ConversationDetail({ embeddedId }: Props) {
       {/* Actions dropdown */}
       {showActions && (
         <div className="bg-card border-b border-border px-4 py-2 flex gap-2 flex-wrap shrink-0">
-          <button onClick={markResolved} className="text-xs bg-success/10 text-success px-3 py-1.5 rounded-full font-medium flex items-center gap-1">
+          <button onClick={handleResolve} className="text-xs bg-success/10 text-success px-3 py-1.5 rounded-full font-medium flex items-center gap-1">
             <CheckCircle2 className="w-3 h-3" /> Resolver
           </button>
           <button onClick={() => { setShowLinkOpp(true); setShowActions(false); }} className="text-xs bg-primary/10 text-primary px-3 py-1.5 rounded-full font-medium flex items-center gap-1">
@@ -206,20 +252,74 @@ export default function ConversationDetail({ embeddedId }: Props) {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowLinkOpp(false)}>
           <div className="absolute inset-0 bg-foreground/40" />
           <div className="relative bg-card rounded-2xl p-5 w-full max-w-sm" onClick={e => e.stopPropagation()}>
-            <h3 className="font-semibold mb-3">Oportunidades de {resp?.nome?.split(' ')[0]}</h3>
+            <h3 className="font-semibold mb-1">Vincular Oportunidade</h3>
+            <p className="text-xs text-muted-foreground mb-3">
+              {linkedOpp
+                ? <>Vinculada: <span className="font-medium text-foreground">{ETAPA_LABELS[linkedOpp.etapa]}</span></>
+                : 'Selecione uma oportunidade para vincular à conversa'}
+            </p>
+
+            {linkedOpp && (
+              <button onClick={handleUnlinkOpp} className="w-full text-left px-4 py-2.5 rounded-lg text-sm bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors mb-2 flex items-center gap-2">
+                <Unlink className="w-3.5 h-3.5" />
+                Desvincular oportunidade atual
+              </button>
+            )}
+
             {relOpps.length === 0 ? (
               <p className="text-sm text-muted-foreground py-4 text-center">Nenhuma oportunidade encontrada</p>
             ) : (
               <div className="space-y-1 max-h-60 overflow-y-auto">
-                {relOpps.map(o => (
-                  <button key={o.id} onClick={() => { navigate(`/app/oportunidades/${o.id}`); setShowLinkOpp(false); }} className="w-full text-left px-4 py-3 rounded-lg text-sm hover:bg-muted transition-colors">
-                    <p className="font-medium">{ETAPA_LABELS[o.etapa]}</p>
-                    <p className="text-xs text-muted-foreground">{new Date(o.created_at).toLocaleDateString('pt-BR')}</p>
-                  </button>
-                ))}
+                {relOpps.map(o => {
+                  const isLinked = conv.oportunidade_id === o.id;
+                  return (
+                    <div key={o.id} className={`flex items-center gap-2 px-4 py-3 rounded-lg text-sm transition-colors ${isLinked ? 'bg-primary/10 border border-primary/20' : 'hover:bg-muted'}`}>
+                      <button onClick={() => !isLinked && handleLinkOpp(o.id)} className="flex-1 text-left" disabled={isLinked}>
+                        <p className="font-medium">{ETAPA_LABELS[o.etapa]} {isLinked && <span className="text-xs text-primary">(vinculada)</span>}</p>
+                        <p className="text-xs text-muted-foreground">{o.status} · {new Date(o.created_at).toLocaleDateString('pt-BR')}</p>
+                      </button>
+                      <button onClick={() => { navigate(`/app/oportunidades/${o.id}`); setShowLinkOpp(false); }} className="p-1.5 rounded-md hover:bg-muted-foreground/10 text-muted-foreground" title="Ver detalhes">
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             )}
             <button onClick={() => setShowLinkOpp(false)} className="w-full mt-3 py-2 text-sm text-muted-foreground font-medium">Fechar</button>
+          </div>
+        </div>
+      )}
+
+      {/* Resolve with pipeline modal */}
+      {showResolveModal && linkedOpp && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowResolveModal(false)}>
+          <div className="absolute inset-0 bg-foreground/40" />
+          <div className="relative bg-card rounded-2xl p-5 w-full max-w-sm" onClick={e => e.stopPropagation()}>
+            <h3 className="font-semibold mb-1">Resolver conversa</h3>
+            <p className="text-xs text-muted-foreground mb-4">
+              Esta conversa está vinculada à oportunidade em <span className="font-medium text-foreground">{ETAPA_LABELS[linkedOpp.etapa]}</span>.
+              Deseja avançar a etapa no pipeline?
+            </p>
+            {(() => {
+              const currentIdx = ETAPAS_ORDER.indexOf(linkedOpp.etapa);
+              const nextEtapa = currentIdx >= 0 && currentIdx < ETAPAS_ORDER.length - 2 ? ETAPAS_ORDER[currentIdx + 1] : null;
+              return (
+                <div className="space-y-2">
+                  {nextEtapa && (
+                    <button onClick={resolveAndAdvance} className="w-full py-2.5 text-sm bg-primary text-primary-foreground font-medium rounded-lg hover:bg-primary/90 transition-colors">
+                      Resolver e avançar para "{ETAPA_LABELS[nextEtapa]}"
+                    </button>
+                  )}
+                  <button onClick={resolveOnly} className="w-full py-2.5 text-sm bg-muted text-foreground font-medium rounded-lg hover:bg-muted/80 transition-colors">
+                    Apenas resolver conversa
+                  </button>
+                  <button onClick={() => setShowResolveModal(false)} className="w-full py-2 text-sm text-muted-foreground font-medium">
+                    Cancelar
+                  </button>
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}
@@ -249,7 +349,7 @@ export default function ConversationDetail({ embeddedId }: Props) {
         </div>
       )}
 
-      <NewTaskForm open={showTaskForm} onClose={() => setShowTaskForm(false)} defaultResponsavelId={conv.responsavel_id} defaultOportunidadeId={relOpps[0]?.id} />
+      <NewTaskForm open={showTaskForm} onClose={() => setShowTaskForm(false)} defaultResponsavelId={conv.responsavel_id} defaultOportunidadeId={conv.oportunidade_id || relOpps[0]?.id} />
     </div>
   );
 }

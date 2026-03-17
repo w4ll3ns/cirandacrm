@@ -10,6 +10,7 @@ import ConversationDetail from './ConversationDetail';
 const STATUS_FILTER: { key: ConversationStatus | 'todas'; label: string }[] = [
   { key: 'todas', label: 'Todas' },
   { key: 'nao_lida', label: 'Não lidas' },
+  { key: 'em_atendimento', label: 'Em atendimento' },
   { key: 'aguardando', label: 'Aguardando' },
   { key: 'resolvida', label: 'Resolvidas' },
   { key: 'arquivada', label: 'Arquivadas' },
