@@ -17,6 +17,11 @@ export default function BottomNav() {
   const navigate = useNavigate();
   const { conversas, tarefas } = useData();
   const { usuario } = useAuth();
+  const { canViewFlows } = usePermissions();
+
+  const tabs = canViewFlows
+    ? [...baseTabs, { path: '/app/fluxos', icon: Workflow, label: 'Fluxos' }]
+    : baseTabs;
 
   const unread = conversas.filter(c => c.status === 'nao_lida' &&
     (usuario?.perfil === 'admin' || c.assigned_user_id === usuario?.id)).length;
