@@ -86,7 +86,7 @@ function MediaRenderer({ msg }: { msg: any }) {
           <span className="text-sm truncate flex-1">{msg.media_filename || 'Documento'}</span>
           <Download className="w-4 h-4 shrink-0 opacity-60" />
         </a>
-        {msg.content_text && <p className="text-sm mt-1">{msg.content_text}</p>}
+        {msg.content_text && <p className="text-sm mt-1 whitespace-pre-wrap">{msg.content_text}</p>}
       </div>
     );
   }
