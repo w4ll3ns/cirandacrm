@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { ETAPA_LABELS, ETAPAS_ORDER, TEMPERATURA_LABELS, ORIGEM_LABELS } from '@/types';
-import type { EtapaPipeline, Temperatura } from '@/types';
+import { usePipelineStages } from '@/hooks/usePipelineStages';
+import { TEMPERATURA_LABELS, ORIGEM_LABELS } from '@/types';
+import type { Temperatura } from '@/types';
 import { Flame, Thermometer, Snowflake, ChevronLeft, ChevronRight, Search, Plus, DollarSign } from 'lucide-react';
 import { toast } from 'sonner';
 import NewLeadForm from '@/components/NewLeadForm';
@@ -22,9 +23,10 @@ export default function Pipeline() {
   const isMobile = useIsMobile();
   const { canEditPipeline, canFilterByResponsavel } = usePermissions();
   const { profiles } = useProfiles();
-  const [activeEtapa, setActiveEtapa] = useState<EtapaPipeline>('novo_lead');
+  const { stageLabels, stageOrder, isFinalWin, isFinalLoss, loading: stagesLoading } = usePipelineStages();
+  const [activeEtapa, setActiveEtapa] = useState<string>('novo_lead');
   const [draggingId, setDraggingId] = useState<string | null>(null);
-  const [dragOverEtapa, setDragOverEtapa] = useState<EtapaPipeline | null>(null);
+  const [dragOverEtapa, setDragOverEtapa] = useState<string | null>(null);
   const [showNewLead, setShowNewLead] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterTemp, setFilterTemp] = useState<Temperatura | 'todas'>('todas');
@@ -32,6 +34,13 @@ export default function Pipeline() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
+
+  // Set initial active etapa when stages load
+  useEffect(() => {
+    if (stageOrder.length > 0 && !stageOrder.includes(activeEtapa)) {
+      setActiveEtapa(stageOrder[0]);
+    }
+  }, [stageOrder, activeEtapa]);
 
   const checkScroll = useCallback(() => {
     const el = scrollRef.current;
@@ -59,15 +68,15 @@ export default function Pipeline() {
     setDraggingId(id);
   };
   const handleDragEnd = () => { setDraggingId(null); setDragOverEtapa(null); };
-  const handleDragOver = (e: DragEvent, etapa: EtapaPipeline) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setDragOverEtapa(etapa); };
+  const handleDragOver = (e: DragEvent, etapa: string) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setDragOverEtapa(etapa); };
   const handleDragLeave = () => { setDragOverEtapa(null); };
-  const handleDrop = (e: DragEvent, etapa: EtapaPipeline) => {
+  const handleDrop = (e: DragEvent, etapa: string) => {
     e.preventDefault();
     const oppId = e.dataTransfer.getData('text/plain');
     const opp = oportunidades.find(o => o.id === oppId);
     if (opp && opp.etapa !== etapa) {
       updateOportunidade(oppId, { etapa });
-      toast.success(`Oportunidade movida para ${ETAPA_LABELS[etapa]}`);
+      toast.success(`Oportunidade movida para ${stageLabels[etapa] || etapa}`);
     }
     setDraggingId(null); setDragOverEtapa(null);
   };
@@ -101,10 +110,10 @@ export default function Pipeline() {
 
   const grouped = useMemo(() => {
     const map: Record<string, typeof myOpps> = {};
-    ETAPAS_ORDER.forEach(e => { map[e] = []; });
-    myOpps.forEach(o => { if (map[o.etapa]) map[o.etapa].push(o); });
+    stageOrder.forEach(e => { map[e] = []; });
+    myOpps.forEach(o => { if (map[o.etapa]) map[o.etapa].push(o); else { map[o.etapa] = [o]; } });
     return map;
-  }, [myOpps]);
+  }, [myOpps, stageOrder]);
 
   const getResp = (id: string) => responsaveis.find(r => r.id === id);
   const getAluno = (id: string | null) => id ? alunos.find(a => a.id === id) : undefined;
@@ -191,7 +200,7 @@ export default function Pipeline() {
     );
   };
 
-  if (loading) {
+  if (loading || stagesLoading) {
     return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
   }
 
@@ -238,10 +247,10 @@ export default function Pipeline() {
           )}
           <div ref={scrollRef} className="h-full overflow-x-scroll p-4 scrollbar-always-visible">
             <div className="flex gap-4 h-full min-w-max">
-              {ETAPAS_ORDER.map(etapa => {
+              {stageOrder.map(etapa => {
                 const opps = grouped[etapa] || [];
-                const isLost = etapa === 'perdido';
-                const isWon = etapa === 'matricula_fechada';
+                const isLost = isFinalLoss(etapa);
+                const isWon = isFinalWin(etapa);
                 const isOver = dragOverEtapa === etapa;
                 const totalValue = opps.reduce((s, o) => s + (o.valor_estimado || 0), 0);
                 return (
@@ -249,7 +258,7 @@ export default function Pipeline() {
                     className={`w-72 flex flex-col shrink-0 bg-card/50 rounded-xl border transition-all duration-200 ${isOver ? 'border-primary bg-primary/5 shadow-lg ring-2 ring-primary/30 scale-[1.01]' : 'border-border'}`}>
                     <div className="px-4 py-3 border-b border-border">
                       <div className="flex items-center justify-between">
-                        <h3 className={`text-sm font-semibold ${isLost ? 'text-destructive' : isWon ? 'text-success' : ''}`}>{ETAPA_LABELS[etapa]}</h3>
+                        <h3 className={`text-sm font-semibold ${isLost ? 'text-destructive' : isWon ? 'text-success' : ''}`}>{stageLabels[etapa] || etapa}</h3>
                         <span className="bg-muted text-muted-foreground text-xs font-bold rounded-full min-w-[22px] h-[22px] flex items-center justify-center px-1.5">{opps.length}</span>
                       </div>
                       {totalValue > 0 && <p className="text-[10px] text-muted-foreground mt-0.5">R$ {totalValue.toLocaleString('pt-BR')}</p>}
@@ -275,12 +284,12 @@ export default function Pipeline() {
     <div className="flex flex-col h-full">
       <div className="bg-card border-b border-border">
         <div className="flex overflow-x-auto scrollbar-hide px-2 py-2 gap-1">
-          {ETAPAS_ORDER.map(etapa => {
+          {stageOrder.map(etapa => {
             const count = grouped[etapa]?.length || 0;
             const active = activeEtapa === etapa;
             return (
               <button key={etapa} onClick={() => setActiveEtapa(etapa)} className={`shrink-0 px-3 py-2 rounded-lg text-xs font-medium transition-colors whitespace-nowrap ${active ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}>
-                {ETAPA_LABELS[etapa]}
+                {stageLabels[etapa] || etapa}
                 <span className={`ml-1.5 inline-flex items-center justify-center min-w-[18px] h-[18px] rounded-full text-[10px] font-bold ${active ? 'bg-primary-foreground/20 text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>{count}</span>
               </button>
             );

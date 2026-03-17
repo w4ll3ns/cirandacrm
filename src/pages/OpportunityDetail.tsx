@@ -2,8 +2,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, MessageCircle, Calendar, ChevronRight, DollarSign, Clock } from 'lucide-react';
 import { useData } from '@/contexts/DataContext';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { ETAPA_LABELS, ETAPAS_ORDER, TEMPERATURA_LABELS, ORIGEM_LABELS, TIPO_TAREFA_LABELS } from '@/types';
-import type { EtapaPipeline, Temperatura } from '@/types';
+import { usePipelineStages } from '@/hooks/usePipelineStages';
+import { TEMPERATURA_LABELS, ORIGEM_LABELS, TIPO_TAREFA_LABELS } from '@/types';
+import type { Temperatura } from '@/types';
 import { toast } from 'sonner';
 import { useState, useMemo } from 'react';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -13,6 +14,7 @@ export default function OpportunityDetail() {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const { oportunidades, responsaveis, alunos, tarefas, conversas, updateOportunidade, loading } = useData();
+  const { stageLabels, stageOrder, isFinalWin, isFinalLoss, loading: stagesLoading } = usePipelineStages();
   const [showMoveSheet, setShowMoveSheet] = useState(false);
   const [showLostDialog, setShowLostDialog] = useState(false);
   const [motivoPerda, setMotivoPerda] = useState('');
@@ -24,26 +26,27 @@ export default function OpportunityDetail() {
   const relTarefas = opp ? tarefas.filter(t => t.oportunidade_id === opp.id) : [];
   const relConversas = opp ? conversas.filter(c => c.responsavel_id === opp.responsavel_id) : [];
 
-  const handleMove = (etapa: EtapaPipeline) => {
+  const handleMove = (etapa: string) => {
     if (!opp) return;
-    if (etapa === 'matricula_fechada') {
+    if (isFinalWin(etapa)) {
       if (!confirm('Confirmar matrícula fechada?')) return;
       updateOportunidade(opp.id, { etapa, status: 'ganha' });
       toast.success('Matrícula fechada com sucesso! 🎉');
-    } else if (etapa === 'perdido') {
+    } else if (isFinalLoss(etapa)) {
       setShowLostDialog(true);
       setShowMoveSheet(false);
       return;
     } else {
       updateOportunidade(opp.id, { etapa });
-      toast.success(`Movido para ${ETAPA_LABELS[etapa]}`);
+      toast.success(`Movido para ${stageLabels[etapa] || etapa}`);
     }
     setShowMoveSheet(false);
   };
 
   const handleLost = () => {
     if (!opp) return;
-    updateOportunidade(opp.id, { etapa: 'perdido', status: 'perdida', motivo_perda: motivoPerda || 'Sem motivo informado' });
+    const lossStage = stageOrder.find(k => isFinalLoss(k)) || 'perdido';
+    updateOportunidade(opp.id, { etapa: lossStage, status: 'perdida', motivo_perda: motivoPerda || 'Sem motivo informado' });
     toast.success('Oportunidade marcada como perdida');
     setShowLostDialog(false);
   };
@@ -55,7 +58,7 @@ export default function OpportunityDetail() {
     const events: { date: string; label: string; type: 'create' | 'move' | 'task' | 'conversation' }[] = [];
     events.push({ date: opp.created_at, label: 'Oportunidade criada', type: 'create' });
     if (opp.updated_at !== opp.created_at) {
-      events.push({ date: opp.updated_at, label: `Movido para ${ETAPA_LABELS[opp.etapa]}`, type: 'move' });
+      events.push({ date: opp.updated_at, label: `Movido para ${stageLabels[opp.etapa] || opp.etapa}`, type: 'move' });
     }
     relTarefas.forEach(t => {
       events.push({ date: t.created_at, label: `Tarefa: ${t.titulo}`, type: 'task' });
@@ -64,11 +67,11 @@ export default function OpportunityDetail() {
       events.push({ date: c.created_at, label: `Conversa ${c.canal || 'WhatsApp'} iniciada`, type: 'conversation' });
     });
     return events.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 10);
-  }, [opp, relTarefas, relConversas]);
+  }, [opp, relTarefas, relConversas, stageLabels]);
 
   const timelineColors = { create: 'bg-primary', move: 'bg-accent', task: 'bg-secondary', conversation: 'bg-success' };
 
-  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
+  if (loading || stagesLoading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
   if (!opp) return <div className="p-4 text-center text-muted-foreground">Oportunidade não encontrada</div>;
 
   const mainContent = (
@@ -179,7 +182,7 @@ export default function OpportunityDetail() {
           <button onClick={() => navigate(-1)} className="p-1"><ArrowLeft className="w-5 h-5" /></button>
           <div className="flex-1 min-w-0">
             <p className="font-semibold truncate">{aluno?.nome || resp?.nome}</p>
-            <p className="text-xs opacity-80">{ETAPA_LABELS[opp.etapa]} · {TEMPERATURA_LABELS[temp] || temp}</p>
+            <p className="text-xs opacity-80">{stageLabels[opp.etapa] || opp.etapa} · {TEMPERATURA_LABELS[temp] || temp}</p>
           </div>
         </div>
       ) : (
@@ -187,7 +190,7 @@ export default function OpportunityDetail() {
           <button onClick={() => navigate(-1)} className="p-2 rounded-lg hover:bg-card text-muted-foreground"><ArrowLeft className="w-5 h-5" /></button>
           <div>
             <h1 className="text-lg font-bold">{aluno?.nome || resp?.nome}</h1>
-            <p className="text-sm text-muted-foreground">{ETAPA_LABELS[opp.etapa]} · {TEMPERATURA_LABELS[temp] || temp}</p>
+            <p className="text-sm text-muted-foreground">{stageLabels[opp.etapa] || opp.etapa} · {TEMPERATURA_LABELS[temp] || temp}</p>
           </div>
         </div>
       )}
@@ -203,10 +206,10 @@ export default function OpportunityDetail() {
           <div className="relative w-full md:max-w-md bg-card rounded-t-2xl md:rounded-2xl p-4 max-h-[60vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <h3 className="font-semibold mb-3">Mover para</h3>
             <div className="space-y-1">
-              {ETAPAS_ORDER.map(etapa => (
+              {stageOrder.map(etapa => (
                 <button key={etapa} onClick={() => handleMove(etapa)} disabled={etapa === opp.etapa}
-                  className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-colors ${etapa === opp.etapa ? 'bg-primary/10 text-primary' : 'active:bg-muted hover:bg-muted'} ${etapa === 'matricula_fechada' ? 'text-success font-semibold' : ''} ${etapa === 'perdido' ? 'text-destructive' : ''}`}>
-                  {ETAPA_LABELS[etapa]}{etapa === opp.etapa && ' (atual)'}
+                  className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-colors ${etapa === opp.etapa ? 'bg-primary/10 text-primary' : 'active:bg-muted hover:bg-muted'} ${isFinalWin(etapa) ? 'text-success font-semibold' : ''} ${isFinalLoss(etapa) ? 'text-destructive' : ''}`}>
+                  {stageLabels[etapa] || etapa}{etapa === opp.etapa && ' (atual)'}
                 </button>
               ))}
             </div>

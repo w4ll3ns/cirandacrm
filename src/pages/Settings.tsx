@@ -70,7 +70,14 @@ export default function Settings() {
           </div>
         )}
 
-        {/* Row 4: Notifications + Logout */}
+        {/* Row 4: Pipeline (full width) */}
+        {canManageSettings && (
+          <div className="col-span-2 bg-card rounded-xl p-6 border border-border">
+            <PipelineConfig />
+          </div>
+        )}
+
+        {/* Row 5: Notifications + Logout */}
         <NotificationsCard />
         <div className="flex items-end">
           <LogoutButton onClick={handleLogout} />

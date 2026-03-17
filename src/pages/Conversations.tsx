@@ -6,7 +6,7 @@ import { useData } from '@/contexts/DataContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useProfiles } from '@/hooks/useProfiles';
 import type { ConversationStatus } from '@/types';
-import { ETAPA_LABELS } from '@/types';
+import { usePipelineStages } from '@/hooks/usePipelineStages';
 import { Badge } from '@/components/ui/badge';
 import ConversationDetail from './ConversationDetail';
 import { useInboundNotification } from '@/hooks/useInboundNotification';

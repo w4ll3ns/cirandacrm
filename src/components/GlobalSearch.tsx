@@ -2,7 +2,7 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import { Search, X, Users, GraduationCap, Target } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useData } from '@/contexts/DataContext';
-import { ETAPA_LABELS } from '@/types';
+import { usePipelineStages } from '@/hooks/usePipelineStages';
 
 export default function GlobalSearch() {
   const [query, setQuery] = useState('');
