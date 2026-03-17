@@ -88,7 +88,13 @@ export default function NewLeadForm({ open, onClose }: Props) {
           </div>
           <div>
             <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">WhatsApp</label>
-            <input value={whatsapp} onChange={e => setWhatsapp(e.target.value)} placeholder="(00) 90000-0000" className="w-full mt-1 bg-muted rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+            <input value={whatsapp} onChange={e => {
+              let v = e.target.value.replace(/\D/g, '');
+              if (v.length > 11) v = v.slice(0, 11);
+              if (v.length > 7) v = `(${v.slice(0,2)}) ${v.slice(2,7)}-${v.slice(7)}`;
+              else if (v.length > 2) v = `(${v.slice(0,2)}) ${v.slice(2)}`;
+              setWhatsapp(v);
+            }} placeholder="(00) 90000-0000" className="w-full mt-1 bg-muted rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
           </div>
           <div>
             <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Origem</label>

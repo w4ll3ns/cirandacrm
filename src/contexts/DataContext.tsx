@@ -67,6 +67,46 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
+  // Realtime subscriptions for messages and conversations
+  useEffect(() => {
+    if (!session) return;
+
+    const messagesChannel = supabase
+      .channel('realtime-messages')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
+        const newMsg = payload.new as unknown as Mensagem;
+        setMensagens(prev => {
+          if (prev.some(m => m.id === newMsg.id)) return prev;
+          return [...prev, newMsg];
+        });
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages' }, (payload) => {
+        const updated = payload.new as unknown as Mensagem;
+        setMensagens(prev => prev.map(m => m.id === updated.id ? updated : m));
+      })
+      .subscribe();
+
+    const convsChannel = supabase
+      .channel('realtime-conversations')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'conversations' }, (payload) => {
+        const newConv = payload.new as unknown as Conversa;
+        setConversas(prev => {
+          if (prev.some(c => c.id === newConv.id)) return prev;
+          return [newConv, ...prev];
+        });
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'conversations' }, (payload) => {
+        const updated = payload.new as unknown as Conversa;
+        setConversas(prev => prev.map(c => c.id === updated.id ? updated : c));
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(messagesChannel);
+      supabase.removeChannel(convsChannel);
+    };
+  }, [session]);
+
   const addResponsavel = async (resp: Partial<Responsavel> & { nome: string; telefone: string }): Promise<string> => {
     const { data, error } = await supabase.from('responsaveis').insert({
       nome: resp.nome,
@@ -139,10 +179,8 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       sent_at: new Date().toISOString(),
     }).select().single();
     if (error) { toast.error('Erro ao enviar mensagem'); throw error; }
-    setMensagens(prev => [...prev, data as unknown as Mensagem]);
-    // Update conversation timestamp
+    // Realtime will handle adding the message to state
     await supabase.from('conversations').update({ ultima_mensagem_em: new Date().toISOString() }).eq('id', msg.conversation_id);
-    setConversas(prev => prev.map(c => c.id === msg.conversation_id ? { ...c, ultima_mensagem_em: new Date().toISOString() } : c));
   };
 
   const updateResponsavel = async (id: string, data: Partial<Responsavel>): Promise<void> => {
@@ -175,7 +213,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   const updateConversa = async (id: string, data: Partial<Conversa>): Promise<void> => {
     const { error } = await supabase.from('conversations').update(data as any).eq('id', id);
     if (error) { toast.error('Erro ao atualizar'); throw error; }
-    setConversas(prev => prev.map(c => c.id === id ? { ...c, ...data } : c));
+    // Realtime will handle the state update
   };
 
   return (
