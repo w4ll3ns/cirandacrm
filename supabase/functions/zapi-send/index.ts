@@ -62,15 +62,23 @@ Deno.serve(async (req) => {
 
     if (!instance) {
       // No Z-API instance configured — just save the message locally
-      const { data: msgData, error: msgError } = await supabase.from("messages").insert({
-        conversation_id,
-        direction: "outbound",
-        sender_type: "usuario",
-        content_text: message,
-        type: "text",
-        status: "pending",
-        sent_at: new Date().toISOString(),
-      }).select("id").single();
+      let msgId: string;
+      if (retry_message_id) {
+        await supabase.from("messages").update({ status: "pending", sent_at: new Date().toISOString() }).eq("id", retry_message_id);
+        msgId = retry_message_id;
+      } else {
+        const { data: msgData, error: msgError } = await supabase.from("messages").insert({
+          conversation_id,
+          direction: "outbound",
+          sender_type: "usuario",
+          content_text: message,
+          type: "text",
+          status: "pending",
+          sent_at: new Date().toISOString(),
+        }).select("id").single();
+        if (msgError) throw msgError;
+        msgId = msgData.id;
+      }
 
       if (msgError) throw msgError;
 
