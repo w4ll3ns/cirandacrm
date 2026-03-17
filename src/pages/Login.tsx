@@ -1,58 +1,68 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { usuarios } from '@/data/mock';
-import { Shield, Headphones, TrendingUp } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
-
-const PERFIL_CONFIG = {
-  admin: { icon: Shield, label: 'Admin / Direção', desc: 'Acesso total ao sistema' },
-  secretaria: { icon: Headphones, label: 'Secretaria', desc: 'Atendimento e cadastros' },
-  comercial: { icon: TrendingUp, label: 'Comercial', desc: 'Captação e pipeline' },
-} as const;
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
+import { Loader2 } from 'lucide-react';
 
 export default function Login() {
-  const { login } = useAuth();
+  const { signIn } = useAuth();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = (id: string) => {
-    login(id);
-    navigate('/app');
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    const { error } = await signIn(email, password);
+    setLoading(false);
+    if (error) {
+      toast.error('Credenciais inválidas. Verifique e tente novamente.');
+    } else {
+      navigate('/app');
+    }
   };
 
-  const profileSelector = (
-    <div className="w-full max-w-sm space-y-3">
+  const loginForm = (
+    <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-4">
       <p className={`text-center text-sm mb-4 ${isMobile ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
-        Selecione seu perfil para entrar
+        Entre com seu e-mail e senha
       </p>
-      {usuarios.map(u => {
-        const config = PERFIL_CONFIG[u.perfil];
-        const Icon = config.icon;
-        return (
-          <button
-            key={u.id}
-            onClick={() => handleLogin(u.id)}
-            className="w-full bg-card rounded-xl p-4 flex items-center gap-4 text-left active:scale-[0.98] transition-transform shadow-md hover:shadow-lg hover:border-primary border border-border"
-          >
-            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-              <Icon className="w-6 h-6 text-primary" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-semibold text-foreground">{u.nome}</p>
-              <p className="text-sm text-muted-foreground">{config.label}</p>
-              <p className="text-xs text-muted-foreground/70">{config.desc}</p>
-            </div>
-          </button>
-        );
-      })}
-    </div>
+      <div className="space-y-3">
+        <Input
+          type="email"
+          placeholder="E-mail"
+          value={email}
+          onChange={e => setEmail(e.target.value)}
+          required
+          autoComplete="email"
+          className="bg-card border-border"
+        />
+        <Input
+          type="password"
+          placeholder="Senha"
+          value={password}
+          onChange={e => setPassword(e.target.value)}
+          required
+          autoComplete="current-password"
+          className="bg-card border-border"
+        />
+      </div>
+      <Button type="submit" className="w-full" disabled={loading}>
+        {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+        Entrar
+      </Button>
+    </form>
   );
 
   if (!isMobile) {
     return (
       <div className="min-h-screen flex">
-        {/* Left branding panel */}
-         <div className="hidden md:flex flex-1 bg-primary flex-col items-center justify-center p-12">
+        <div className="hidden md:flex flex-1 bg-primary flex-col items-center justify-center p-12">
           <img src="/logo.png" alt="Hora de Aprender" className="w-[120px] h-[120px] object-contain mb-6 drop-shadow-xl" />
           <h1 className="text-3xl font-bold text-primary-foreground mb-2 text-center">Centro Educacional Hora de Aprender</h1>
           <p className="text-primary-foreground/70 text-center max-w-xs">
@@ -72,13 +82,12 @@ export default function Login() {
           </div>
         </div>
 
-        {/* Right form panel */}
         <div className="flex-1 flex flex-col items-center justify-center p-8 bg-background">
           <div className="mb-8 text-center">
             <h2 className="text-2xl font-bold">Bem-vindo de volta</h2>
             <p className="text-muted-foreground text-sm mt-1">Acesse sua conta do CRM</p>
           </div>
-          {profileSelector}
+          {loginForm}
           <p className="text-muted-foreground/40 text-xs mt-8">Desenvolvido por WS Soluções Digitais</p>
         </div>
       </div>
@@ -92,7 +101,7 @@ export default function Login() {
         <h1 className="text-2xl font-bold text-primary-foreground">Hora de Aprender</h1>
         <p className="text-primary-foreground/70 text-sm mt-1">CRM Escolar</p>
       </div>
-      {profileSelector}
+      {loginForm}
       <p className="text-primary-foreground/40 text-xs mt-8">Desenvolvido por WS Soluções Digitais</p>
     </div>
   );

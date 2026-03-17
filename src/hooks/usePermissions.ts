@@ -1,25 +1,27 @@
-import { useAuth } from '@/contexts/AuthContext';
+import { useUserRole } from '@/hooks/useUserRole';
 
 export function usePermissions() {
-  const { usuario } = useAuth();
-  const perfil = usuario?.perfil;
+  const { role, loading } = useUserRole();
 
   return {
+    loading,
+    role,
+
     // Pipeline
-    canEditPipeline: perfil === 'admin' || perfil === 'comercial',
-    canFilterByResponsavel: perfil === 'admin',
+    canEditPipeline: role === 'admin' || role === 'gestor',
+    canFilterByResponsavel: role === 'admin',
 
     // Contacts
-    canEditContacts: perfil === 'admin' || perfil === 'secretaria',
+    canEditContacts: role === 'admin' || role === 'atendente',
 
     // Reports
-    canViewReports: perfil === 'admin',
+    canViewReports: role === 'admin',
 
     // Settings
-    canManageSettings: perfil === 'admin',
+    canManageSettings: role === 'admin',
 
     // Opportunity actions
-    canMoveEtapa: perfil === 'admin' || perfil === 'comercial',
-    canMarkLost: perfil === 'admin' || perfil === 'comercial',
+    canMoveEtapa: role === 'admin' || role === 'gestor',
+    canMarkLost: role === 'admin' || role === 'gestor',
   };
 }
