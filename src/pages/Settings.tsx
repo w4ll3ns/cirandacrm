@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, LogOut, User, Bell } from 'lucide-react';
+import { LogOut, User, Bell } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -75,13 +75,5 @@ export default function Settings() {
     );
   }
 
-  return (
-    <div className="min-h-screen bg-muted">
-      <div className="bg-primary text-primary-foreground px-4 py-3 flex items-center gap-3">
-        <button onClick={() => navigate(-1)} className="p-1"><ArrowLeft className="w-5 h-5" /></button>
-        <p className="font-semibold">Configurações</p>
-      </div>
-      <div className="p-4">{content}</div>
-    </div>
-  );
+  return <div className="p-4">{content}</div>;
 }

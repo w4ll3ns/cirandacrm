@@ -103,9 +103,9 @@ function RespDetail({ id, editing, setEditing, headerClass, backBtn, isMobile, c
               </>
             )}
           </div>
-          <button onClick={() => toast.success('Abrindo WhatsApp...')} className="w-full bg-success text-success-foreground rounded-xl py-3 text-sm font-semibold flex items-center justify-center gap-2 active:scale-95 transition-transform hover:opacity-90">
+          <a href={`https://wa.me/${(resp.whatsapp || resp.telefone || '').replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="w-full bg-success text-success-foreground rounded-xl py-3 text-sm font-semibold flex items-center justify-center gap-2 active:scale-95 transition-transform hover:opacity-90">
             <MessageCircle className="w-4 h-4" /> Abrir WhatsApp
-          </button>
+          </a>
         </div>
         <div className="space-y-4">
           {relAlunos.length > 0 && (

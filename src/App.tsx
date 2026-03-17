@@ -41,13 +41,13 @@ function AppRoutes() {
         <Route index element={<Home />} />
         <Route path="pipeline" element={<Pipeline />} />
         <Route path="conversas" element={<Conversations />} />
+        <Route path="conversas/:id" element={<ConversationDetail />} />
         <Route path="tarefas" element={<Tasks />} />
         <Route path="contatos" element={<Contacts />} />
+        <Route path="contatos/:type/:id" element={<ContactDetail />} />
+        <Route path="oportunidades/:id" element={<OpportunityDetail />} />
+        <Route path="configuracoes" element={<Settings />} />
       </Route>
-      <Route path="/app/conversas/:id" element={<ProtectedRoute><ConversationDetail /></ProtectedRoute>} />
-      <Route path="/app/oportunidades/:id" element={<ProtectedRoute><OpportunityDetail /></ProtectedRoute>} />
-      <Route path="/app/contatos/:type/:id" element={<ProtectedRoute><ContactDetail /></ProtectedRoute>} />
-      <Route path="/app/configuracoes" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

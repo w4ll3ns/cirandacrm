@@ -92,9 +92,9 @@ export default function OpportunityDetail() {
       )}
 
       <div className={`grid gap-2 ${canMoveEtapa ? 'grid-cols-2' : 'grid-cols-1'}`}>
-        <button onClick={() => toast.success('Abrindo WhatsApp...')} className="bg-success text-success-foreground rounded-xl py-3 text-sm font-semibold flex items-center justify-center gap-2 active:scale-95 transition-transform hover:opacity-90">
+        <a href={`https://wa.me/${(resp?.whatsapp || resp?.telefone || '').replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="bg-success text-success-foreground rounded-xl py-3 text-sm font-semibold flex items-center justify-center gap-2 active:scale-95 transition-transform hover:opacity-90">
           <MessageCircle className="w-4 h-4" /> WhatsApp
-        </button>
+        </a>
         {canMoveEtapa && (
           <button onClick={() => setShowMoveSheet(true)} className="bg-secondary text-secondary-foreground rounded-xl py-3 text-sm font-semibold flex items-center justify-center gap-2 active:scale-95 transition-transform hover:opacity-90">
             <ChevronRight className="w-4 h-4" /> Mover Etapa
