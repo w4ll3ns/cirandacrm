@@ -169,18 +169,17 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     setTarefas(prev => [data as unknown as Tarefa, ...prev]);
   };
 
-  const addMensagem = async (msg: Partial<Mensagem> & { conversation_id: string; direction: Mensagem['direction']; sender_type: Mensagem['sender_type'] }): Promise<void> => {
-    const { data, error } = await supabase.from('messages').insert({
-      conversation_id: msg.conversation_id,
-      direction: msg.direction,
-      sender_type: msg.sender_type,
-      content_text: msg.content_text || null,
-      type: (msg.type as any) || 'text',
-      sent_at: new Date().toISOString(),
-    }).select().single();
+  const addMensagem = async (msg: Partial<Mensagem> & { conversation_id: string; direction: Mensagem['direction']; sender_type: Mensagem['sender_type'] } & { phone?: string }): Promise<void> => {
+    const { data, error } = await supabase.functions.invoke('zapi-send', {
+      body: {
+        conversation_id: msg.conversation_id,
+        message: msg.content_text || '',
+        phone: msg.phone || null,
+      },
+    });
     if (error) { toast.error('Erro ao enviar mensagem'); throw error; }
+    if (data?.error) { toast.error(data.error); throw new Error(data.error); }
     // Realtime will handle adding the message to state
-    await supabase.from('conversations').update({ ultima_mensagem_em: new Date().toISOString() }).eq('id', msg.conversation_id);
   };
 
   const updateResponsavel = async (id: string, data: Partial<Responsavel>): Promise<void> => {

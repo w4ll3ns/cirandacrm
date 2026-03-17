@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Send, MoreVertical, CheckCircle2, Link2, ListTodo, ArrowRightLeft } from 'lucide-react';
+import { ArrowLeft, Send, MoreVertical, CheckCircle2, Link2, ListTodo, ArrowRightLeft, Clock, Check, CheckCheck, AlertCircle, Loader2 } from 'lucide-react';
 import { useData } from '@/contexts/DataContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -10,6 +10,17 @@ import NewTaskForm from '@/components/NewTaskForm';
 import { ETAPA_LABELS } from '@/types';
 import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
+
+function MessageStatusIcon({ status }: { status: string }) {
+  switch (status) {
+    case 'pending': return <Clock className="w-3 h-3 text-primary-foreground/50" />;
+    case 'sent': return <Check className="w-3 h-3 text-primary-foreground/60" />;
+    case 'delivered': return <CheckCheck className="w-3 h-3 text-primary-foreground/60" />;
+    case 'read': return <CheckCheck className="w-3 h-3 text-accent-foreground" />;
+    case 'failed': return <AlertCircle className="w-3 h-3 text-destructive" />;
+    default: return <Clock className="w-3 h-3 text-primary-foreground/50" />;
+  }
+}
 
 interface Props {
   embeddedId?: string;
@@ -25,6 +36,7 @@ export default function ConversationDetail({ embeddedId }: Props) {
   const { conversas, mensagens, responsaveis, oportunidades, addMensagem, updateConversa } = useData();
   const { profiles } = useProfiles();
   const [texto, setTexto] = useState('');
+  const [sending, setSending] = useState(false);
   const [showActions, setShowActions] = useState(false);
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [showLinkOpp, setShowLinkOpp] = useState(false);
@@ -53,19 +65,21 @@ export default function ConversationDetail({ embeddedId }: Props) {
   if (!conv) return <div className="p-4 text-muted-foreground text-center">Conversa não encontrada</div>;
 
   const handleSend = async () => {
-    if (!texto.trim()) return;
-    await addMensagem({
-      conversation_id: conv.id,
-      direction: 'outbound',
-      sender_type: 'usuario',
-      content_text: texto.trim(),
-      type: 'text',
-    });
-    // Update assigned user if needed
-    if (usuario && conv.assigned_user_id !== usuario.id) {
-      await updateConversa(conv.id, { assigned_user_id: usuario.id });
+    if (!texto.trim() || sending) return;
+    setSending(true);
+    try {
+      const phone = resp?.whatsapp || resp?.telefone || conv.telefone;
+      const { data, error } = await supabase.functions.invoke('zapi-send', {
+        body: { conversation_id: conv.id, message: texto.trim(), phone },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setTexto('');
+    } catch (err: any) {
+      toast.error(err?.message || 'Erro ao enviar mensagem');
+    } finally {
+      setSending(false);
     }
-    setTexto('');
   };
 
   const markResolved = () => {
@@ -140,7 +154,7 @@ export default function ConversationDetail({ embeddedId }: Props) {
                   <span className={`text-[10px] ${isOut ? 'text-primary-foreground/60' : 'text-muted-foreground'}`}>
                     {new Date(msg.sent_at || msg.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                   </span>
-                  {isOut && msg.status === 'read' && <span className="text-[10px] text-primary-foreground/60">✓✓</span>}
+                  {isOut && <MessageStatusIcon status={msg.status} />}
                 </div>
               </div>
             </div>
@@ -151,9 +165,9 @@ export default function ConversationDetail({ embeddedId }: Props) {
 
       {/* Input */}
       <div className={`bg-card border-t border-border px-3 py-2 flex items-end gap-2 shrink-0 ${!isEmbedded ? 'safe-bottom' : ''}`}>
-        <input value={texto} onChange={e => setTexto(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSend()} placeholder="Digite uma mensagem..." className="flex-1 bg-muted rounded-full px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-        <button onClick={handleSend} disabled={!texto.trim()} className="w-10 h-10 bg-primary text-primary-foreground rounded-full flex items-center justify-center shrink-0 disabled:opacity-50 active:scale-95 transition-transform">
-          <Send className="w-4 h-4" />
+        <input value={texto} onChange={e => setTexto(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }} placeholder="Digite uma mensagem..." disabled={sending} className="flex-1 bg-muted rounded-full px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50" />
+        <button onClick={handleSend} disabled={!texto.trim() || sending} className="w-10 h-10 bg-primary text-primary-foreground rounded-full flex items-center justify-center shrink-0 disabled:opacity-50 active:scale-95 transition-transform">
+          {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
         </button>
       </div>
 
