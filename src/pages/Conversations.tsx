@@ -84,10 +84,7 @@ export default function Conversations() {
         {STATUS_FILTER.map(({ key, label }) => (
           <button key={key} onClick={() => setStatusFilter(key)} className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${statusFilter === key ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}>
             {label}
-            {key === 'nao_lida' && (() => {
-              const count = conversas.filter(c => c.status === 'nao_lida' && (usuario?.perfil === 'admin' || c.assigned_user_id === usuario?.id)).length;
-              return count > 0 ? ` (${count})` : '';
-            })()}
+            {key !== 'todas' && filterCounts[key as keyof typeof filterCounts] > 0 && ` (${filterCounts[key as keyof typeof filterCounts]})`}
           </button>
         ))}
       </div>
