@@ -10,6 +10,7 @@ import ConversationDetail from './ConversationDetail';
 const STATUS_FILTER: { key: ConversationStatus | 'todas'; label: string }[] = [
   { key: 'todas', label: 'Todas' },
   { key: 'nao_lida', label: 'Não lidas' },
+  { key: 'em_atendimento', label: 'Em atendimento' },
   { key: 'aguardando', label: 'Aguardando' },
   { key: 'resolvida', label: 'Resolvidas' },
   { key: 'arquivada', label: 'Arquivadas' },
@@ -17,7 +18,7 @@ const STATUS_FILTER: { key: ConversationStatus | 'todas'; label: string }[] = [
 
 export default function Conversations() {
   const { usuario } = useAuth();
-  const { conversas = [], mensagens = [], responsaveis = [], loading } = useData();
+  const { conversas = [], mensagens = [], responsaveis = [], loading, updateConversa } = useData();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [busca, setBusca] = useState('');
@@ -45,6 +46,11 @@ export default function Conversations() {
   };
 
   const handleSelect = (id: string) => {
+    // Auto-mark as em_atendimento when selecting an unread conversation
+    const selected = conversas.find(c => c.id === id);
+    if (selected?.status === 'nao_lida') {
+      updateConversa(id, { status: 'em_atendimento' });
+    }
     if (isMobile) {
       navigate(`/app/conversas/${id}`);
     } else {
