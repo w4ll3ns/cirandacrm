@@ -21,7 +21,7 @@ export default function Conversations() {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [busca, setBusca] = useState('');
-  const [statusFilter, setStatusFilter] = useState<ConversationStatus | 'todas'>('todas');
+  const [statusFilter, setStatusFilter] = useState<ConversationStatus | 'todas' | 'concluidas'>('todas');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   useInboundNotification(isMobile ? null : selectedId);
 
