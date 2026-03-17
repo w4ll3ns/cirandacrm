@@ -483,15 +483,15 @@ async function finishSession(supabase: any, session: FlowSession, status: string
 
 async function sendMessage(
   supabase: any,
-  supabaseUrl: string,
-  serviceKey: string,
+  _supabaseUrl: string,
+  _serviceKey: string,
   conversationId: string,
   phone: string | undefined,
   text: string,
   mode: string
 ) {
-  // Always save message to DB
-  await supabase.from("messages").insert({
+  // Save message to DB
+  const { data: msgData } = await supabase.from("messages").insert({
     conversation_id: conversationId,
     direction: "outbound",
     sender_type: "sistema",
@@ -499,30 +499,53 @@ async function sendMessage(
     type: "text",
     status: mode === "test" ? "sent" : "pending",
     sent_at: new Date().toISOString(),
-  });
+  }).select("id").single();
 
   // In test mode, don't actually send via Z-API
   if (mode === "test") return;
 
-  // Call zapi-send internally (without auth, using service role)
-  if (phone) {
-    try {
-      const resp = await fetch(`${supabaseUrl}/functions/v1/zapi-send`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${serviceKey}`,
-        },
-        body: JSON.stringify({
-          conversation_id: conversationId,
-          message: text,
-          phone,
-        }),
-      });
-      const data = await resp.json();
-      console.log("Flow engine zapi-send result:", JSON.stringify(data));
-    } catch (e) {
-      console.error("Flow engine send error:", e);
+  if (!phone) return;
+
+  try {
+    // Get active Z-API instance directly
+    const { data: instance } = await supabase
+      .from("zapi_instances")
+      .select("*")
+      .eq("connected", true)
+      .limit(1)
+      .maybeSingle();
+
+    if (!instance || !instance.client_token) {
+      console.log("Flow engine: No active Z-API instance or missing client_token");
+      return;
+    }
+
+    const baseUrl = `https://api.z-api.io/instances/${instance.instance_id}/token/${instance.token}`;
+    const zapiResponse = await fetch(`${baseUrl}/send-text`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Client-Token": instance.client_token,
+      },
+      body: JSON.stringify({ phone, message: text }),
+    });
+
+    const zapiData = await zapiResponse.json();
+    console.log("Flow engine Z-API response:", JSON.stringify(zapiData));
+
+    if (zapiResponse.ok && !zapiData.error && msgData?.id) {
+      const externalId = zapiData.zapiMessageId || zapiData.messageId || null;
+      await supabase.from("messages").update({
+        status: "sent",
+        external_message_id: externalId,
+      }).eq("id", msgData.id);
+    } else if (msgData?.id) {
+      await supabase.from("messages").update({ status: "failed" }).eq("id", msgData.id);
+    }
+  } catch (e) {
+    console.error("Flow engine Z-API send error:", e);
+    if (msgData?.id) {
+      await supabase.from("messages").update({ status: "failed" }).eq("id", msgData.id);
     }
   }
 }
