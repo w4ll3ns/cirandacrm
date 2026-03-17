@@ -149,16 +149,19 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
           next.set(convId, newMsg);
           return next;
         });
-        // Dispatch custom event for inbound notifications
+        // Dispatch notification for inbound messages on EXISTING conversations
         if (newMsg.direction === 'inbound') {
           const conv = conversas.find(c => c.id === convId);
-          window.dispatchEvent(new CustomEvent('new-inbound-message', {
-            detail: {
-              conversationId: convId,
-              contentText: newMsg.content_text,
-              responsavelId: conv?.responsavel_id || null,
-            },
-          }));
+          if (conv) {
+            window.dispatchEvent(new CustomEvent('new-inbound-message', {
+              detail: {
+                conversationId: convId,
+                contentText: newMsg.content_text,
+                responsavelId: conv.responsavel_id,
+              },
+            }));
+          }
+          // If conv not found, it's a new conversation — notification will be dispatched by the conversations INSERT handler
         }
       })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages' }, (payload) => {
