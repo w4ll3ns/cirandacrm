@@ -294,6 +294,96 @@ export default function ConversationDetail({ embeddedId }: Props) {
     textInputRef.current?.focus();
   };
 
+  const formatRecordingTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const s = (seconds % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  };
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm';
+      const recorder = new MediaRecorder(stream, { mimeType });
+      audioChunksRef.current = [];
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+
+      recorder.onstop = async () => {
+        stream.getTracks().forEach(t => t.stop());
+        streamRef.current = null;
+        if (audioChunksRef.current.length === 0) return;
+
+        const blob = new Blob(audioChunksRef.current, { type: mimeType });
+        audioChunksRef.current = [];
+        await sendAudioBlob(blob, mimeType);
+      };
+
+      mediaRecorderRef.current = recorder;
+      recorder.start();
+      setIsRecording(true);
+      setRecordingTime(0);
+      recordingTimerRef.current = setInterval(() => setRecordingTime(t => t + 1), 1000);
+    } catch {
+      toast.error('Não foi possível acessar o microfone');
+    }
+  };
+
+  const stopRecording = () => {
+    if (recordingTimerRef.current) { clearInterval(recordingTimerRef.current); recordingTimerRef.current = null; }
+    if (mediaRecorderRef.current?.state === 'recording') {
+      mediaRecorderRef.current.stop(); // triggers onstop → sendAudioBlob
+    }
+    setIsRecording(false);
+  };
+
+  const cancelRecording = () => {
+    if (recordingTimerRef.current) { clearInterval(recordingTimerRef.current); recordingTimerRef.current = null; }
+    if (mediaRecorderRef.current?.state === 'recording') {
+      mediaRecorderRef.current.ondataavailable = null;
+      mediaRecorderRef.current.onstop = null;
+      mediaRecorderRef.current.stop();
+    }
+    streamRef.current?.getTracks().forEach(t => t.stop());
+    streamRef.current = null;
+    audioChunksRef.current = [];
+    setIsRecording(false);
+    setRecordingTime(0);
+  };
+
+  const sendAudioBlob = async (blob: Blob, mimeType: string) => {
+    setSending(true);
+    setUploading(true);
+    try {
+      const ext = mimeType.includes('webm') ? 'webm' : 'ogg';
+      const filename = `audio_${Date.now()}.${ext}`;
+      const file = new File([blob], filename, { type: mimeType });
+      const publicUrl = await uploadAndSend(file);
+      const phone = resp?.whatsapp || resp?.telefone || conv!.telefone;
+
+      const { data, error } = await supabase.functions.invoke('zapi-send', {
+        body: {
+          conversation_id: conv!.id,
+          phone,
+          type: 'audio',
+          media_url: publicUrl,
+          media_filename: filename,
+          media_mime_type: mimeType,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) { toast.error(data.error); return; }
+    } catch (err: any) {
+      toast.error(err?.message || 'Erro ao enviar áudio');
+    } finally {
+      setSending(false);
+      setUploading(false);
+    }
+  };
+
   const handleResolve = () => {
     if (linkedOpp && linkedOpp.status === 'aberta') {
       setShowResolveModal(true);
