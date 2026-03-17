@@ -5,6 +5,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { usePermissions } from '@/hooks/usePermissions';
 import TeamManagement from '@/components/TeamManagement';
 import ZapiConfig from '@/components/ZapiConfig';
+import PipelineConfig from '@/components/PipelineConfig';
 
 export default function Settings() {
   const { usuario, logout } = useAuth();
@@ -30,6 +31,11 @@ export default function Settings() {
         {canManageSettings && (
           <div className="bg-card rounded-xl p-4 border border-border">
             <ZapiConfig />
+          </div>
+        )}
+        {canManageSettings && (
+          <div className="bg-card rounded-xl p-4 border border-border">
+            <PipelineConfig />
           </div>
         )}
         <NotificationsCard />
@@ -64,7 +70,14 @@ export default function Settings() {
           </div>
         )}
 
-        {/* Row 4: Notifications + Logout */}
+        {/* Row 4: Pipeline (full width) */}
+        {canManageSettings && (
+          <div className="col-span-2 bg-card rounded-xl p-6 border border-border">
+            <PipelineConfig />
+          </div>
+        )}
+
+        {/* Row 5: Notifications + Logout */}
         <NotificationsCard />
         <div className="flex items-end">
           <LogoutButton onClick={handleLogout} />

@@ -6,7 +6,7 @@ import { useData } from '@/contexts/DataContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useProfiles } from '@/hooks/useProfiles';
 import type { ConversationStatus } from '@/types';
-import { ETAPA_LABELS } from '@/types';
+import { usePipelineStages } from '@/hooks/usePipelineStages';
 import { Badge } from '@/components/ui/badge';
 import ConversationDetail from './ConversationDetail';
 import { useInboundNotification } from '@/hooks/useInboundNotification';
@@ -22,6 +22,7 @@ export default function Conversations() {
   const { usuario } = useAuth();
   const { conversas = [], lastMessages, responsaveis = [], oportunidades = [], loading, updateConversa } = useData();
   const { profiles } = useProfiles();
+  const { stageLabels } = usePipelineStages();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [busca, setBusca] = useState('');
@@ -145,7 +146,7 @@ export default function Conversations() {
                   )}
                   {activeOpp && (
                     <Badge variant="secondary" className="text-[10px] py-0 px-1.5">
-                      {ETAPA_LABELS[activeOpp.etapa as keyof typeof ETAPA_LABELS] || activeOpp.etapa}
+                      {stageLabels[activeOpp.etapa] || activeOpp.etapa}
                     </Badge>
                   )}
                   {attendant && (
