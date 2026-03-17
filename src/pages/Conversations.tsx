@@ -29,7 +29,8 @@ export default function Conversations() {
     let list = conversas.filter(c =>
       usuario?.perfil === 'admin' || c.assigned_user_id === usuario?.id
     );
-    if (statusFilter !== 'todas') list = list.filter(c => c.status === statusFilter);
+    if (statusFilter === 'concluidas') list = list.filter(c => c.status === 'resolvida' || c.status === 'arquivada');
+    else if (statusFilter !== 'todas') list = list.filter(c => c.status === statusFilter);
     if (busca) {
       const q = busca.toLowerCase();
       list = list.filter(c => {
