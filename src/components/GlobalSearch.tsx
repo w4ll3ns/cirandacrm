@@ -9,6 +9,7 @@ export default function GlobalSearch() {
   const [focused, setFocused] = useState(false);
   const navigate = useNavigate();
   const { responsaveis, alunos, oportunidades } = useData();
+  const { stageLabels } = usePipelineStages();
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
