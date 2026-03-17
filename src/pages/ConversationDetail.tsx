@@ -89,6 +89,23 @@ export default function ConversationDetail({ embeddedId }: Props) {
     }
   };
 
+  const handleRetry = async (msg: typeof msgs[0]) => {
+    if (retryingId) return;
+    setRetryingId(msg.id);
+    try {
+      const phone = resp?.whatsapp || resp?.telefone || conv.telefone;
+      const { data, error } = await supabase.functions.invoke('zapi-send', {
+        body: { conversation_id: conv.id, message: msg.content_text, phone, retry_message_id: msg.id },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+    } catch (err: any) {
+      toast.error(err?.message || 'Erro ao reenviar mensagem');
+    } finally {
+      setRetryingId(null);
+    }
+  };
+
   const markResolved = () => {
     updateConversa(conv.id, { status: 'resolvida' });
     toast.success('Conversa marcada como resolvida');
