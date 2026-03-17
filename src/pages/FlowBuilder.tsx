@@ -129,9 +129,11 @@ function FlowBuilderInner() {
         updated_by: user?.id,
       }).eq('id', id);
 
-      // Delete old nodes and edges
-      await supabase.from('flow_edges').delete().eq('flow_id', id);
-      await supabase.from('flow_nodes').delete().eq('flow_id', id);
+      // Delete old nodes and edges (verify success before inserting new ones)
+      const { error: edgeDelErr } = await supabase.from('flow_edges').delete().eq('flow_id', id);
+      if (edgeDelErr) { console.error('Error deleting edges:', edgeDelErr); toast.error('Erro ao limpar edges'); setSaving(false); return; }
+      const { error: nodeDelErr } = await supabase.from('flow_nodes').delete().eq('flow_id', id);
+      if (nodeDelErr) { console.error('Error deleting nodes:', nodeDelErr); toast.error('Erro ao limpar nós'); setSaving(false); return; }
 
       // Insert nodes, mapping temp IDs to real ones
       const idMap: Record<string, string> = {};
