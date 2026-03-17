@@ -1,10 +1,13 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, MessageCircle, Check, CheckCheck, Clock, AlertCircle } from 'lucide-react';
+import { Search, MessageCircle, Check, CheckCheck, Clock, AlertCircle, User } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useProfiles } from '@/hooks/useProfiles';
 import type { ConversationStatus } from '@/types';
+import { ETAPA_LABELS } from '@/types';
+import { Badge } from '@/components/ui/badge';
 import ConversationDetail from './ConversationDetail';
 import { useInboundNotification } from '@/hooks/useInboundNotification';
 
@@ -17,7 +20,8 @@ const STATUS_FILTER: { key: ConversationStatus | 'todas' | 'concluidas'; label: 
 
 export default function Conversations() {
   const { usuario } = useAuth();
-  const { conversas = [], lastMessages, responsaveis = [], loading, updateConversa } = useData();
+  const { conversas = [], lastMessages, responsaveis = [], oportunidades = [], loading, updateConversa } = useData();
+  const { profiles } = useProfiles();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [busca, setBusca] = useState('');
@@ -101,6 +105,9 @@ export default function Conversations() {
           const lastMsg = getLastMsg(c.id);
           const isUnread = c.status === 'nao_lida';
           const isSelected = !isMobile && selectedId === c.id;
+          const isConcluida = c.status === 'resolvida' || c.status === 'arquivada';
+          const activeOpp = oportunidades.find(o => o.responsavel_id === c.responsavel_id && o.status === 'aberta');
+          const attendant = profiles.find(p => p.id === c.assigned_user_id);
 
           return (
             <button key={c.id} onClick={() => handleSelect(c.id)}
@@ -120,7 +127,7 @@ export default function Conversations() {
                     <>
                       {lastMsg.direction === 'outbound' && (() => {
                         const s = lastMsg.status;
-                        if (s === 'read') return <CheckCheck className="w-3.5 h-3.5 shrink-0 text-blue-500" />;
+                        if (s === 'read') return <CheckCheck className="w-3.5 h-3.5 shrink-0 text-primary" />;
                         if (s === 'delivered') return <CheckCheck className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />;
                         if (s === 'sent') return <Check className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />;
                         if (s === 'failed') return <AlertCircle className="w-3.5 h-3.5 shrink-0 text-destructive" />;
@@ -130,6 +137,28 @@ export default function Conversations() {
                     </>
                   ) : 'Sem mensagens'}
                 </p>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {isConcluida && (
+                    <Badge variant="default" className="text-[10px] py-0 px-1.5 bg-success text-success-foreground">
+                      <Check className="w-2.5 h-2.5 mr-0.5" />Concluída
+                    </Badge>
+                  )}
+                  {activeOpp && (
+                    <Badge variant="secondary" className="text-[10px] py-0 px-1.5">
+                      {ETAPA_LABELS[activeOpp.etapa as keyof typeof ETAPA_LABELS] || activeOpp.etapa}
+                    </Badge>
+                  )}
+                  {attendant && (
+                    <Badge variant="outline" className="text-[10px] py-0 px-1.5 text-muted-foreground">
+                      <User className="w-2.5 h-2.5 mr-0.5" />{attendant.name}
+                    </Badge>
+                  )}
+                  {resp?.tags?.slice(0, 2).map(tag => (
+                    <Badge key={tag} variant="outline" className="text-[10px] py-0 px-1.5 text-muted-foreground">
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
               </div>
               {isUnread && <div className="w-2.5 h-2.5 rounded-full bg-primary shrink-0" />}
             </button>
