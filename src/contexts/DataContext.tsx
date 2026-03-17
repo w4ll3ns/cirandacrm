@@ -149,6 +149,17 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
           next.set(convId, newMsg);
           return next;
         });
+        // Dispatch custom event for inbound notifications
+        if (newMsg.direction === 'inbound') {
+          const conv = conversas.find(c => c.id === convId);
+          window.dispatchEvent(new CustomEvent('new-inbound-message', {
+            detail: {
+              conversationId: convId,
+              contentText: newMsg.content_text,
+              responsavelId: conv?.responsavel_id || null,
+            },
+          }));
+        }
       })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages' }, (payload) => {
         const updated = payload.new as unknown as Mensagem;

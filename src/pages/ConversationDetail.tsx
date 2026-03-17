@@ -56,6 +56,8 @@ export default function ConversationDetail({ embeddedId }: Props) {
   const [transferMotivo, setTransferMotivo] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
 
+  useInboundNotification(id || null);
+
   const conv = conversas.find(c => c.id === id);
   const resp = conv ? responsaveis.find(r => r.id === conv.responsavel_id) : null;
   const msgs = getMensagens(id || '');

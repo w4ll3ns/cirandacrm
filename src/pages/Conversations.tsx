@@ -24,6 +24,7 @@ export default function Conversations() {
   const [busca, setBusca] = useState('');
   const [statusFilter, setStatusFilter] = useState<ConversationStatus | 'todas'>('todas');
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  useInboundNotification(isMobile ? null : selectedId);
 
   const filtered = useMemo(() => {
     let list = conversas.filter(c =>
