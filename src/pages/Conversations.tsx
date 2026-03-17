@@ -105,6 +105,9 @@ export default function Conversations() {
           const lastMsg = getLastMsg(c.id);
           const isUnread = c.status === 'nao_lida';
           const isSelected = !isMobile && selectedId === c.id;
+          const isConcluida = c.status === 'resolvida' || c.status === 'arquivada';
+          const activeOpp = oportunidades.find(o => o.responsavel_id === c.responsavel_id && o.status === 'aberta');
+          const attendant = profiles.find(p => p.id === c.assigned_user_id);
 
           return (
             <button key={c.id} onClick={() => handleSelect(c.id)}
@@ -124,7 +127,7 @@ export default function Conversations() {
                     <>
                       {lastMsg.direction === 'outbound' && (() => {
                         const s = lastMsg.status;
-                        if (s === 'read') return <CheckCheck className="w-3.5 h-3.5 shrink-0 text-blue-500" />;
+                        if (s === 'read') return <CheckCheck className="w-3.5 h-3.5 shrink-0 text-primary" />;
                         if (s === 'delivered') return <CheckCheck className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />;
                         if (s === 'sent') return <Check className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />;
                         if (s === 'failed') return <AlertCircle className="w-3.5 h-3.5 shrink-0 text-destructive" />;
@@ -134,6 +137,28 @@ export default function Conversations() {
                     </>
                   ) : 'Sem mensagens'}
                 </p>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {isConcluida && (
+                    <Badge variant="default" className="text-[10px] py-0 px-1.5 bg-success text-success-foreground">
+                      <Check className="w-2.5 h-2.5 mr-0.5" />Concluída
+                    </Badge>
+                  )}
+                  {activeOpp && (
+                    <Badge variant="secondary" className="text-[10px] py-0 px-1.5">
+                      {ETAPA_LABELS[activeOpp.etapa as keyof typeof ETAPA_LABELS] || activeOpp.etapa}
+                    </Badge>
+                  )}
+                  {attendant && (
+                    <Badge variant="outline" className="text-[10px] py-0 px-1.5 text-muted-foreground">
+                      <User className="w-2.5 h-2.5 mr-0.5" />{attendant.name}
+                    </Badge>
+                  )}
+                  {resp?.tags?.slice(0, 2).map(tag => (
+                    <Badge key={tag} variant="outline" className="text-[10px] py-0 px-1.5 text-muted-foreground">
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
               </div>
               {isUnread && <div className="w-2.5 h-2.5 rounded-full bg-primary shrink-0" />}
             </button>
