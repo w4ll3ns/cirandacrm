@@ -40,7 +40,8 @@ export default function ConversationDetail({ embeddedId }: Props) {
   const isMobile = useIsMobile();
   const isEmbedded = !!embeddedId;
   const { usuario } = useAuth();
-  const { conversas, mensagens, responsaveis, oportunidades, addMensagem, updateConversa, updateOportunidade } = useData();
+  const { conversas, getMensagens, fetchMensagens, responsaveis, oportunidades, addMensagem, updateConversa, updateOportunidade } = useData();
+  const [msgsLoading, setMsgsLoading] = useState(true);
   const { profiles } = useProfiles();
   const [texto, setTexto] = useState('');
   const [sending, setSending] = useState(false);
@@ -56,12 +57,17 @@ export default function ConversationDetail({ embeddedId }: Props) {
 
   const conv = conversas.find(c => c.id === id);
   const resp = conv ? responsaveis.find(r => r.id === conv.responsavel_id) : null;
-  const msgs = mensagens.filter(m => m.conversation_id === id).sort(
-    (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-  );
+  const msgs = getMensagens(id || '');
 
   const relOpps = resp ? oportunidades.filter(o => o.responsavel_id === resp.id) : [];
   const linkedOpp = conv?.oportunidade_id ? oportunidades.find(o => o.id === conv.oportunidade_id) : null;
+
+  // Fetch messages on demand when conversation changes
+  useEffect(() => {
+    if (!id) return;
+    setMsgsLoading(true);
+    fetchMensagens(id).finally(() => setMsgsLoading(false));
+  }, [id, fetchMensagens]);
 
   // Auto-mark as em_atendimento when opening an unread conversation
   useEffect(() => {
@@ -220,7 +226,11 @@ export default function ConversationDetail({ embeddedId }: Props) {
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-2 min-h-0">
-        {msgs.map(msg => {
+        {msgsLoading && msgs.length === 0 ? (
+          <div className="flex items-center justify-center h-32">
+            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : msgs.map(msg => {
           const isOut = msg.direction === 'outbound';
           return (
             <div key={msg.id} className={`flex ${isOut ? 'justify-end' : 'justify-start'}`}>

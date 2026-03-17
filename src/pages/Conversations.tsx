@@ -18,7 +18,7 @@ const STATUS_FILTER: { key: ConversationStatus | 'todas'; label: string }[] = [
 
 export default function Conversations() {
   const { usuario } = useAuth();
-  const { conversas = [], mensagens = [], responsaveis = [], loading, updateConversa } = useData();
+  const { conversas = [], lastMessages, responsaveis = [], loading, updateConversa } = useData();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [busca, setBusca] = useState('');
@@ -41,8 +41,7 @@ export default function Conversations() {
   }, [conversas, statusFilter, busca, usuario, responsaveis]);
 
   const getLastMsg = (convId: string) => {
-    const msgs = mensagens.filter(m => m.conversation_id === convId);
-    return msgs[msgs.length - 1];
+    return lastMessages.get(convId) || null;
   };
 
   const handleSelect = (id: string) => {
