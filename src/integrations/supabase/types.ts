@@ -647,7 +647,7 @@ export type Database = {
         Row: {
           aluno_id: string | null
           created_at: string
-          etapa: Database["public"]["Enums"]["etapa_funil"]
+          etapa: string
           id: string
           motivo_perda: string | null
           notas: string | null
@@ -663,7 +663,7 @@ export type Database = {
         Insert: {
           aluno_id?: string | null
           created_at?: string
-          etapa?: Database["public"]["Enums"]["etapa_funil"]
+          etapa?: string
           id?: string
           motivo_perda?: string | null
           notas?: string | null
@@ -679,7 +679,7 @@ export type Database = {
         Update: {
           aluno_id?: string | null
           created_at?: string
-          etapa?: Database["public"]["Enums"]["etapa_funil"]
+          etapa?: string
           id?: string
           motivo_perda?: string | null
           notas?: string | null
@@ -708,6 +708,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      pipeline_stages: {
+        Row: {
+          active: boolean
+          color: string | null
+          created_at: string
+          icon: string | null
+          id: string
+          is_final_loss: boolean
+          is_final_win: boolean
+          key: string
+          label: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          color?: string | null
+          created_at?: string
+          icon?: string | null
+          id?: string
+          is_final_loss?: boolean
+          is_final_win?: boolean
+          key: string
+          label: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          color?: string | null
+          created_at?: string
+          icon?: string | null
+          id?: string
+          is_final_loss?: boolean
+          is_final_win?: boolean
+          key?: string
+          label?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
