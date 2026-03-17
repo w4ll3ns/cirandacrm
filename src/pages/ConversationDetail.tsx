@@ -43,6 +43,7 @@ export default function ConversationDetail({ embeddedId }: Props) {
   const { profiles } = useProfiles();
   const [texto, setTexto] = useState('');
   const [sending, setSending] = useState(false);
+  const [retryingId, setRetryingId] = useState<string | null>(null);
   const [showActions, setShowActions] = useState(false);
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [showLinkOpp, setShowLinkOpp] = useState(false);
