@@ -1,10 +1,13 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, MessageCircle, Check, CheckCheck, Clock, AlertCircle } from 'lucide-react';
+import { Search, MessageCircle, Check, CheckCheck, Clock, AlertCircle, User } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useProfiles } from '@/hooks/useProfiles';
 import type { ConversationStatus } from '@/types';
+import { ETAPA_LABELS } from '@/types';
+import { Badge } from '@/components/ui/badge';
 import ConversationDetail from './ConversationDetail';
 import { useInboundNotification } from '@/hooks/useInboundNotification';
 
