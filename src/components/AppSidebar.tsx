@@ -45,8 +45,8 @@ export default function AppSidebar() {
     return 0;
   };
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate('/');
   };
 

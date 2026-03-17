@@ -1,0 +1,944 @@
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
+
+export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.4"
+  }
+  public: {
+    Tables: {
+      alunos: {
+        Row: {
+          created_at: string
+          data_nascimento: string | null
+          id: string
+          nome: string
+          observacoes: string | null
+          responsavel_id: string
+          serie_interesse: string | null
+          unidade_interesse: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data_nascimento?: string | null
+          id?: string
+          nome: string
+          observacoes?: string | null
+          responsavel_id: string
+          serie_interesse?: string | null
+          unidade_interesse?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data_nascimento?: string | null
+          id?: string
+          nome?: string
+          observacoes?: string | null
+          responsavel_id?: string
+          serie_interesse?: string | null
+          unidade_interesse?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alunos_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "responsaveis"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audit_logs: {
+        Row: {
+          action: string
+          created_at: string
+          details: Json | null
+          entity: string
+          entity_id: string | null
+          id: string
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          details?: Json | null
+          entity: string
+          entity_id?: string | null
+          id?: string
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          details?: Json | null
+          entity?: string
+          entity_id?: string | null
+          id?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      automation_rules: {
+        Row: {
+          ativo: boolean | null
+          configuracao: Json
+          created_at: string
+          gatilho: string
+          id: string
+          nome: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean | null
+          configuracao?: Json
+          created_at?: string
+          gatilho: string
+          id?: string
+          nome: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean | null
+          configuracao?: Json
+          created_at?: string
+          gatilho?: string
+          id?: string
+          nome?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      conversation_assignments_history: {
+        Row: {
+          changed_by: string | null
+          conversation_id: string
+          created_at: string
+          id: string
+          motivo: string | null
+          new_user_id: string | null
+          previous_user_id: string | null
+        }
+        Insert: {
+          changed_by?: string | null
+          conversation_id: string
+          created_at?: string
+          id?: string
+          motivo?: string | null
+          new_user_id?: string | null
+          previous_user_id?: string | null
+        }
+        Update: {
+          changed_by?: string | null
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          motivo?: string | null
+          new_user_id?: string | null
+          previous_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_assignments_history_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conversations: {
+        Row: {
+          assigned_user_id: string | null
+          canal: Database["public"]["Enums"]["canal_type"]
+          created_at: string
+          id: string
+          oportunidade_id: string | null
+          responsavel_id: string
+          setor: Database["public"]["Enums"]["setor_type"] | null
+          status: Database["public"]["Enums"]["conversation_status"]
+          telefone: string | null
+          ultima_mensagem_em: string | null
+          updated_at: string
+        }
+        Insert: {
+          assigned_user_id?: string | null
+          canal?: Database["public"]["Enums"]["canal_type"]
+          created_at?: string
+          id?: string
+          oportunidade_id?: string | null
+          responsavel_id: string
+          setor?: Database["public"]["Enums"]["setor_type"] | null
+          status?: Database["public"]["Enums"]["conversation_status"]
+          telefone?: string | null
+          ultima_mensagem_em?: string | null
+          updated_at?: string
+        }
+        Update: {
+          assigned_user_id?: string | null
+          canal?: Database["public"]["Enums"]["canal_type"]
+          created_at?: string
+          id?: string
+          oportunidade_id?: string | null
+          responsavel_id?: string
+          setor?: Database["public"]["Enums"]["setor_type"] | null
+          status?: Database["public"]["Enums"]["conversation_status"]
+          telefone?: string | null
+          ultima_mensagem_em?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversations_oportunidade_id_fkey"
+            columns: ["oportunidade_id"]
+            isOneToOne: false
+            referencedRelation: "oportunidades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "responsaveis"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      message_queue: {
+        Row: {
+          attempts: number | null
+          created_at: string
+          id: string
+          last_error: string | null
+          max_attempts: number | null
+          message_id: string | null
+          next_retry_at: string | null
+          payload: Json
+          queue_type: string
+          status: Database["public"]["Enums"]["queue_status"]
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number | null
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          max_attempts?: number | null
+          message_id?: string | null
+          next_retry_at?: string | null
+          payload?: Json
+          queue_type?: string
+          status?: Database["public"]["Enums"]["queue_status"]
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number | null
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          max_attempts?: number | null
+          message_id?: string | null
+          next_retry_at?: string | null
+          payload?: Json
+          queue_type?: string
+          status?: Database["public"]["Enums"]["queue_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_queue_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      messages: {
+        Row: {
+          content_text: string | null
+          conversation_id: string
+          created_at: string
+          delivered_at: string | null
+          direction: Database["public"]["Enums"]["message_direction"]
+          external_message_id: string | null
+          id: string
+          media_filename: string | null
+          media_mime_type: string | null
+          media_url: string | null
+          read_at: string | null
+          sender_type: Database["public"]["Enums"]["sender_type"]
+          sent_at: string | null
+          status: Database["public"]["Enums"]["message_status"]
+          type: Database["public"]["Enums"]["message_type"]
+        }
+        Insert: {
+          content_text?: string | null
+          conversation_id: string
+          created_at?: string
+          delivered_at?: string | null
+          direction: Database["public"]["Enums"]["message_direction"]
+          external_message_id?: string | null
+          id?: string
+          media_filename?: string | null
+          media_mime_type?: string | null
+          media_url?: string | null
+          read_at?: string | null
+          sender_type: Database["public"]["Enums"]["sender_type"]
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["message_status"]
+          type?: Database["public"]["Enums"]["message_type"]
+        }
+        Update: {
+          content_text?: string | null
+          conversation_id?: string
+          created_at?: string
+          delivered_at?: string | null
+          direction?: Database["public"]["Enums"]["message_direction"]
+          external_message_id?: string | null
+          id?: string
+          media_filename?: string | null
+          media_mime_type?: string | null
+          media_url?: string | null
+          read_at?: string | null
+          sender_type?: Database["public"]["Enums"]["sender_type"]
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["message_status"]
+          type?: Database["public"]["Enums"]["message_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      oportunidades: {
+        Row: {
+          aluno_id: string | null
+          created_at: string
+          etapa: Database["public"]["Enums"]["etapa_funil"]
+          id: string
+          motivo_perda: string | null
+          notas: string | null
+          origem: Database["public"]["Enums"]["origem_type"] | null
+          proximo_followup_em: string | null
+          responsavel_id: string
+          responsavel_interno_id: string | null
+          status: Database["public"]["Enums"]["oportunidade_status"]
+          temperatura: string | null
+          updated_at: string
+          valor_estimado: number | null
+        }
+        Insert: {
+          aluno_id?: string | null
+          created_at?: string
+          etapa?: Database["public"]["Enums"]["etapa_funil"]
+          id?: string
+          motivo_perda?: string | null
+          notas?: string | null
+          origem?: Database["public"]["Enums"]["origem_type"] | null
+          proximo_followup_em?: string | null
+          responsavel_id: string
+          responsavel_interno_id?: string | null
+          status?: Database["public"]["Enums"]["oportunidade_status"]
+          temperatura?: string | null
+          updated_at?: string
+          valor_estimado?: number | null
+        }
+        Update: {
+          aluno_id?: string | null
+          created_at?: string
+          etapa?: Database["public"]["Enums"]["etapa_funil"]
+          id?: string
+          motivo_perda?: string | null
+          notas?: string | null
+          origem?: Database["public"]["Enums"]["origem_type"] | null
+          proximo_followup_em?: string | null
+          responsavel_id?: string
+          responsavel_interno_id?: string | null
+          status?: Database["public"]["Enums"]["oportunidade_status"]
+          temperatura?: string | null
+          updated_at?: string
+          valor_estimado?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "oportunidades_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "oportunidades_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "responsaveis"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          active: boolean
+          avatar_url: string | null
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          id: string
+          name: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      responsaveis: {
+        Row: {
+          cpf: string | null
+          created_at: string
+          email: string | null
+          endereco: string | null
+          id: string
+          nome: string
+          observacoes: string | null
+          origem: Database["public"]["Enums"]["origem_type"] | null
+          tags: string[] | null
+          telefone: string
+          updated_at: string
+          utm_campaign: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          whatsapp: string | null
+        }
+        Insert: {
+          cpf?: string | null
+          created_at?: string
+          email?: string | null
+          endereco?: string | null
+          id?: string
+          nome: string
+          observacoes?: string | null
+          origem?: Database["public"]["Enums"]["origem_type"] | null
+          tags?: string[] | null
+          telefone: string
+          updated_at?: string
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          whatsapp?: string | null
+        }
+        Update: {
+          cpf?: string | null
+          created_at?: string
+          email?: string | null
+          endereco?: string | null
+          id?: string
+          nome?: string
+          observacoes?: string | null
+          origem?: Database["public"]["Enums"]["origem_type"] | null
+          tags?: string[] | null
+          telefone?: string
+          updated_at?: string
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          whatsapp?: string | null
+        }
+        Relationships: []
+      }
+      settings: {
+        Row: {
+          chave: string
+          created_at: string
+          descricao: string | null
+          id: string
+          updated_at: string
+          valor: string | null
+        }
+        Insert: {
+          chave: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          updated_at?: string
+          valor?: string | null
+        }
+        Update: {
+          chave?: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          updated_at?: string
+          valor?: string | null
+        }
+        Relationships: []
+      }
+      tasks: {
+        Row: {
+          aluno_id: string | null
+          completed_at: string | null
+          created_at: string
+          descricao: string | null
+          due_date: string | null
+          id: string
+          oportunidade_id: string | null
+          prioridade: Database["public"]["Enums"]["task_priority"]
+          responsavel_id: string | null
+          responsavel_interno_id: string | null
+          status: Database["public"]["Enums"]["task_status"]
+          tipo: string | null
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          aluno_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          descricao?: string | null
+          due_date?: string | null
+          id?: string
+          oportunidade_id?: string | null
+          prioridade?: Database["public"]["Enums"]["task_priority"]
+          responsavel_id?: string | null
+          responsavel_interno_id?: string | null
+          status?: Database["public"]["Enums"]["task_status"]
+          tipo?: string | null
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          aluno_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          descricao?: string | null
+          due_date?: string | null
+          id?: string
+          oportunidade_id?: string | null
+          prioridade?: Database["public"]["Enums"]["task_priority"]
+          responsavel_id?: string | null
+          responsavel_interno_id?: string | null
+          status?: Database["public"]["Enums"]["task_status"]
+          tipo?: string | null
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_oportunidade_id_fkey"
+            columns: ["oportunidade_id"]
+            isOneToOne: false
+            referencedRelation: "oportunidades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "responsaveis"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      webhook_events: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          event_type: string
+          external_event_id: string | null
+          id: string
+          payload: Json
+          processed: boolean | null
+          provider: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          event_type: string
+          external_event_id?: string | null
+          id?: string
+          payload?: Json
+          processed?: boolean | null
+          provider?: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          event_type?: string
+          external_event_id?: string | null
+          id?: string
+          payload?: Json
+          processed?: boolean | null
+          provider?: string
+        }
+        Relationships: []
+      }
+      zapi_instances: {
+        Row: {
+          client_token: string | null
+          connected: boolean | null
+          created_at: string
+          id: string
+          instance_id: string
+          nome_instancia: string
+          phone_number: string | null
+          status: string | null
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          client_token?: string | null
+          connected?: boolean | null
+          created_at?: string
+          id?: string
+          instance_id: string
+          nome_instancia: string
+          phone_number?: string | null
+          status?: string | null
+          token: string
+          updated_at?: string
+        }
+        Update: {
+          client_token?: string | null
+          connected?: boolean | null
+          created_at?: string
+          id?: string
+          instance_id?: string
+          nome_instancia?: string
+          phone_number?: string | null
+          status?: string | null
+          token?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+    }
+    Enums: {
+      app_role: "admin" | "atendente" | "gestor"
+      canal_type:
+        | "whatsapp"
+        | "telefone"
+        | "email"
+        | "presencial"
+        | "site"
+        | "instagram"
+        | "facebook"
+      conversation_status:
+        | "nao_lida"
+        | "aguardando"
+        | "em_atendimento"
+        | "resolvida"
+        | "arquivada"
+      etapa_funil:
+        | "novo_lead"
+        | "primeiro_contato"
+        | "qualificado"
+        | "visita_agendada"
+        | "proposta_valores"
+        | "documentacao"
+        | "matricula_fechada"
+        | "perdido"
+      message_direction: "inbound" | "outbound"
+      message_status: "pending" | "sent" | "delivered" | "read" | "failed"
+      message_type:
+        | "text"
+        | "image"
+        | "audio"
+        | "video"
+        | "document"
+        | "sticker"
+        | "location"
+        | "contact"
+      oportunidade_status: "aberta" | "ganha" | "perdida"
+      origem_type:
+        | "instagram"
+        | "indicacao"
+        | "google"
+        | "site"
+        | "panfleto"
+        | "facebook"
+        | "whatsapp"
+        | "outro"
+      queue_status:
+        | "pending"
+        | "processing"
+        | "completed"
+        | "failed"
+        | "dead_letter"
+      sender_type: "responsavel" | "sistema" | "usuario"
+      setor_type:
+        | "comercial"
+        | "secretaria"
+        | "financeiro"
+        | "pedagogico"
+        | "direcao"
+      task_priority: "baixa" | "media" | "alta" | "urgente"
+      task_status: "pendente" | "em_andamento" | "concluida" | "cancelada"
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+}
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {
+      app_role: ["admin", "atendente", "gestor"],
+      canal_type: [
+        "whatsapp",
+        "telefone",
+        "email",
+        "presencial",
+        "site",
+        "instagram",
+        "facebook",
+      ],
+      conversation_status: [
+        "nao_lida",
+        "aguardando",
+        "em_atendimento",
+        "resolvida",
+        "arquivada",
+      ],
+      etapa_funil: [
+        "novo_lead",
+        "primeiro_contato",
+        "qualificado",
+        "visita_agendada",
+        "proposta_valores",
+        "documentacao",
+        "matricula_fechada",
+        "perdido",
+      ],
+      message_direction: ["inbound", "outbound"],
+      message_status: ["pending", "sent", "delivered", "read", "failed"],
+      message_type: [
+        "text",
+        "image",
+        "audio",
+        "video",
+        "document",
+        "sticker",
+        "location",
+        "contact",
+      ],
+      oportunidade_status: ["aberta", "ganha", "perdida"],
+      origem_type: [
+        "instagram",
+        "indicacao",
+        "google",
+        "site",
+        "panfleto",
+        "facebook",
+        "whatsapp",
+        "outro",
+      ],
+      queue_status: [
+        "pending",
+        "processing",
+        "completed",
+        "failed",
+        "dead_letter",
+      ],
+      sender_type: ["responsavel", "sistema", "usuario"],
+      setor_type: [
+        "comercial",
+        "secretaria",
+        "financeiro",
+        "pedagogico",
+        "direcao",
+      ],
+      task_priority: ["baixa", "media", "alta", "urgente"],
+      task_status: ["pendente", "em_andamento", "concluida", "cancelada"],
+    },
+  },
+} as const
