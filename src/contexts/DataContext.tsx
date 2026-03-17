@@ -193,6 +193,20 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
           if (prev.some(c => c.id === newConv.id)) return prev;
           return [newConv, ...prev];
         });
+        // Dispatch notification for new inbound conversations
+        if (newConv.status === 'nao_lida') {
+          // Small delay to allow lastMessages to update from the messages INSERT handler
+          setTimeout(() => {
+            const lastMsg = lastMessages.get(newConv.id);
+            window.dispatchEvent(new CustomEvent('new-inbound-message', {
+              detail: {
+                conversationId: newConv.id,
+                contentText: lastMsg?.content_text || 'Nova mensagem',
+                responsavelId: newConv.responsavel_id,
+              },
+            }));
+          }, 500);
+        }
       })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'conversations' }, (payload) => {
         const updated = payload.new as unknown as Conversa;
@@ -200,9 +214,26 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       })
       .subscribe();
 
+    // Realtime for responsaveis (new contacts created by webhook)
+    const responsaveisChannel = supabase
+      .channel('realtime-responsaveis')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'responsaveis' }, (payload) => {
+        const newResp = payload.new as unknown as Responsavel;
+        setResponsaveis(prev => {
+          if (prev.some(r => r.id === newResp.id)) return prev;
+          return [newResp, ...prev];
+        });
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'responsaveis' }, (payload) => {
+        const updated = payload.new as unknown as Responsavel;
+        setResponsaveis(prev => prev.map(r => r.id === updated.id ? updated : r));
+      })
+      .subscribe();
+
     return () => {
       supabase.removeChannel(messagesChannel);
       supabase.removeChannel(convsChannel);
+      supabase.removeChannel(responsaveisChannel);
     };
   }, [session]);
 
