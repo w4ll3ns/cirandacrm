@@ -162,8 +162,8 @@ export default function Pipeline() {
         className={`w-full bg-card rounded-xl p-4 border border-border text-left transition-all hover:shadow-md hover:border-primary/30 ${canEditPipeline ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'} ${isDragging ? 'opacity-40 scale-95' : ''}`}>
         <div className="flex items-start justify-between gap-2 mb-2">
           <div className="min-w-0 flex-1">
-            <p className="font-semibold text-sm truncate">{aluno?.nome || 'Aluno'}</p>
-            <p className="text-xs text-muted-foreground truncate">{resp?.nome || 'Responsável'}</p>
+            <p className="font-semibold text-sm truncate">{resp?.nome || 'Contato'}</p>
+            {aluno?.nome && <p className="text-xs text-muted-foreground truncate">{aluno.nome}</p>}
           </div>
           {canEditPipeline ? (
             <button onClick={(e) => cycleTemperature(e, opp.id, opp.temperatura)} onMouseDown={(e) => e.stopPropagation()}
