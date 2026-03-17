@@ -1,7 +1,8 @@
-import { Home, Kanban, MessageCircle, Users, CheckSquare, Settings, LogOut } from 'lucide-react';
+import { Home, Kanban, MessageCircle, Users, CheckSquare, Settings, LogOut, Workflow } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
+import { usePermissions } from '@/hooks/usePermissions';
 import { NavLink } from '@/components/NavLink';
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -22,6 +23,7 @@ export default function AppSidebar() {
   const collapsed = state === 'collapsed';
   const { usuario, logout } = useAuth();
   const { conversas = [], tarefas = [] } = useData();
+  const { canManageFlows } = usePermissions();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -62,7 +64,7 @@ export default function AppSidebar() {
           <SidebarGroupLabel>Menu</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navItems.map(item => {
+              {[...navItems, ...(canManageFlows ? [{ path: '/app/fluxos', icon: Workflow, label: 'Fluxos' }] : [])].map(item => {
                 const badge = getBadge(item.label);
                 return (
                   <SidebarMenuItem key={item.path}>

@@ -23,5 +23,10 @@ export function usePermissions() {
     // Opportunity actions
     canMoveEtapa: role === 'admin' || role === 'gestor',
     canMarkLost: role === 'admin' || role === 'gestor',
+
+    // Flows
+    canManageFlows: role === 'admin' || role === 'gestor',
+    canViewFlows: role === 'admin' || role === 'gestor',
+    canInterruptFlow: true, // all authenticated users
   };
 }

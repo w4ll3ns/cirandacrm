@@ -156,6 +156,129 @@ export type Database = {
           },
         ]
       }
+      conversation_flow_sessions: {
+        Row: {
+          context: Json
+          conversation_id: string
+          current_node_id: string | null
+          finished_at: string | null
+          flow_id: string
+          id: string
+          last_input: string | null
+          started_at: string
+          status: Database["public"]["Enums"]["flow_session_status"]
+          updated_at: string
+        }
+        Insert: {
+          context?: Json
+          conversation_id: string
+          current_node_id?: string | null
+          finished_at?: string | null
+          flow_id: string
+          id?: string
+          last_input?: string | null
+          started_at?: string
+          status?: Database["public"]["Enums"]["flow_session_status"]
+          updated_at?: string
+        }
+        Update: {
+          context?: Json
+          conversation_id?: string
+          current_node_id?: string | null
+          finished_at?: string | null
+          flow_id?: string
+          id?: string
+          last_input?: string | null
+          started_at?: string
+          status?: Database["public"]["Enums"]["flow_session_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_flow_sessions_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_flow_sessions_current_node_id_fkey"
+            columns: ["current_node_id"]
+            isOneToOne: false
+            referencedRelation: "flow_nodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_flow_sessions_flow_id_fkey"
+            columns: ["flow_id"]
+            isOneToOne: false
+            referencedRelation: "conversation_flows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conversation_flows: {
+        Row: {
+          ativo: boolean
+          canal: Database["public"]["Enums"]["canal_type"] | null
+          created_at: string
+          created_by: string | null
+          descricao: string | null
+          id: string
+          instancia_id: string | null
+          nome: string
+          published_at: string | null
+          setor: Database["public"]["Enums"]["setor_type"] | null
+          status: Database["public"]["Enums"]["flow_status"]
+          trigger_config: Json
+          trigger_type: Database["public"]["Enums"]["flow_trigger_type"]
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          canal?: Database["public"]["Enums"]["canal_type"] | null
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          id?: string
+          instancia_id?: string | null
+          nome: string
+          published_at?: string | null
+          setor?: Database["public"]["Enums"]["setor_type"] | null
+          status?: Database["public"]["Enums"]["flow_status"]
+          trigger_config?: Json
+          trigger_type?: Database["public"]["Enums"]["flow_trigger_type"]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          canal?: Database["public"]["Enums"]["canal_type"] | null
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          id?: string
+          instancia_id?: string | null
+          nome?: string
+          published_at?: string | null
+          setor?: Database["public"]["Enums"]["setor_type"] | null
+          status?: Database["public"]["Enums"]["flow_status"]
+          trigger_config?: Json
+          trigger_type?: Database["public"]["Enums"]["flow_trigger_type"]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_flows_instancia_id_fkey"
+            columns: ["instancia_id"]
+            isOneToOne: false
+            referencedRelation: "zapi_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversations: {
         Row: {
           assigned_user_id: string | null
@@ -209,6 +332,201 @@ export type Database = {
             columns: ["responsavel_id"]
             isOneToOne: false
             referencedRelation: "responsaveis"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      flow_edges: {
+        Row: {
+          condition_type: string | null
+          condition_value: string | null
+          created_at: string
+          flow_id: string
+          id: string
+          priority_order: number
+          source_handle: string | null
+          source_node_id: string
+          target_node_id: string
+        }
+        Insert: {
+          condition_type?: string | null
+          condition_value?: string | null
+          created_at?: string
+          flow_id: string
+          id?: string
+          priority_order?: number
+          source_handle?: string | null
+          source_node_id: string
+          target_node_id: string
+        }
+        Update: {
+          condition_type?: string | null
+          condition_value?: string | null
+          created_at?: string
+          flow_id?: string
+          id?: string
+          priority_order?: number
+          source_handle?: string | null
+          source_node_id?: string
+          target_node_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flow_edges_flow_id_fkey"
+            columns: ["flow_id"]
+            isOneToOne: false
+            referencedRelation: "conversation_flows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "flow_edges_source_node_id_fkey"
+            columns: ["source_node_id"]
+            isOneToOne: false
+            referencedRelation: "flow_nodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "flow_edges_target_node_id_fkey"
+            columns: ["target_node_id"]
+            isOneToOne: false
+            referencedRelation: "flow_nodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      flow_execution_logs: {
+        Row: {
+          action: string
+          error_message: string | null
+          executed_at: string
+          flow_id: string
+          id: string
+          node_id: string | null
+          payload: Json
+          session_id: string
+          status: string
+        }
+        Insert: {
+          action: string
+          error_message?: string | null
+          executed_at?: string
+          flow_id: string
+          id?: string
+          node_id?: string | null
+          payload?: Json
+          session_id: string
+          status?: string
+        }
+        Update: {
+          action?: string
+          error_message?: string | null
+          executed_at?: string
+          flow_id?: string
+          id?: string
+          node_id?: string | null
+          payload?: Json
+          session_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flow_execution_logs_flow_id_fkey"
+            columns: ["flow_id"]
+            isOneToOne: false
+            referencedRelation: "conversation_flows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "flow_execution_logs_node_id_fkey"
+            columns: ["node_id"]
+            isOneToOne: false
+            referencedRelation: "flow_nodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "flow_execution_logs_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "conversation_flow_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      flow_nodes: {
+        Row: {
+          config: Json
+          created_at: string
+          flow_id: string
+          id: string
+          position_x: number
+          position_y: number
+          title: string
+          type: Database["public"]["Enums"]["flow_node_type"]
+          updated_at: string
+        }
+        Insert: {
+          config?: Json
+          created_at?: string
+          flow_id: string
+          id?: string
+          position_x?: number
+          position_y?: number
+          title?: string
+          type: Database["public"]["Enums"]["flow_node_type"]
+          updated_at?: string
+        }
+        Update: {
+          config?: Json
+          created_at?: string
+          flow_id?: string
+          id?: string
+          position_x?: number
+          position_y?: number
+          title?: string
+          type?: Database["public"]["Enums"]["flow_node_type"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flow_nodes_flow_id_fkey"
+            columns: ["flow_id"]
+            isOneToOne: false
+            referencedRelation: "conversation_flows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      flow_versions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          flow_id: string
+          id: string
+          snapshot: Json
+          version_number: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          flow_id: string
+          id?: string
+          snapshot?: Json
+          version_number?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          flow_id?: string
+          id?: string
+          snapshot?: Json
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flow_versions_flow_id_fkey"
+            columns: ["flow_id"]
+            isOneToOne: false
+            referencedRelation: "conversation_flows"
             referencedColumns: ["id"]
           },
         ]
@@ -709,6 +1027,32 @@ export type Database = {
         | "documentacao"
         | "matricula_fechada"
         | "perdido"
+      flow_node_type:
+        | "start"
+        | "send_message"
+        | "question_options"
+        | "capture_input"
+        | "condition"
+        | "route_sector"
+        | "assign_agent"
+        | "transfer_human"
+        | "update_field"
+        | "create_task"
+        | "end"
+      flow_session_status:
+        | "running"
+        | "paused"
+        | "finished"
+        | "failed"
+        | "transferred"
+      flow_status: "draft" | "active" | "inactive"
+      flow_trigger_type:
+        | "new_conversation"
+        | "first_message"
+        | "keyword"
+        | "no_assignee"
+        | "business_hours"
+        | "specific_sector"
       message_direction: "inbound" | "outbound"
       message_status: "pending" | "sent" | "delivered" | "read" | "failed"
       message_type:
@@ -898,6 +1242,35 @@ export const Constants = {
         "documentacao",
         "matricula_fechada",
         "perdido",
+      ],
+      flow_node_type: [
+        "start",
+        "send_message",
+        "question_options",
+        "capture_input",
+        "condition",
+        "route_sector",
+        "assign_agent",
+        "transfer_human",
+        "update_field",
+        "create_task",
+        "end",
+      ],
+      flow_session_status: [
+        "running",
+        "paused",
+        "finished",
+        "failed",
+        "transferred",
+      ],
+      flow_status: ["draft", "active", "inactive"],
+      flow_trigger_type: [
+        "new_conversation",
+        "first_message",
+        "keyword",
+        "no_assignee",
+        "business_hours",
+        "specific_sector",
       ],
       message_direction: ["inbound", "outbound"],
       message_status: ["pending", "sent", "delivered", "read", "failed"],
