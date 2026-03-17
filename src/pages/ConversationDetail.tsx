@@ -7,6 +7,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
 import { useProfiles } from '@/hooks/useProfiles';
 import NewTaskForm from '@/components/NewTaskForm';
+import { useInboundNotification } from '@/hooks/useInboundNotification';
 import { ETAPA_LABELS, ETAPAS_ORDER } from '@/types';
 import type { EtapaPipeline } from '@/types';
 import { Textarea } from '@/components/ui/textarea';
@@ -54,6 +55,8 @@ export default function ConversationDetail({ embeddedId }: Props) {
   const [transferTo, setTransferTo] = useState('');
   const [transferMotivo, setTransferMotivo] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  useInboundNotification(id || null);
 
   const conv = conversas.find(c => c.id === id);
   const resp = conv ? responsaveis.find(r => r.id === conv.responsavel_id) : null;
