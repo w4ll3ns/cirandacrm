@@ -230,6 +230,12 @@ export default function ConversationDetail({ embeddedId }: Props) {
           <button onClick={() => { setShowTransfer(true); setShowActions(false); }} className="text-xs bg-accent text-accent-foreground px-3 py-1.5 rounded-full font-medium flex items-center gap-1">
             <ArrowRightLeft className="w-3 h-3" /> Transferir
           </button>
+          <button onClick={() => {
+            if (resp) { setEditNome(resp.nome); setEditWhatsapp(resp.whatsapp || resp.telefone); setEditEmail(resp.email || ''); setEditOrigem(resp.origem || ''); }
+            setShowEditContact(true); setShowActions(false);
+          }} className="text-xs bg-muted text-foreground px-3 py-1.5 rounded-full font-medium flex items-center gap-1">
+            <Pencil className="w-3 h-3" /> Editar Contato
+          </button>
         </div>
       )}
 
