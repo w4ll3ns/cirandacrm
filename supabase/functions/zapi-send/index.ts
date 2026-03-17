@@ -147,7 +147,7 @@ Deno.serve(async (req) => {
     // If failed, queue for retry
     if (!zapiResponse.ok) {
       await supabase.from("message_queue").insert({
-        message_id: msgData.id,
+        message_id: msgId,
         queue_type: "send",
         status: "pending",
         payload: { phone: targetPhone, message, conversation_id },
