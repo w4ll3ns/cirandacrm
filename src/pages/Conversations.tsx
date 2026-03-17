@@ -8,13 +8,11 @@ import type { ConversationStatus } from '@/types';
 import ConversationDetail from './ConversationDetail';
 import { useInboundNotification } from '@/hooks/useInboundNotification';
 
-const STATUS_FILTER: { key: ConversationStatus | 'todas'; label: string }[] = [
+const STATUS_FILTER: { key: ConversationStatus | 'todas' | 'concluidas'; label: string }[] = [
   { key: 'todas', label: 'Todas' },
   { key: 'nao_lida', label: 'Não lidas' },
   { key: 'em_atendimento', label: 'Em atendimento' },
-  { key: 'aguardando', label: 'Aguardando' },
-  { key: 'resolvida', label: 'Resolvidas' },
-  { key: 'arquivada', label: 'Arquivadas' },
+  { key: 'concluidas', label: 'Concluídas' },
 ];
 
 export default function Conversations() {
@@ -23,7 +21,7 @@ export default function Conversations() {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [busca, setBusca] = useState('');
-  const [statusFilter, setStatusFilter] = useState<ConversationStatus | 'todas'>('todas');
+  const [statusFilter, setStatusFilter] = useState<ConversationStatus | 'todas' | 'concluidas'>('todas');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   useInboundNotification(isMobile ? null : selectedId);
 
@@ -31,7 +29,8 @@ export default function Conversations() {
     let list = conversas.filter(c =>
       usuario?.perfil === 'admin' || c.assigned_user_id === usuario?.id
     );
-    if (statusFilter !== 'todas') list = list.filter(c => c.status === statusFilter);
+    if (statusFilter === 'concluidas') list = list.filter(c => c.status === 'resolvida' || c.status === 'arquivada');
+    else if (statusFilter !== 'todas') list = list.filter(c => c.status === statusFilter);
     if (busca) {
       const q = busca.toLowerCase();
       list = list.filter(c => {
