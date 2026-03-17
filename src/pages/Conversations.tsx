@@ -41,6 +41,15 @@ export default function Conversations() {
     return list.sort((a, b) => new Date(b.ultima_mensagem_em || b.created_at).getTime() - new Date(a.ultima_mensagem_em || a.created_at).getTime());
   }, [conversas, statusFilter, busca, usuario, responsaveis]);
 
+  const filterCounts = useMemo(() => {
+    const userConversas = conversas.filter(c => usuario?.perfil === 'admin' || c.assigned_user_id === usuario?.id);
+    return {
+      nao_lida: userConversas.filter(c => c.status === 'nao_lida').length,
+      em_atendimento: userConversas.filter(c => c.status === 'em_atendimento').length,
+      concluidas: userConversas.filter(c => c.status === 'resolvida' || c.status === 'arquivada').length,
+    };
+  }, [conversas, usuario]);
+
   const getLastMsg = (convId: string) => {
     return lastMessages.get(convId) || null;
   };
