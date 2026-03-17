@@ -46,7 +46,7 @@ function MediaRenderer({ msg }: { msg: any }) {
           onClick={() => setExpanded(true)}
           loading="lazy"
         />
-        {msg.content_text && <p className="text-sm mt-1">{msg.content_text}</p>}
+        {msg.content_text && <p className="text-sm mt-1 whitespace-pre-wrap">{msg.content_text}</p>}
         {expanded && (
           <div className="fixed inset-0 z-[60] bg-foreground/80 flex items-center justify-center p-4" onClick={() => setExpanded(false)}>
             <img src={msg.media_url} alt="" className="max-w-full max-h-full object-contain rounded-lg" />
@@ -72,7 +72,7 @@ function MediaRenderer({ msg }: { msg: any }) {
         <video controls className="rounded-lg max-w-full max-h-60" preload="metadata">
           <source src={msg.media_url} type={msg.media_mime_type || 'video/mp4'} />
         </video>
-        {msg.content_text && <p className="text-sm mt-1">{msg.content_text}</p>}
+        {msg.content_text && <p className="text-sm mt-1 whitespace-pre-wrap">{msg.content_text}</p>}
       </div>
     );
   }
@@ -86,14 +86,14 @@ function MediaRenderer({ msg }: { msg: any }) {
           <span className="text-sm truncate flex-1">{msg.media_filename || 'Documento'}</span>
           <Download className="w-4 h-4 shrink-0 opacity-60" />
         </a>
-        {msg.content_text && <p className="text-sm mt-1">{msg.content_text}</p>}
+        {msg.content_text && <p className="text-sm mt-1 whitespace-pre-wrap">{msg.content_text}</p>}
       </div>
     );
   }
 
   // Fallback: text only
   if (msg.content_text) {
-    return <p className="text-sm">{msg.content_text}</p>;
+    return <p className="text-sm whitespace-pre-wrap">{msg.content_text}</p>;
   }
 
   return null;
@@ -514,7 +514,7 @@ export default function ConversationDetail({ embeddedId }: Props) {
                 {hasMedia ? (
                   <MediaRenderer msg={msg} />
                 ) : (
-                  <p className="text-sm">{msg.content_text}</p>
+                  <p className="text-sm whitespace-pre-wrap">{msg.content_text}</p>
                 )}
                 <div className={`flex items-center gap-1 mt-1 ${isOut ? 'justify-end' : ''}`}>
                   <span className={`text-[10px] ${isOut ? 'text-primary-foreground/60' : 'text-muted-foreground'}`}>
