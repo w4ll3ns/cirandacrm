@@ -57,12 +57,17 @@ export default function ConversationDetail({ embeddedId }: Props) {
 
   const conv = conversas.find(c => c.id === id);
   const resp = conv ? responsaveis.find(r => r.id === conv.responsavel_id) : null;
-  const msgs = mensagens.filter(m => m.conversation_id === id).sort(
-    (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-  );
+  const msgs = getMensagens(id || '');
 
   const relOpps = resp ? oportunidades.filter(o => o.responsavel_id === resp.id) : [];
   const linkedOpp = conv?.oportunidade_id ? oportunidades.find(o => o.id === conv.oportunidade_id) : null;
+
+  // Fetch messages on demand when conversation changes
+  useEffect(() => {
+    if (!id) return;
+    setMsgsLoading(true);
+    fetchMensagens(id).finally(() => setMsgsLoading(false));
+  }, [id, fetchMensagens]);
 
   // Auto-mark as em_atendimento when opening an unread conversation
   useEffect(() => {

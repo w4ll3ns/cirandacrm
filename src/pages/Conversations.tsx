@@ -41,8 +41,7 @@ export default function Conversations() {
   }, [conversas, statusFilter, busca, usuario, responsaveis]);
 
   const getLastMsg = (convId: string) => {
-    const msgs = mensagens.filter(m => m.conversation_id === convId);
-    return msgs[msgs.length - 1];
+    return lastMessages.get(convId) || null;
   };
 
   const handleSelect = (id: string) => {
