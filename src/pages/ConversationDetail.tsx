@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Send, MoreVertical, CheckCircle2, Link2, ListTodo, ArrowRightLeft, Clock, Check, CheckCheck, AlertCircle, Loader2, ExternalLink, Unlink } from 'lucide-react';
+import { ArrowLeft, Send, MoreVertical, CheckCircle2, Link2, ListTodo, ArrowRightLeft, Clock, Check, CheckCheck, AlertCircle, Loader2, ExternalLink, Unlink, Pencil } from 'lucide-react';
 import { useData } from '@/contexts/DataContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
