@@ -124,9 +124,20 @@ Deno.serve(async (req) => {
     // Find or create responsavel by phone
     let { data: responsavel } = await supabase
       .from("responsaveis")
-      .select("id")
+      .select("id, nome")
       .or(`telefone.eq.${phone},whatsapp.eq.${phone}`)
       .maybeSingle();
+
+    // Update name if current name is generic and senderName is available
+    if (responsavel && payload.senderName) {
+      const currentName = (responsavel as any).nome || "";
+      if (currentName.startsWith("WhatsApp ") || currentName === phone) {
+        await supabase
+          .from("responsaveis")
+          .update({ nome: payload.senderName })
+          .eq("id", responsavel.id);
+      }
+    }
 
     if (!responsavel) {
       const { data: newResp } = await supabase

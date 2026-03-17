@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Send, MoreVertical, CheckCircle2, Link2, ListTodo, ArrowRightLeft, Clock, Check, CheckCheck, AlertCircle, Loader2, ExternalLink, Unlink } from 'lucide-react';
+import { ArrowLeft, Send, MoreVertical, CheckCircle2, Link2, ListTodo, ArrowRightLeft, Clock, Check, CheckCheck, AlertCircle, Loader2, ExternalLink, Unlink, Pencil } from 'lucide-react';
 import { useData } from '@/contexts/DataContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -41,7 +41,7 @@ export default function ConversationDetail({ embeddedId }: Props) {
   const isMobile = useIsMobile();
   const isEmbedded = !!embeddedId;
   const { usuario } = useAuth();
-  const { conversas, getMensagens, fetchMensagens, responsaveis, oportunidades, addMensagem, updateConversa, updateOportunidade } = useData();
+  const { conversas, getMensagens, fetchMensagens, responsaveis, oportunidades, addMensagem, updateConversa, updateOportunidade, updateResponsavel } = useData();
   const [msgsLoading, setMsgsLoading] = useState(true);
   const { profiles } = useProfiles();
   const [texto, setTexto] = useState('');
@@ -52,6 +52,12 @@ export default function ConversationDetail({ embeddedId }: Props) {
   const [showLinkOpp, setShowLinkOpp] = useState(false);
   const [showTransfer, setShowTransfer] = useState(false);
   const [showResolveModal, setShowResolveModal] = useState(false);
+  const [showEditContact, setShowEditContact] = useState(false);
+  const [editNome, setEditNome] = useState('');
+  const [editWhatsapp, setEditWhatsapp] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editOrigem, setEditOrigem] = useState('');
+  const [savingContact, setSavingContact] = useState(false);
   const [transferTo, setTransferTo] = useState('');
   const [transferMotivo, setTransferMotivo] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -224,6 +230,12 @@ export default function ConversationDetail({ embeddedId }: Props) {
           <button onClick={() => { setShowTransfer(true); setShowActions(false); }} className="text-xs bg-accent text-accent-foreground px-3 py-1.5 rounded-full font-medium flex items-center gap-1">
             <ArrowRightLeft className="w-3 h-3" /> Transferir
           </button>
+          <button onClick={() => {
+            if (resp) { setEditNome(resp.nome); setEditWhatsapp(resp.whatsapp || resp.telefone); setEditEmail(resp.email || ''); setEditOrigem(resp.origem || ''); }
+            setShowEditContact(true); setShowActions(false);
+          }} className="text-xs bg-muted text-foreground px-3 py-1.5 rounded-full font-medium flex items-center gap-1">
+            <Pencil className="w-3 h-3" /> Editar Contato
+          </button>
         </div>
       )}
 
@@ -363,6 +375,71 @@ export default function ConversationDetail({ embeddedId }: Props) {
       )}
 
       <NewTaskForm open={showTaskForm} onClose={() => setShowTaskForm(false)} defaultResponsavelId={conv.responsavel_id} defaultOportunidadeId={conv.oportunidade_id || relOpps[0]?.id} />
+
+      {/* Edit contact modal */}
+      {showEditContact && resp && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowEditContact(false)}>
+          <div className="absolute inset-0 bg-foreground/40" />
+          <div className="relative bg-card rounded-2xl p-5 w-full max-w-sm" onClick={e => e.stopPropagation()}>
+            <h3 className="font-semibold mb-3">Editar Contato</h3>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs text-muted-foreground font-medium">Nome</label>
+                <input value={editNome} onChange={e => setEditNome(e.target.value)} className="w-full mt-1 rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground font-medium">WhatsApp</label>
+                <input value={editWhatsapp} onChange={e => setEditWhatsapp(e.target.value)} className="w-full mt-1 rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground font-medium">Email</label>
+                <input value={editEmail} onChange={e => setEditEmail(e.target.value)} type="email" className="w-full mt-1 rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground font-medium">Origem</label>
+                <select value={editOrigem} onChange={e => setEditOrigem(e.target.value)} className="w-full mt-1 rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
+                  <option value="">Selecione...</option>
+                  <option value="whatsapp">WhatsApp</option>
+                  <option value="instagram">Instagram</option>
+                  <option value="facebook">Facebook</option>
+                  <option value="google">Google</option>
+                  <option value="site">Site</option>
+                  <option value="indicacao">Indicação</option>
+                  <option value="panfleto">Panfleto</option>
+                  <option value="outro">Outro</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex gap-2 mt-4">
+              <button onClick={() => setShowEditContact(false)} className="flex-1 py-2 text-sm text-muted-foreground font-medium rounded-lg">Cancelar</button>
+              <button
+                disabled={!editNome.trim() || savingContact}
+                onClick={async () => {
+                  setSavingContact(true);
+                  try {
+                    await updateResponsavel(resp.id, {
+                      nome: editNome.trim(),
+                      whatsapp: editWhatsapp.trim() || resp.whatsapp,
+                      telefone: editWhatsapp.trim() || resp.telefone,
+                      email: editEmail.trim() || null,
+                      origem: (editOrigem || null) as any,
+                    });
+                    toast.success('Contato atualizado');
+                    setShowEditContact(false);
+                  } catch {
+                    // error toast handled by updateResponsavel
+                  } finally {
+                    setSavingContact(false);
+                  }
+                }}
+                className="flex-1 py-2 text-sm bg-primary text-primary-foreground font-medium rounded-lg disabled:opacity-50"
+              >
+                {savingContact ? 'Salvando...' : 'Salvar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
