@@ -72,7 +72,7 @@ function MediaRenderer({ msg }: { msg: any }) {
         <video controls className="rounded-lg max-w-full max-h-60" preload="metadata">
           <source src={msg.media_url} type={msg.media_mime_type || 'video/mp4'} />
         </video>
-        {msg.content_text && <p className="text-sm mt-1">{msg.content_text}</p>}
+        {msg.content_text && <p className="text-sm mt-1 whitespace-pre-wrap">{msg.content_text}</p>}
       </div>
     );
   }
