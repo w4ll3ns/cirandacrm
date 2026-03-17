@@ -11,6 +11,17 @@ import { ETAPA_LABELS } from '@/types';
 import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 
+function MessageStatusIcon({ status }: { status: string }) {
+  switch (status) {
+    case 'pending': return <Clock className="w-3 h-3 text-primary-foreground/50" />;
+    case 'sent': return <Check className="w-3 h-3 text-primary-foreground/60" />;
+    case 'delivered': return <CheckCheck className="w-3 h-3 text-primary-foreground/60" />;
+    case 'read': return <CheckCheck className="w-3 h-3 text-sky-300" />;
+    case 'failed': return <AlertCircle className="w-3 h-3 text-destructive" />;
+    default: return <Clock className="w-3 h-3 text-primary-foreground/50" />;
+  }
+}
+
 interface Props {
   embeddedId?: string;
 }
