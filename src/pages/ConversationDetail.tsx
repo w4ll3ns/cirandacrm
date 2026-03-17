@@ -403,8 +403,9 @@ export default function ConversationDetail({ embeddedId }: Props) {
     setShowActions(false);
   };
 
-  const resolveOnly = () => {
-    updateConversa(conv!.id, { status: 'resolvida' });
+  const resolveOnly = async () => {
+    await updateConversa(conv!.id, { status: 'resolvida' });
+    await finishFlowSessions(conv!.id);
     toast.success('Conversa marcada como resolvida');
     setShowResolveModal(false);
   };
