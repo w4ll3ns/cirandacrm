@@ -146,7 +146,7 @@ export default function Conversations() {
                   )}
                   {activeOpp && (
                     <Badge variant="secondary" className="text-[10px] py-0 px-1.5">
-                      {ETAPA_LABELS[activeOpp.etapa as keyof typeof ETAPA_LABELS] || activeOpp.etapa}
+                      {stageLabels[activeOpp.etapa] || activeOpp.etapa}
                     </Badge>
                   )}
                   {attendant && (

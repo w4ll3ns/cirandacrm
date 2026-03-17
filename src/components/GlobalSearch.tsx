@@ -39,7 +39,7 @@ export default function GlobalSearch() {
       return resp?.nome.toLowerCase().includes(q) || aluno?.nome.toLowerCase().includes(q);
     }).slice(0, 5).forEach(o => {
       const aluno = o.aluno_id ? alunos.find(a => a.id === o.aluno_id) : null;
-      items.push({ type: 'Oportunidade', label: aluno?.nome || 'Oportunidade', sub: ETAPA_LABELS[o.etapa], path: `/app/oportunidades/${o.id}`, icon: Target });
+      items.push({ type: 'Oportunidade', label: aluno?.nome || 'Oportunidade', sub: stageLabels[o.etapa] || o.etapa, path: `/app/oportunidades/${o.id}`, icon: Target });
     });
 
     return items.slice(0, 10);
