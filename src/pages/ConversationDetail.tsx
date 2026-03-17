@@ -11,13 +11,19 @@ import { ETAPA_LABELS } from '@/types';
 import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 
-function MessageStatusIcon({ status }: { status: string }) {
+function MessageStatusIcon({ status, onRetry, retrying }: { status: string; onRetry?: () => void; retrying?: boolean }) {
+  if (retrying) return <Loader2 className="w-3 h-3 animate-spin text-primary-foreground/60" />;
   switch (status) {
     case 'pending': return <Clock className="w-3 h-3 text-primary-foreground/50" />;
     case 'sent': return <Check className="w-3 h-3 text-primary-foreground/60" />;
     case 'delivered': return <CheckCheck className="w-3 h-3 text-primary-foreground/60" />;
     case 'read': return <CheckCheck className="w-3 h-3 text-accent-foreground" />;
-    case 'failed': return <AlertCircle className="w-3 h-3 text-destructive" />;
+    case 'failed': return (
+      <button onClick={onRetry} title="Reenviar" className="inline-flex items-center gap-0.5 text-destructive hover:text-destructive/80 transition-colors">
+        <AlertCircle className="w-3 h-3" />
+        <span className="text-[9px] font-medium">Reenviar</span>
+      </button>
+    );
     default: return <Clock className="w-3 h-3 text-primary-foreground/50" />;
   }
 }
