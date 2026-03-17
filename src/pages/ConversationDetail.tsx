@@ -421,6 +421,7 @@ export default function ConversationDetail({ embeddedId }: Props) {
       await updateOportunidade(linkedOpp.id, { etapa: nextEtapa as any });
     }
     await updateConversa(conv!.id, { status: 'resolvida' });
+    await finishFlowSessions(conv!.id);
     toast.success(`Conversa resolvida. Oportunidade avançada para "${ETAPA_LABELS[nextEtapa]}"`);
     setShowResolveModal(false);
   };
