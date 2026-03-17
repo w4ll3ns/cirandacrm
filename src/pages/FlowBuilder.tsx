@@ -12,6 +12,7 @@ import { flowNodeTypes, nodeLabels } from '@/components/flow/FlowNodeTypes';
 import NodePalette from '@/components/flow/NodePalette';
 import NodeProperties from '@/components/flow/NodeProperties';
 import FlowToolbar from '@/components/flow/FlowToolbar';
+import FlowTestChat from '@/components/flow/FlowTestChat';
 import { useAuth } from '@/contexts/AuthContext';
 
 function FlowBuilderInner() {
