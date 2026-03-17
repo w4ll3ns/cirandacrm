@@ -296,6 +296,35 @@ Deno.serve(async (req) => {
       })
       .eq("id", conversation.id);
 
+    // ─── Trigger flow engine if applicable ───
+    try {
+      const flowResp = await fetch(`${SUPABASE_URL}/functions/v1/flow-engine`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        },
+        body: JSON.stringify({
+          conversation_id: conversation.id,
+          input_text: contentText || "",
+          phone,
+          external_message_id: payload.messageId || null,
+        }),
+      });
+      const flowResult = await flowResp.json();
+      console.log("Flow engine result:", JSON.stringify(flowResult));
+
+      // If flow processed, update conversation status accordingly
+      if (flowResult.processed) {
+        await supabase
+          .from("conversations")
+          .update({ status: "em_atendimento" })
+          .eq("id", conversation.id);
+      }
+    } catch (flowErr) {
+      console.error("Flow engine call failed (non-blocking):", flowErr);
+    }
+
     return new Response(JSON.stringify({ ok: true }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

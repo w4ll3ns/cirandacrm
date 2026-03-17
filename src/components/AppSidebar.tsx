@@ -64,7 +64,7 @@ export default function AppSidebar() {
           <SidebarGroupLabel>Menu</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navItems.map(item => {
+              {[...navItems, ...(canManageFlows ? [{ path: '/app/fluxos', icon: Workflow, label: 'Fluxos' }] : [])].map(item => {
                 const badge = getBadge(item.label);
                 return (
                   <SidebarMenuItem key={item.path}>
