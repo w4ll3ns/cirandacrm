@@ -142,7 +142,7 @@ export default function ConversationDetail({ embeddedId }: Props) {
                   <span className={`text-[10px] ${isOut ? 'text-primary-foreground/60' : 'text-muted-foreground'}`}>
                     {new Date(msg.sent_at || msg.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                   </span>
-                  {isOut && msg.status === 'read' && <span className="text-[10px] text-primary-foreground/60">✓✓</span>}
+                  {isOut && <MessageStatusIcon status={msg.status} />}
                 </div>
               </div>
             </div>
