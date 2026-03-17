@@ -226,7 +226,11 @@ export default function ConversationDetail({ embeddedId }: Props) {
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-2 min-h-0">
-        {msgs.map(msg => {
+        {msgsLoading && msgs.length === 0 ? (
+          <div className="flex items-center justify-center h-32">
+            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : msgs.map(msg => {
           const isOut = msg.direction === 'outbound';
           return (
             <div key={msg.id} className={`flex ${isOut ? 'justify-end' : 'justify-start'}`}>
