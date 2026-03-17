@@ -322,6 +322,14 @@ function FlowBuilderInner() {
           />
         )}
       </div>
+
+      <FlowTestChat
+        open={testOpen}
+        onClose={() => { setTestOpen(false); setHighlightedNodeId(null); }}
+        nodes={nodes}
+        edges={edges}
+        onHighlightNode={setHighlightedNodeId}
+      />
     </div>
   );
 }
