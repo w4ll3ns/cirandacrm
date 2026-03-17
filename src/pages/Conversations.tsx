@@ -20,7 +20,8 @@ const STATUS_FILTER: { key: ConversationStatus | 'todas' | 'concluidas'; label: 
 
 export default function Conversations() {
   const { usuario } = useAuth();
-  const { conversas = [], lastMessages, responsaveis = [], loading, updateConversa } = useData();
+  const { conversas = [], lastMessages, responsaveis = [], oportunidades = [], loading, updateConversa } = useData();
+  const { profiles } = useProfiles();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [busca, setBusca] = useState('');
