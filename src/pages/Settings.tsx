@@ -5,6 +5,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { usePermissions } from '@/hooks/usePermissions';
 import TeamManagement from '@/components/TeamManagement';
 import ZapiConfig from '@/components/ZapiConfig';
+import PipelineConfig from '@/components/PipelineConfig';
 
 export default function Settings() {
   const { usuario, logout } = useAuth();
