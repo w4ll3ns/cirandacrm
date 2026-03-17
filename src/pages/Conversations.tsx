@@ -46,6 +46,11 @@ export default function Conversations() {
   };
 
   const handleSelect = (id: string) => {
+    // Auto-mark as em_atendimento when selecting an unread conversation
+    const selected = conversas.find(c => c.id === id);
+    if (selected?.status === 'nao_lida') {
+      updateConversa(id, { status: 'em_atendimento' });
+    }
     if (isMobile) {
       navigate(`/app/conversas/${id}`);
     } else {
