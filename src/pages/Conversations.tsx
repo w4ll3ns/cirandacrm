@@ -8,13 +8,11 @@ import type { ConversationStatus } from '@/types';
 import ConversationDetail from './ConversationDetail';
 import { useInboundNotification } from '@/hooks/useInboundNotification';
 
-const STATUS_FILTER: { key: ConversationStatus | 'todas'; label: string }[] = [
+const STATUS_FILTER: { key: ConversationStatus | 'todas' | 'concluidas'; label: string }[] = [
   { key: 'todas', label: 'Todas' },
   { key: 'nao_lida', label: 'Não lidas' },
   { key: 'em_atendimento', label: 'Em atendimento' },
-  { key: 'aguardando', label: 'Aguardando' },
-  { key: 'resolvida', label: 'Resolvidas' },
-  { key: 'arquivada', label: 'Arquivadas' },
+  { key: 'concluidas', label: 'Concluídas' },
 ];
 
 export default function Conversations() {
