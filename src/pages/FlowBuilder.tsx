@@ -27,6 +27,8 @@ function FlowBuilderInner() {
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [testOpen, setTestOpen] = useState(false);
+  const [highlightedNodeId, setHighlightedNodeId] = useState<string | null>(null);
 
   // Load flow
   useEffect(() => {
