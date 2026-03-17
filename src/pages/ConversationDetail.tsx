@@ -248,7 +248,6 @@ export default function ConversationDetail({ embeddedId }: Props) {
         })}
         <div ref={bottomRef} />
       </div>
-      </div>
 
       {/* Input */}
       <div className={`bg-card border-t border-border px-3 py-2 flex items-end gap-2 shrink-0 ${!isEmbedded ? 'safe-bottom' : ''}`}>
