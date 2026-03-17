@@ -24,7 +24,12 @@ interface DataContextType {
   updateConversa: (id: string, data: Partial<Conversa>) => Promise<void>;
 }
 
-const DataContext = createContext<DataContextType>({} as DataContextType);
+const DataContext = createContext<DataContextType>({
+  responsaveis: [], alunos: [], oportunidades: [], conversas: [], mensagens: [], tarefas: [], loading: true,
+  addMensagem: async () => {}, addResponsavel: async () => '', addAluno: async () => '', addOportunidade: async () => '',
+  addTarefa: async () => {}, updateResponsavel: async () => {}, updateAluno: async () => {},
+  updateOportunidade: async () => {}, updateTarefa: async () => {}, updateConversa: async () => {},
+});
 
 export const DataProvider = ({ children }: { children: ReactNode }) => {
   const { session } = useAuth();
