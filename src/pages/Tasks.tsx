@@ -4,44 +4,55 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { TIPO_TAREFA_LABELS } from '@/types';
-import type { StatusTarefa, PrioridadeTarefa } from '@/types';
+import type { TaskStatus, TaskPriority } from '@/types';
 import { toast } from 'sonner';
 import NewTaskForm from '@/components/NewTaskForm';
 
-type FilterStatus = StatusTarefa | 'todas';
+type FilterStatus = TaskStatus | 'todas' | 'atrasada';
 
 export default function Tasks() {
   const { usuario } = useAuth();
-  const { tarefas, updateTarefa, responsaveis } = useData();
+  const { tarefas, updateTarefa, responsaveis, loading } = useData();
   const isMobile = useIsMobile();
   const [statusFilter, setStatusFilter] = useState<FilterStatus>('todas');
   const [showNewTask, setShowNewTask] = useState(false);
+
+  const isOverdue = (t: typeof tarefas[0]) => t.status === 'pendente' && t.due_date && new Date(t.due_date) < new Date();
 
   const filtered = useMemo(() => {
     let list = tarefas.filter(t =>
       usuario?.perfil === 'admin' || t.responsavel_interno_id === usuario?.id
     );
-    if (statusFilter !== 'todas') list = list.filter(t => t.status === statusFilter);
+    if (statusFilter === 'atrasada') {
+      list = list.filter(isOverdue);
+    } else if (statusFilter !== 'todas') {
+      list = list.filter(t => t.status === statusFilter);
+    }
     return list.sort((a, b) => {
-      const prioOrder = { alta: 0, media: 1, baixa: 2 };
-      const statusOrder = { atrasada: 0, pendente: 1, concluida: 2 };
-      return (statusOrder[a.status] - statusOrder[b.status]) || (prioOrder[a.prioridade] - prioOrder[b.prioridade]);
+      const prioOrder: Record<string, number> = { urgente: 0, alta: 1, media: 2, baixa: 3 };
+      const aOverdue = isOverdue(a) ? 0 : 1;
+      const bOverdue = isOverdue(b) ? 0 : 1;
+      const statusOrder: Record<string, number> = { pendente: 1, em_andamento: 1, concluida: 2, cancelada: 3 };
+      return aOverdue - bOverdue || (statusOrder[a.status] || 1) - (statusOrder[b.status] || 1) || (prioOrder[a.prioridade] || 3) - (prioOrder[b.prioridade] || 3);
     });
   }, [tarefas, statusFilter, usuario]);
 
-  const toggleDone = (id: string, currentStatus: StatusTarefa) => {
+  const toggleDone = (id: string, currentStatus: TaskStatus) => {
     const newStatus = currentStatus === 'concluida' ? 'pendente' : 'concluida';
     updateTarefa(id, { status: newStatus });
     toast.success(newStatus === 'concluida' ? 'Tarefa concluída ✓' : 'Tarefa reaberta');
   };
 
-  const prioColor = (p: PrioridadeTarefa) => {
-    if (p === 'alta') return 'bg-secondary/10 text-secondary';
+  const prioColor = (p: TaskPriority) => {
+    if (p === 'alta' || p === 'urgente') return 'bg-secondary/10 text-secondary';
     if (p === 'media') return 'bg-accent/20 text-accent-foreground';
     return 'bg-muted text-muted-foreground';
   };
 
-  const prioLabel = (p: PrioridadeTarefa) => p === 'alta' ? 'Alta' : p === 'media' ? 'Média' : 'Baixa';
+  const prioLabel = (p: TaskPriority) => {
+    const map: Record<string, string> = { urgente: 'Urgente', alta: 'Alta', media: 'Média', baixa: 'Baixa' };
+    return map[p] || p;
+  };
 
   const filters: { key: FilterStatus; label: string }[] = [
     { key: 'todas', label: 'Todas' },
@@ -50,11 +61,13 @@ export default function Tasks() {
     { key: 'concluida', label: 'Concluídas' },
   ];
 
-  const statusIcon = (s: StatusTarefa) => {
-    if (s === 'concluida') return <CheckCircle2 className="w-5 h-5 text-success" />;
-    if (s === 'atrasada') return <AlertTriangle className="w-5 h-5 text-destructive" />;
+  const statusIcon = (t: typeof tarefas[0]) => {
+    if (t.status === 'concluida') return <CheckCircle2 className="w-5 h-5 text-success" />;
+    if (isOverdue(t)) return <AlertTriangle className="w-5 h-5 text-destructive" />;
     return <Circle className="w-5 h-5 text-muted-foreground/40" />;
   };
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
 
   // Desktop table view
   if (!isMobile) {
@@ -96,18 +109,20 @@ export default function Tasks() {
               {filtered.map(t => {
                 const resp = t.responsavel_id ? responsaveis.find(r => r.id === t.responsavel_id) : null;
                 const isDone = t.status === 'concluida';
+                const overdue = isOverdue(t);
                 return (
                   <tr key={t.id} className="border-b border-border hover:bg-muted/30 transition-colors">
-                    <td className="px-4 py-3"><button onClick={() => toggleDone(t.id, t.status)}>{statusIcon(t.status)}</button></td>
+                    <td className="px-4 py-3"><button onClick={() => toggleDone(t.id, t.status)}>{statusIcon(t)}</button></td>
                     <td className={`px-4 py-3 text-sm font-medium ${isDone ? 'line-through text-muted-foreground' : ''}`}>{t.titulo}</td>
-                    <td className="px-4 py-3 text-sm text-muted-foreground">{TIPO_TAREFA_LABELS[t.tipo]}</td>
+                    <td className="px-4 py-3 text-sm text-muted-foreground">{TIPO_TAREFA_LABELS[t.tipo || ''] || t.tipo || '-'}</td>
                     <td className="px-4 py-3"><span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${prioColor(t.prioridade)}`}>{prioLabel(t.prioridade)}</span></td>
                     <td className="px-4 py-3 text-sm text-muted-foreground">{resp?.nome?.split(' ')[0] || '-'}</td>
-                    <td className="px-4 py-3 text-sm text-muted-foreground">{new Date(t.data_hora).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</td>
+                    <td className="px-4 py-3 text-sm text-muted-foreground">{t.due_date ? new Date(t.due_date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-'}</td>
                     <td className="px-4 py-3">
-                      {t.status === 'atrasada' && <span className="text-[10px] bg-destructive/10 text-destructive px-2 py-0.5 rounded-full font-medium">Atrasada</span>}
-                      {t.status === 'concluida' && <span className="text-[10px] bg-success/10 text-success px-2 py-0.5 rounded-full font-medium">Concluída</span>}
-                      {t.status === 'pendente' && <span className="text-[10px] bg-muted text-muted-foreground px-2 py-0.5 rounded-full font-medium">Pendente</span>}
+                      {overdue && <span className="text-[10px] bg-destructive/10 text-destructive px-2 py-0.5 rounded-full font-medium">Atrasada</span>}
+                      {isDone && <span className="text-[10px] bg-success/10 text-success px-2 py-0.5 rounded-full font-medium">Concluída</span>}
+                      {t.status === 'pendente' && !overdue && <span className="text-[10px] bg-muted text-muted-foreground px-2 py-0.5 rounded-full font-medium">Pendente</span>}
+                      {t.status === 'em_andamento' && <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">Em andamento</span>}
                     </td>
                   </tr>
                 );
@@ -142,15 +157,15 @@ export default function Tasks() {
           const isDone = t.status === 'concluida';
           return (
             <div key={t.id} className="px-4 py-3 border-b border-border flex items-start gap-3">
-              <button onClick={() => toggleDone(t.id, t.status)} className="mt-0.5 shrink-0">{statusIcon(t.status)}</button>
+              <button onClick={() => toggleDone(t.id, t.status)} className="mt-0.5 shrink-0">{statusIcon(t)}</button>
               <div className="flex-1 min-w-0">
                 <p className={`text-sm font-medium ${isDone ? 'line-through text-muted-foreground' : ''}`}>{t.titulo}</p>
                 <div className="flex items-center gap-2 mt-1 flex-wrap">
                   <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${prioColor(t.prioridade)}`}>{prioLabel(t.prioridade)}</span>
-                  <span className="text-[10px] text-muted-foreground">{TIPO_TAREFA_LABELS[t.tipo]}</span>
+                  <span className="text-[10px] text-muted-foreground">{TIPO_TAREFA_LABELS[t.tipo || ''] || t.tipo || '-'}</span>
                   {resp && <span className="text-[10px] text-muted-foreground">· {resp.nome.split(' ')[0]}</span>}
                 </div>
-                <p className="text-[10px] text-muted-foreground mt-0.5">{new Date(t.data_hora).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">{t.due_date ? new Date(t.due_date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-'}</p>
               </div>
             </div>
           );

@@ -3,7 +3,7 @@ import { ArrowLeft, MessageCircle, Calendar, ChevronRight, DollarSign, Clock } f
 import { useData } from '@/contexts/DataContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { ETAPA_LABELS, ETAPAS_ORDER, TEMPERATURA_LABELS, ORIGEM_LABELS, TIPO_TAREFA_LABELS } from '@/types';
-import type { EtapaPipeline } from '@/types';
+import type { EtapaPipeline, Temperatura } from '@/types';
 import { toast } from 'sonner';
 import { useState, useMemo } from 'react';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -12,16 +12,15 @@ export default function OpportunityDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
-  const { oportunidades, responsaveis, alunos, tarefas, conversas, updateOportunidade } = useData();
+  const { oportunidades, responsaveis, alunos, tarefas, conversas, updateOportunidade, loading } = useData();
   const [showMoveSheet, setShowMoveSheet] = useState(false);
   const [showLostDialog, setShowLostDialog] = useState(false);
   const [motivoPerda, setMotivoPerda] = useState('');
   const { canMoveEtapa, canMarkLost } = usePermissions();
 
   const opp = oportunidades.find(o => o.id === id);
-
   const resp = opp ? responsaveis.find(r => r.id === opp.responsavel_id) : null;
-  const aluno = opp ? alunos.find(a => a.id === opp.aluno_id) : null;
+  const aluno = opp?.aluno_id ? alunos.find(a => a.id === opp.aluno_id) : null;
   const relTarefas = opp ? tarefas.filter(t => t.oportunidade_id === opp.id) : [];
   const relConversas = opp ? conversas.filter(c => c.responsavel_id === opp.responsavel_id) : [];
 
@@ -49,25 +48,27 @@ export default function OpportunityDetail() {
     setShowLostDialog(false);
   };
 
-  // Timeline events
+  const temp = (opp?.temperatura || 'morno') as Temperatura;
+
   const timeline = useMemo(() => {
     if (!opp) return [];
     const events: { date: string; label: string; type: 'create' | 'move' | 'task' | 'conversation' }[] = [];
-    events.push({ date: opp.criado_em, label: 'Oportunidade criada', type: 'create' });
-    if (opp.atualizado_em !== opp.criado_em) {
-      events.push({ date: opp.atualizado_em, label: `Movido para ${ETAPA_LABELS[opp.etapa]}`, type: 'move' });
+    events.push({ date: opp.created_at, label: 'Oportunidade criada', type: 'create' });
+    if (opp.updated_at !== opp.created_at) {
+      events.push({ date: opp.updated_at, label: `Movido para ${ETAPA_LABELS[opp.etapa]}`, type: 'move' });
     }
     relTarefas.forEach(t => {
-      events.push({ date: t.criado_em, label: `Tarefa: ${t.titulo}`, type: 'task' });
+      events.push({ date: t.created_at, label: `Tarefa: ${t.titulo}`, type: 'task' });
     });
     relConversas.slice(0, 3).forEach(c => {
-      events.push({ date: c.criado_em, label: 'Conversa WhatsApp iniciada', type: 'conversation' });
+      events.push({ date: c.created_at, label: `Conversa ${c.canal || 'WhatsApp'} iniciada`, type: 'conversation' });
     });
     return events.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 10);
   }, [opp, relTarefas, relConversas]);
 
   const timelineColors = { create: 'bg-primary', move: 'bg-accent', task: 'bg-secondary', conversation: 'bg-success' };
 
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
   if (!opp) return <div className="p-4 text-center text-muted-foreground">Oportunidade não encontrada</div>;
 
   const mainContent = (
@@ -75,12 +76,11 @@ export default function OpportunityDetail() {
       <div className="bg-card rounded-xl p-4 border border-border">
         <h3 className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">Responsável</h3>
         <p className="font-semibold text-sm">{resp?.nome}</p>
-        <p className="text-sm text-muted-foreground">📱 {resp?.whatsapp}</p>
-        <p className="text-sm text-muted-foreground">Origem: {resp ? ORIGEM_LABELS[resp.origem] : '-'}</p>
-        {aluno && <p className="text-sm text-muted-foreground mt-1">Série: {aluno.serie_turma_interesse}</p>}
+        <p className="text-sm text-muted-foreground">📱 {resp?.whatsapp || resp?.telefone}</p>
+        <p className="text-sm text-muted-foreground">Origem: {resp?.origem ? ORIGEM_LABELS[resp.origem] || resp.origem : '-'}</p>
+        {aluno && <p className="text-sm text-muted-foreground mt-1">Série: {aluno.serie_interesse || '-'}</p>}
       </div>
 
-      {/* Value */}
       {opp.valor_estimado && (
         <div className="bg-success/10 rounded-xl p-4 border border-success/30 flex items-center gap-3">
           <DollarSign className="w-5 h-5 text-success" />
@@ -129,11 +129,8 @@ export default function OpportunityDetail() {
 
   const sideContent = (
     <>
-      {/* Timeline */}
       <div className="bg-card rounded-xl p-4 border border-border">
-        <h3 className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wider flex items-center gap-1.5">
-          <Clock className="w-3.5 h-3.5" /> Histórico
-        </h3>
+        <h3 className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wider flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> Histórico</h3>
         <div className="space-y-3">
           {timeline.map((ev, i) => (
             <div key={i} className="flex gap-3">
@@ -150,26 +147,24 @@ export default function OpportunityDetail() {
         </div>
       </div>
 
-      {/* Related tasks */}
       <div className="bg-card rounded-xl p-4 border border-border">
         <h3 className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">Tarefas ({relTarefas.length})</h3>
         {relTarefas.slice(0, 5).map(t => (
           <div key={t.id} className="flex items-center gap-2 py-1.5 text-sm">
-            <div className={`w-2 h-2 rounded-full ${t.status === 'concluida' ? 'bg-success' : t.status === 'atrasada' ? 'bg-destructive' : 'bg-accent'}`} />
+            <div className={`w-2 h-2 rounded-full ${t.status === 'concluida' ? 'bg-success' : t.status === 'pendente' && t.due_date && new Date(t.due_date) < new Date() ? 'bg-destructive' : 'bg-accent'}`} />
             <span className="truncate">{t.titulo}</span>
           </div>
         ))}
         {relTarefas.length === 0 && <p className="text-sm text-muted-foreground">Nenhuma tarefa</p>}
       </div>
 
-      {/* Related conversations */}
       <div className="bg-card rounded-xl p-4 border border-border">
         <h3 className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">Conversas ({relConversas.length})</h3>
         {relConversas.slice(0, 3).map(c => (
           <button key={c.id} onClick={() => navigate(`/app/conversas/${c.id}`)} className="w-full flex items-center gap-2 py-1.5 text-sm text-left hover:text-primary">
             <MessageCircle className="w-3.5 h-3.5 text-success shrink-0" />
-            <span className="truncate">Conversa WhatsApp</span>
-            <span className="text-xs text-muted-foreground ml-auto shrink-0">{new Date(c.ultima_mensagem_em).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</span>
+            <span className="truncate">Conversa {c.canal || 'WhatsApp'}</span>
+            <span className="text-xs text-muted-foreground ml-auto shrink-0">{c.ultima_mensagem_em ? new Date(c.ultima_mensagem_em).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : '-'}</span>
           </button>
         ))}
         {relConversas.length === 0 && <p className="text-sm text-muted-foreground">Nenhuma conversa</p>}
@@ -183,16 +178,16 @@ export default function OpportunityDetail() {
         <div className="bg-primary text-primary-foreground px-4 py-3 flex items-center gap-3">
           <button onClick={() => navigate(-1)} className="p-1"><ArrowLeft className="w-5 h-5" /></button>
           <div className="flex-1 min-w-0">
-            <p className="font-semibold truncate">{aluno?.nome}</p>
-            <p className="text-xs opacity-80">{ETAPA_LABELS[opp.etapa]} · {TEMPERATURA_LABELS[opp.temperatura]}</p>
+            <p className="font-semibold truncate">{aluno?.nome || resp?.nome}</p>
+            <p className="text-xs opacity-80">{ETAPA_LABELS[opp.etapa]} · {TEMPERATURA_LABELS[temp] || temp}</p>
           </div>
         </div>
       ) : (
         <div className="px-6 pt-6 pb-2 max-w-5xl mx-auto flex items-center gap-3">
           <button onClick={() => navigate(-1)} className="p-2 rounded-lg hover:bg-card text-muted-foreground"><ArrowLeft className="w-5 h-5" /></button>
           <div>
-            <h1 className="text-lg font-bold">{aluno?.nome}</h1>
-            <p className="text-sm text-muted-foreground">{ETAPA_LABELS[opp.etapa]} · {TEMPERATURA_LABELS[opp.temperatura]}</p>
+            <h1 className="text-lg font-bold">{aluno?.nome || resp?.nome}</h1>
+            <p className="text-sm text-muted-foreground">{ETAPA_LABELS[opp.etapa]} · {TEMPERATURA_LABELS[temp] || temp}</p>
           </div>
         </div>
       )}
