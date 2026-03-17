@@ -1,9 +1,10 @@
-import { Home, Kanban, MessageCircle, Users, CheckSquare } from 'lucide-react';
+import { Home, Kanban, MessageCircle, Users, CheckSquare, Workflow } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useData } from '@/contexts/DataContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePermissions } from '@/hooks/usePermissions';
 
-const tabs = [
+const baseTabs = [
   { path: '/app', icon: Home, label: 'Início' },
   { path: '/app/pipeline', icon: Kanban, label: 'Pipeline' },
   { path: '/app/conversas', icon: MessageCircle, label: 'Conversas' },
