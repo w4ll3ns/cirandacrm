@@ -7,6 +7,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
 import { useProfiles } from '@/hooks/useProfiles';
 import NewTaskForm from '@/components/NewTaskForm';
+import { useInboundNotification } from '@/hooks/useInboundNotification';
 import { ETAPA_LABELS, ETAPAS_ORDER } from '@/types';
 import type { EtapaPipeline } from '@/types';
 import { Textarea } from '@/components/ui/textarea';
