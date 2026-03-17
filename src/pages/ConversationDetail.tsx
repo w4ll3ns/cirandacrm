@@ -136,7 +136,7 @@ export default function ConversationDetail({ embeddedId }: Props) {
   };
 
   return (
-    <div className={`flex flex-col ${isEmbedded ? 'h-full' : 'h-[100dvh]'} bg-muted`}>
+    <div className={`flex flex-col ${isEmbedded ? 'h-full' : isMobile ? 'h-[100dvh]' : 'h-[calc(100vh-3.5rem)]'} bg-muted`}>
       {/* Header */}
       <div className={`${isEmbedded ? 'bg-card border-b border-border' : 'bg-primary text-primary-foreground'} px-3 py-3 flex items-center gap-3 shrink-0`}>
         {!isEmbedded && (
