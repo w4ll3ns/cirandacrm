@@ -191,6 +191,39 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ─── Find or create oportunidade ───
+    let { data: oportunidade } = await supabase
+      .from("oportunidades")
+      .select("id")
+      .eq("responsavel_id", responsavel.id)
+      .eq("status", "aberta")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!oportunidade) {
+      const { data: newOp } = await supabase
+        .from("oportunidades")
+        .insert({
+          responsavel_id: responsavel.id,
+          etapa: "novo_lead",
+          temperatura: "morno",
+          status: "aberta",
+          origem: "whatsapp",
+        })
+        .select("id")
+        .single();
+      oportunidade = newOp;
+    }
+
+    // Link oportunidade to conversation if not already linked
+    if (oportunidade && !conversation.oportunidade_id) {
+      await supabase
+        .from("conversations")
+        .update({ oportunidade_id: oportunidade.id })
+        .eq("id", conversation.id);
+    }
+
     // Determine message type
     let msgType = "text";
     let contentText = payload.text?.message || payload.text || null;
