@@ -21,7 +21,7 @@ export default function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
   const { usuario, logout } = useAuth();
-  const { conversas, tarefas } = useData();
+  const { conversas = [], tarefas = [] } = useData();
   const navigate = useNavigate();
   const location = useLocation();
 
