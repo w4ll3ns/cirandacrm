@@ -110,8 +110,20 @@ export default function Conversations() {
                     {c.ultima_mensagem_em ? new Date(c.ultima_mensagem_em).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : '-'}
                   </span>
                 </div>
-                <p className={`text-xs truncate mt-0.5 ${isUnread ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
-                  {lastMsg ? (lastMsg.direction === 'outbound' ? '✓ ' : '') + (lastMsg.content_text || '') : 'Sem mensagens'}
+                <p className={`text-xs truncate mt-0.5 flex items-center gap-0.5 ${isUnread ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
+                  {lastMsg ? (
+                    <>
+                      {lastMsg.direction === 'outbound' && (() => {
+                        const s = lastMsg.status;
+                        if (s === 'read') return <CheckCheck className="w-3.5 h-3.5 shrink-0 text-blue-500" />;
+                        if (s === 'delivered') return <CheckCheck className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />;
+                        if (s === 'sent') return <Check className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />;
+                        if (s === 'failed') return <AlertCircle className="w-3.5 h-3.5 shrink-0 text-destructive" />;
+                        return <Clock className="w-3 h-3 shrink-0 text-muted-foreground" />;
+                      })()}
+                      <span className="truncate">{lastMsg.content_text || (lastMsg.type === 'audio' ? '🎤 Áudio' : '')}</span>
+                    </>
+                  ) : 'Sem mensagens'}
                 </p>
               </div>
               {isUnread && <div className="w-2.5 h-2.5 rounded-full bg-primary shrink-0" />}
