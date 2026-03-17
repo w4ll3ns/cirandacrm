@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Send, MoreVertical, CheckCircle2, Link2, ListTodo, ArrowRightLeft, Clock, Check, CheckCheck, AlertCircle, Loader2, ExternalLink, Unlink, Pencil } from 'lucide-react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { ArrowLeft, Send, MoreVertical, CheckCircle2, Link2, ListTodo, ArrowRightLeft, Clock, Check, CheckCheck, AlertCircle, Loader2, ExternalLink, Unlink, Pencil, Paperclip, Smile, X, FileText, Download } from 'lucide-react';
 import { useData } from '@/contexts/DataContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -12,6 +12,9 @@ import { ETAPA_LABELS, ETAPAS_ORDER } from '@/types';
 import type { EtapaPipeline } from '@/types';
 import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import data from '@emoji-mart/data';
+import Picker from '@emoji-mart/react';
 
 function MessageStatusIcon({ status, onRetry, retrying }: { status: string; onRetry?: () => void; retrying?: boolean }) {
   if (retrying) return <Loader2 className="w-3 h-3 animate-spin text-primary-foreground/60" />;
@@ -28,6 +31,72 @@ function MessageStatusIcon({ status, onRetry, retrying }: { status: string; onRe
     );
     default: return <Clock className="w-3 h-3 text-primary-foreground/50" />;
   }
+}
+
+function MediaRenderer({ msg }: { msg: any }) {
+  const [expanded, setExpanded] = useState(false);
+  
+  if (msg.type === 'image' && msg.media_url) {
+    return (
+      <div className="mb-1">
+        <img
+          src={msg.media_url}
+          alt={msg.media_filename || 'Imagem'}
+          className="rounded-lg max-w-full max-h-60 cursor-pointer object-cover"
+          onClick={() => setExpanded(true)}
+          loading="lazy"
+        />
+        {msg.content_text && <p className="text-sm mt-1">{msg.content_text}</p>}
+        {expanded && (
+          <div className="fixed inset-0 z-[60] bg-foreground/80 flex items-center justify-center p-4" onClick={() => setExpanded(false)}>
+            <img src={msg.media_url} alt="" className="max-w-full max-h-full object-contain rounded-lg" />
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (msg.type === 'audio' && msg.media_url) {
+    return (
+      <div className="mb-1">
+        <audio controls className="max-w-full" preload="metadata">
+          <source src={msg.media_url} type={msg.media_mime_type || 'audio/mpeg'} />
+        </audio>
+      </div>
+    );
+  }
+
+  if (msg.type === 'video' && msg.media_url) {
+    return (
+      <div className="mb-1">
+        <video controls className="rounded-lg max-w-full max-h-60" preload="metadata">
+          <source src={msg.media_url} type={msg.media_mime_type || 'video/mp4'} />
+        </video>
+        {msg.content_text && <p className="text-sm mt-1">{msg.content_text}</p>}
+      </div>
+    );
+  }
+
+  if (msg.type === 'document' && msg.media_url) {
+    return (
+      <div className="mb-1">
+        <a href={msg.media_url} target="_blank" rel="noopener noreferrer"
+          className="flex items-center gap-2 bg-background/20 rounded-lg px-3 py-2 hover:bg-background/30 transition-colors">
+          <FileText className="w-5 h-5 shrink-0" />
+          <span className="text-sm truncate flex-1">{msg.media_filename || 'Documento'}</span>
+          <Download className="w-4 h-4 shrink-0 opacity-60" />
+        </a>
+        {msg.content_text && <p className="text-sm mt-1">{msg.content_text}</p>}
+      </div>
+    );
+  }
+
+  // Fallback: text only
+  if (msg.content_text) {
+    return <p className="text-sm">{msg.content_text}</p>;
+  }
+
+  return null;
 }
 
 interface Props {
@@ -60,7 +129,12 @@ export default function ConversationDetail({ embeddedId }: Props) {
   const [savingContact, setSavingContact] = useState(false);
   const [transferTo, setTransferTo] = useState('');
   const [transferMotivo, setTransferMotivo] = useState('');
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [pendingFilePreview, setPendingFilePreview] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const textInputRef = useRef<HTMLInputElement>(null);
 
   useInboundNotification(id || null);
 
@@ -71,14 +145,12 @@ export default function ConversationDetail({ embeddedId }: Props) {
   const relOpps = resp ? oportunidades.filter(o => o.responsavel_id === resp.id) : [];
   const linkedOpp = conv?.oportunidade_id ? oportunidades.find(o => o.id === conv.oportunidade_id) : null;
 
-  // Fetch messages on demand when conversation changes
   useEffect(() => {
     if (!id) return;
     setMsgsLoading(true);
     fetchMensagens(id).finally(() => setMsgsLoading(false));
   }, [id, fetchMensagens]);
 
-  // Auto-mark as em_atendimento when opening an unread conversation
   useEffect(() => {
     if (conv && conv.status === 'nao_lida') {
       updateConversa(conv.id, { status: 'em_atendimento' });
@@ -92,17 +164,80 @@ export default function ConversationDetail({ embeddedId }: Props) {
   useEffect(() => {
     setTexto('');
     setShowActions(false);
+    clearPendingFile();
   }, [id]);
 
-  if (!conv) return <div className="p-4 text-muted-foreground text-center">Conversa não encontrada</div>;
+  const clearPendingFile = () => {
+    setPendingFile(null);
+    if (pendingFilePreview) URL.revokeObjectURL(pendingFilePreview);
+    setPendingFilePreview(null);
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 16 * 1024 * 1024) {
+      toast.error('Arquivo muito grande (máx 16MB)');
+      return;
+    }
+    setPendingFile(file);
+    if (file.type.startsWith('image/')) {
+      setPendingFilePreview(URL.createObjectURL(file));
+    } else {
+      setPendingFilePreview(null);
+    }
+    // Reset input so same file can be reselected
+    e.target.value = '';
+  };
+
+  const getMediaType = (file: File): string => {
+    if (file.type.startsWith('image/')) return 'image';
+    if (file.type.startsWith('audio/')) return 'audio';
+    if (file.type.startsWith('video/')) return 'video';
+    return 'document';
+  };
+
+  const uploadAndSend = async (file: File) => {
+    const ext = file.name.split('.').pop() || 'bin';
+    const path = `${conv!.id}/${Date.now()}.${ext}`;
+    
+    const { error: upErr } = await supabase.storage
+      .from('chat-media')
+      .upload(path, file, { contentType: file.type });
+    if (upErr) throw new Error(`Upload falhou: ${upErr.message}`);
+
+    const { data: urlData } = supabase.storage.from('chat-media').getPublicUrl(path);
+    return urlData.publicUrl;
+  };
 
   const handleSend = async () => {
-    if (!texto.trim() || sending) return;
+    if ((!texto.trim() && !pendingFile) || sending) return;
     setSending(true);
+    setUploading(!!pendingFile);
     try {
-      const phone = resp?.whatsapp || resp?.telefone || conv.telefone;
+      const phone = resp?.whatsapp || resp?.telefone || conv!.telefone;
+      let mediaUrl: string | undefined;
+      let type = 'text';
+      let mediaFilename: string | undefined;
+      let mediaMimeType: string | undefined;
+
+      if (pendingFile) {
+        mediaUrl = await uploadAndSend(pendingFile);
+        type = getMediaType(pendingFile);
+        mediaFilename = pendingFile.name;
+        mediaMimeType = pendingFile.type;
+      }
+
       const { data, error } = await supabase.functions.invoke('zapi-send', {
-        body: { conversation_id: conv.id, message: texto.trim(), phone },
+        body: {
+          conversation_id: conv!.id,
+          message: texto.trim() || undefined,
+          phone,
+          type,
+          media_url: mediaUrl,
+          media_filename: mediaFilename,
+          media_mime_type: mediaMimeType,
+        },
       });
       if (error) throw error;
       if (data?.error) {
@@ -110,10 +245,12 @@ export default function ConversationDetail({ embeddedId }: Props) {
         return;
       }
       setTexto('');
+      clearPendingFile();
     } catch (err: any) {
       toast.error(err?.message || 'Erro ao enviar mensagem');
     } finally {
       setSending(false);
+      setUploading(false);
     }
   };
 
@@ -121,9 +258,18 @@ export default function ConversationDetail({ embeddedId }: Props) {
     if (retryingId) return;
     setRetryingId(msg.id);
     try {
-      const phone = resp?.whatsapp || resp?.telefone || conv.telefone;
+      const phone = resp?.whatsapp || resp?.telefone || conv!.telefone;
       const { data, error } = await supabase.functions.invoke('zapi-send', {
-        body: { conversation_id: conv.id, message: msg.content_text, phone, retry_message_id: msg.id },
+        body: {
+          conversation_id: conv!.id,
+          message: msg.content_text,
+          phone,
+          retry_message_id: msg.id,
+          type: msg.type || 'text',
+          media_url: msg.media_url,
+          media_filename: msg.media_filename,
+          media_mime_type: msg.media_mime_type,
+        },
       });
       if (error) throw error;
       if (data?.error) {
@@ -137,18 +283,23 @@ export default function ConversationDetail({ embeddedId }: Props) {
     }
   };
 
+  const handleEmojiSelect = (emoji: any) => {
+    setTexto(prev => prev + emoji.native);
+    textInputRef.current?.focus();
+  };
+
   const handleResolve = () => {
     if (linkedOpp && linkedOpp.status === 'aberta') {
       setShowResolveModal(true);
     } else {
-      updateConversa(conv.id, { status: 'resolvida' });
+      updateConversa(conv!.id, { status: 'resolvida' });
       toast.success('Conversa marcada como resolvida');
     }
     setShowActions(false);
   };
 
   const resolveOnly = () => {
-    updateConversa(conv.id, { status: 'resolvida' });
+    updateConversa(conv!.id, { status: 'resolvida' });
     toast.success('Conversa marcada como resolvida');
     setShowResolveModal(false);
   };
@@ -163,19 +314,19 @@ export default function ConversationDetail({ embeddedId }: Props) {
     if (nextEtapa !== linkedOpp.etapa) {
       await updateOportunidade(linkedOpp.id, { etapa: nextEtapa as any });
     }
-    await updateConversa(conv.id, { status: 'resolvida' });
+    await updateConversa(conv!.id, { status: 'resolvida' });
     toast.success(`Conversa resolvida. Oportunidade avançada para "${ETAPA_LABELS[nextEtapa]}"`);
     setShowResolveModal(false);
   };
 
   const handleLinkOpp = async (oppId: string) => {
-    await updateConversa(conv.id, { oportunidade_id: oppId });
+    await updateConversa(conv!.id, { oportunidade_id: oppId });
     toast.success('Oportunidade vinculada à conversa');
     setShowLinkOpp(false);
   };
 
   const handleUnlinkOpp = async () => {
-    await updateConversa(conv.id, { oportunidade_id: null });
+    await updateConversa(conv!.id, { oportunidade_id: null });
     toast.success('Oportunidade desvinculada');
     setShowLinkOpp(false);
   };
@@ -183,18 +334,20 @@ export default function ConversationDetail({ embeddedId }: Props) {
   const handleTransfer = async () => {
     if (!transferTo) return;
     await supabase.from('conversation_assignments_history').insert({
-      conversation_id: conv.id,
-      previous_user_id: conv.assigned_user_id,
+      conversation_id: conv!.id,
+      previous_user_id: conv!.assigned_user_id,
       new_user_id: transferTo,
       changed_by: usuario?.id,
       motivo: transferMotivo || null,
     });
-    await updateConversa(conv.id, { assigned_user_id: transferTo });
+    await updateConversa(conv!.id, { assigned_user_id: transferTo });
     toast.success('Conversa transferida com sucesso');
     setShowTransfer(false);
     setTransferTo('');
     setTransferMotivo('');
   };
+
+  if (!conv) return <div className="p-4 text-muted-foreground text-center">Conversa não encontrada</div>;
 
   return (
     <div className={`flex flex-col ${isEmbedded ? 'h-full' : isMobile ? 'h-[100dvh]' : 'h-[calc(100vh-3.5rem)]'} bg-muted`}>
@@ -247,10 +400,15 @@ export default function ConversationDetail({ embeddedId }: Props) {
           </div>
         ) : msgs.map(msg => {
           const isOut = msg.direction === 'outbound';
+          const hasMedia = msg.type !== 'text' && msg.media_url;
           return (
             <div key={msg.id} className={`flex ${isOut ? 'justify-end' : 'justify-start'}`}>
               <div className={`max-w-[80%] md:max-w-[60%] rounded-2xl px-4 py-2.5 ${isOut ? 'bg-primary text-primary-foreground rounded-br-md' : 'bg-card border border-border rounded-bl-md'}`}>
-                <p className="text-sm">{msg.content_text}</p>
+                {hasMedia ? (
+                  <MediaRenderer msg={msg} />
+                ) : (
+                  <p className="text-sm">{msg.content_text}</p>
+                )}
                 <div className={`flex items-center gap-1 mt-1 ${isOut ? 'justify-end' : ''}`}>
                   <span className={`text-[10px] ${isOut ? 'text-primary-foreground/60' : 'text-muted-foreground'}`}>
                     {new Date(msg.sent_at || msg.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
@@ -264,11 +422,58 @@ export default function ConversationDetail({ embeddedId }: Props) {
         <div ref={bottomRef} />
       </div>
 
+      {/* File preview */}
+      {pendingFile && (
+        <div className="bg-card border-t border-border px-3 py-2 flex items-center gap-3 shrink-0">
+          {pendingFilePreview ? (
+            <img src={pendingFilePreview} alt="" className="w-16 h-16 rounded-lg object-cover" />
+          ) : (
+            <div className="w-16 h-16 rounded-lg bg-muted flex items-center justify-center">
+              <FileText className="w-6 h-6 text-muted-foreground" />
+            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium truncate">{pendingFile.name}</p>
+            <p className="text-xs text-muted-foreground">{(pendingFile.size / 1024).toFixed(0)} KB</p>
+          </div>
+          <button onClick={clearPendingFile} className="p-1.5 rounded-full hover:bg-muted">
+            <X className="w-4 h-4 text-muted-foreground" />
+          </button>
+        </div>
+      )}
+
       {/* Input */}
-      <div className={`bg-card border-t border-border px-3 py-2 flex items-end gap-2 shrink-0 ${!isEmbedded ? 'safe-bottom' : ''}`}>
-        <input value={texto} onChange={e => setTexto(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }} placeholder="Digite uma mensagem..." disabled={sending} className="flex-1 bg-muted rounded-full px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50" />
-        <button onClick={handleSend} disabled={!texto.trim() || sending} className="w-10 h-10 bg-primary text-primary-foreground rounded-full flex items-center justify-center shrink-0 disabled:opacity-50 active:scale-95 transition-transform">
-          {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+      <div className={`bg-card border-t border-border px-3 py-2 flex items-end gap-1.5 shrink-0 ${!isEmbedded ? 'safe-bottom' : ''}`}>
+        <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden"
+          accept="image/*,audio/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv" />
+        
+        <button onClick={() => fileInputRef.current?.click()} disabled={sending} className="w-10 h-10 flex items-center justify-center shrink-0 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50">
+          <Paperclip className="w-5 h-5" />
+        </button>
+
+        <Popover>
+          <PopoverTrigger asChild>
+            <button disabled={sending} className="w-10 h-10 flex items-center justify-center shrink-0 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50">
+              <Smile className="w-5 h-5" />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0 border-0" side="top" align="start">
+            <Picker data={data} onEmojiSelect={handleEmojiSelect} theme="light" locale="pt" previewPosition="none" skinTonePosition="none" />
+          </PopoverContent>
+        </Popover>
+
+        <input
+          ref={textInputRef}
+          value={texto}
+          onChange={e => setTexto(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
+          placeholder={pendingFile ? "Legenda (opcional)..." : "Digite uma mensagem..."}
+          disabled={sending}
+          className="flex-1 bg-muted rounded-full px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
+        />
+
+        <button onClick={handleSend} disabled={(!texto.trim() && !pendingFile) || sending} className="w-10 h-10 bg-primary text-primary-foreground rounded-full flex items-center justify-center shrink-0 disabled:opacity-50 active:scale-95 transition-transform">
+          {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
         </button>
       </div>
 
