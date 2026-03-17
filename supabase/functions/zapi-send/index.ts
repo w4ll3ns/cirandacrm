@@ -80,14 +80,12 @@ Deno.serve(async (req) => {
         msgId = msgData.id;
       }
 
-      if (msgError) throw msgError;
-
       await supabase.from("conversations").update({
         ultima_mensagem_em: new Date().toISOString(),
         assigned_user_id: user.id,
       }).eq("id", conversation_id);
 
-      return new Response(JSON.stringify({ ok: true, sent_via: "local", message_id: msgData.id }), {
+      return new Response(JSON.stringify({ ok: true, sent_via: "local", message_id: msgId }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
