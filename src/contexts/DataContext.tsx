@@ -233,7 +233,92 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       })
       .subscribe();
 
+    // Polling fallback: periodically check for new conversations/messages
+    let pollInterval = 5000;
+    let isPollingActive = true;
+    let pollTimeoutId: ReturnType<typeof setTimeout>;
+
+    const pollForUpdates = async () => {
+      if (!isPollingActive) return;
+      try {
+        // Check conversations for updated ultima_mensagem_em
+        const { data: freshConvs } = await supabase
+          .from('conversations')
+          .select('*')
+          .order('ultima_mensagem_em', { ascending: false });
+
+        if (freshConvs) {
+          let hasChanges = false;
+          const currentConvMap = new Map(conversas.map(c => [c.id, c]));
+
+          for (const fc of freshConvs as unknown as Conversa[]) {
+            const existing = currentConvMap.get(fc.id);
+            if (!existing || existing.ultima_mensagem_em !== fc.ultima_mensagem_em || existing.status !== fc.status) {
+              hasChanges = true;
+              break;
+            }
+          }
+          if (freshConvs.length !== conversas.length) hasChanges = true;
+
+          if (hasChanges) {
+            setConversas(freshConvs as unknown as Conversa[]);
+            pollInterval = 5000; // Reset on changes
+
+            // Refresh last messages
+            const convIds = freshConvs.map((c: any) => c.id);
+            if (convIds.length > 0) {
+              const { data: previewMsgs } = await supabase
+                .from('messages')
+                .select('*')
+                .in('conversation_id', convIds)
+                .order('created_at', { ascending: false })
+                .limit(convIds.length * 2);
+
+              if (previewMsgs && previewMsgs.length > 0) {
+                const lastMap = new Map<string, Mensagem>();
+                for (const msg of previewMsgs as unknown as Mensagem[]) {
+                  if (!lastMap.has(msg.conversation_id)) {
+                    lastMap.set(msg.conversation_id, msg);
+                  }
+                }
+                setLastMessages(lastMap);
+              }
+            }
+
+            // Refresh message cache for fetched conversations
+            for (const convId of fetchedConvsRef.current) {
+              const { data: msgs } = await supabase
+                .from('messages')
+                .select('*')
+                .eq('conversation_id', convId)
+                .order('created_at', { ascending: true });
+              if (msgs) {
+                setMsgCache(prev => {
+                  const next = new Map(prev);
+                  next.set(convId, msgs as unknown as Mensagem[]);
+                  return next;
+                });
+              }
+            }
+          } else {
+            // No changes, back off
+            pollInterval = Math.min(pollInterval * 1.5, 30000);
+          }
+        }
+      } catch (err) {
+        console.error('Polling error:', err);
+      }
+
+      if (isPollingActive) {
+        pollTimeoutId = setTimeout(pollForUpdates, pollInterval);
+      }
+    };
+
+    pollTimeoutId = setTimeout(pollForUpdates, pollInterval);
+
     return () => {
+      isPollingActive = false;
+      clearTimeout(pollTimeoutId);
       supabase.removeChannel(messagesChannel);
       supabase.removeChannel(convsChannel);
       supabase.removeChannel(responsaveisChannel);

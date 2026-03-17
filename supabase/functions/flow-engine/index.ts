@@ -129,14 +129,26 @@ Deno.serve(async (req) => {
         return new Response(JSON.stringify({ processed: false, reason: "no_matching_flow" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
-      // Find start node
-      const { data: startNode } = await supabase
+      // Find start node (the one that actually has outgoing edges)
+      const { data: startNodes } = await supabase
         .from("flow_nodes")
         .select("*")
         .eq("flow_id", matchedFlow.id)
-        .eq("type", "start")
-        .limit(1)
-        .maybeSingle();
+        .eq("type", "start");
+
+      let startNode = null;
+      for (const sn of (startNodes || [])) {
+        const { data: outEdges } = await supabase
+          .from("flow_edges")
+          .select("id")
+          .eq("source_node_id", sn.id)
+          .limit(1);
+        if (outEdges && outEdges.length > 0) {
+          startNode = sn;
+          break;
+        }
+      }
+      if (!startNode) startNode = startNodes?.[0] || null;
 
       if (!startNode) {
         return new Response(JSON.stringify({ processed: false, reason: "no_start_node" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
