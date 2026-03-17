@@ -384,11 +384,20 @@ export default function ConversationDetail({ embeddedId }: Props) {
     }
   };
 
-  const handleResolve = () => {
+  const finishFlowSessions = async (conversationId: string) => {
+    await supabase
+      .from('conversation_flow_sessions')
+      .update({ status: 'finished' as any, finished_at: new Date().toISOString() })
+      .eq('conversation_id', conversationId)
+      .eq('status', 'running');
+  };
+
+  const handleResolve = async () => {
     if (linkedOpp && linkedOpp.status === 'aberta') {
       setShowResolveModal(true);
     } else {
-      updateConversa(conv!.id, { status: 'resolvida' });
+      await updateConversa(conv!.id, { status: 'resolvida' });
+      await finishFlowSessions(conv!.id);
       toast.success('Conversa marcada como resolvida');
     }
     setShowActions(false);
