@@ -542,35 +542,59 @@ export default function ConversationDetail({ embeddedId }: Props) {
       <div className={`bg-card border-t border-border px-3 py-2 flex items-end gap-1.5 shrink-0 ${!isEmbedded ? 'safe-bottom' : ''}`}>
         <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden"
           accept="image/*,audio/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv" />
-        
-        <button onClick={() => fileInputRef.current?.click()} disabled={sending} className="w-10 h-10 flex items-center justify-center shrink-0 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50">
-          <Paperclip className="w-5 h-5" />
-        </button>
 
-        <Popover>
-          <PopoverTrigger asChild>
-            <button disabled={sending} className="w-10 h-10 flex items-center justify-center shrink-0 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50">
-              <Smile className="w-5 h-5" />
+        {isRecording ? (
+          <>
+            <button onClick={cancelRecording} className="w-10 h-10 flex items-center justify-center shrink-0 text-destructive hover:text-destructive/80 transition-colors">
+              <Trash2 className="w-5 h-5" />
             </button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0 border-0" side="top" align="start">
-            <Picker data={data} onEmojiSelect={handleEmojiSelect} theme="light" locale="pt" previewPosition="none" skinTonePosition="none" />
-          </PopoverContent>
-        </Popover>
+            <div className="flex-1 flex items-center gap-3 bg-muted rounded-full px-4 py-2.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-destructive animate-pulse shrink-0" />
+              <span className="text-sm font-medium text-foreground">{formatRecordingTime(recordingTime)}</span>
+              <span className="text-xs text-muted-foreground">Gravando...</span>
+            </div>
+            <button onClick={stopRecording} className="w-10 h-10 bg-primary text-primary-foreground rounded-full flex items-center justify-center shrink-0 active:scale-95 transition-transform">
+              <Send className="w-4 h-4" />
+            </button>
+          </>
+        ) : (
+          <>
+            <button onClick={() => fileInputRef.current?.click()} disabled={sending} className="w-10 h-10 flex items-center justify-center shrink-0 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50">
+              <Paperclip className="w-5 h-5" />
+            </button>
 
-        <input
-          ref={textInputRef}
-          value={texto}
-          onChange={e => setTexto(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-          placeholder={pendingFile ? "Legenda (opcional)..." : "Digite uma mensagem..."}
-          disabled={sending}
-          className="flex-1 bg-muted rounded-full px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
-        />
+            <Popover>
+              <PopoverTrigger asChild>
+                <button disabled={sending} className="w-10 h-10 flex items-center justify-center shrink-0 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50">
+                  <Smile className="w-5 h-5" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0 border-0" side="top" align="start">
+                <Picker data={data} onEmojiSelect={handleEmojiSelect} theme="light" locale="pt" previewPosition="none" skinTonePosition="none" />
+              </PopoverContent>
+            </Popover>
 
-        <button onClick={handleSend} disabled={(!texto.trim() && !pendingFile) || sending} className="w-10 h-10 bg-primary text-primary-foreground rounded-full flex items-center justify-center shrink-0 disabled:opacity-50 active:scale-95 transition-transform">
-          {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-        </button>
+            <input
+              ref={textInputRef}
+              value={texto}
+              onChange={e => setTexto(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
+              placeholder={pendingFile ? "Legenda (opcional)..." : "Digite uma mensagem..."}
+              disabled={sending}
+              className="flex-1 bg-muted rounded-full px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
+            />
+
+            {texto.trim() || pendingFile ? (
+              <button onClick={handleSend} disabled={(!texto.trim() && !pendingFile) || sending} className="w-10 h-10 bg-primary text-primary-foreground rounded-full flex items-center justify-center shrink-0 disabled:opacity-50 active:scale-95 transition-transform">
+                {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+              </button>
+            ) : (
+              <button onClick={startRecording} disabled={sending} className="w-10 h-10 bg-primary text-primary-foreground rounded-full flex items-center justify-center shrink-0 disabled:opacity-50 active:scale-95 transition-transform">
+                <Mic className="w-4 h-4" />
+              </button>
+            )}
+          </>
+        )}
       </div>
 
       {/* Link opportunity modal */}
