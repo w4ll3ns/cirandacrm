@@ -33,6 +33,11 @@ export default function Settings() {
             <ZapiConfig />
           </div>
         )}
+        {canManageSettings && (
+          <div className="bg-card rounded-xl p-4 border border-border">
+            <PipelineConfig />
+          </div>
+        )}
         <NotificationsCard />
         <LogoutButton onClick={handleLogout} />
       </div>
