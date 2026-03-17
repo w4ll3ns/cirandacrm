@@ -20,7 +20,7 @@ export default function Layout() {
             <img src="/logo.png" alt="Hora de Aprender" className="w-8 h-8 object-contain rounded-lg" />
             <div>
               <h1 className="text-base font-bold leading-tight">Hora de Aprender</h1>
-              <p className="text-[11px] opacity-80">{usuario?.nome} · {usuario?.perfil === 'admin' ? 'Admin' : usuario?.perfil === 'secretaria' ? 'Secretaria' : 'Comercial'}</p>
+              <p className="text-[11px] opacity-80">{usuario?.nome} · {usuario?.perfil === 'admin' ? 'Admin' : usuario?.perfil === 'atendente' ? 'Atendente' : 'Gestor'}</p>
             </div>
           </div>
           <button onClick={() => navigate('/app/configuracoes')} className="w-9 h-9 rounded-full bg-primary-foreground/15 flex items-center justify-center">
