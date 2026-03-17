@@ -25,6 +25,7 @@ export default function ConversationDetail({ embeddedId }: Props) {
   const { conversas, mensagens, responsaveis, oportunidades, addMensagem, updateConversa } = useData();
   const { profiles } = useProfiles();
   const [texto, setTexto] = useState('');
+  const [sending, setSending] = useState(false);
   const [showActions, setShowActions] = useState(false);
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [showLinkOpp, setShowLinkOpp] = useState(false);
