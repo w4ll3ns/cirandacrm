@@ -46,7 +46,7 @@ function MediaRenderer({ msg }: { msg: any }) {
           onClick={() => setExpanded(true)}
           loading="lazy"
         />
-        {msg.content_text && <p className="text-sm mt-1">{msg.content_text}</p>}
+        {msg.content_text && <p className="text-sm mt-1 whitespace-pre-wrap">{msg.content_text}</p>}
         {expanded && (
           <div className="fixed inset-0 z-[60] bg-foreground/80 flex items-center justify-center p-4" onClick={() => setExpanded(false)}>
             <img src={msg.media_url} alt="" className="max-w-full max-h-full object-contain rounded-lg" />
