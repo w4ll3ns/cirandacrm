@@ -110,6 +110,14 @@ export default function Communities() {
   const [fetchingLinkPreview, setFetchingLinkPreview] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Contacts state
+  const [communityContacts, setCommunityContacts] = useState<any[]>([]);
+  const [loadingContacts, setLoadingContacts] = useState(false);
+  const [contactsSearch, setContactsSearch] = useState('');
+  const [contactsFilter, setContactsFilter] = useState('all');
+  const [syncingContacts, setSyncingContacts] = useState<string | null>(null);
+  const [pageTab, setPageTab] = useState<'communities' | 'contacts'>('communities');
+
   // All available groups from loaded communities
   const allGroups = useMemo(() => {
     const groups: { name: string; phone: string; isGroupAnnouncement: boolean; communityName: string }[] = [];
