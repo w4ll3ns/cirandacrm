@@ -538,90 +538,196 @@ export default function Communities() {
         </div>
       </div>
 
-      {communities.length === 0 && !loading && (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-            <Users2 className="w-12 h-12 text-muted-foreground/30 mb-3" />
-            <p className="text-muted-foreground font-medium">Nenhuma comunidade carregada</p>
-            <p className="text-sm text-muted-foreground mt-1">Clique em "Carregar" para buscar suas comunidades</p>
-          </CardContent>
-        </Card>
-      )}
+      <Tabs value={pageTab} onValueChange={(v) => setPageTab(v as 'communities' | 'contacts')} className="w-full">
+        <TabsList>
+          <TabsTrigger value="communities">Comunidades</TabsTrigger>
+          <TabsTrigger value="contacts">
+            Contatos
+            {communityContacts.length > 0 && (
+              <Badge variant="secondary" className="ml-1.5 text-[10px] py-0 px-1.5">{communityContacts.length}</Badge>
+            )}
+          </TabsTrigger>
+        </TabsList>
 
-      <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
-        {communities.map((c) => (
-          <Card key={c.id} className="group">
-            <CardHeader className="pb-3">
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0 flex-1">
-                  <CardTitle className="text-base truncate">{c.name || c.communityName || 'Sem nome'}</CardTitle>
-                  <CardDescription className="text-xs mt-1 font-mono truncate">{c.id}</CardDescription>
-                </div>
-                <Badge variant="secondary" className="shrink-0">
-                  {c.subGroups?.length || 0} grupo(s)
-                </Badge>
-                {communityParticipantCounts[c.id] != null ? (
-                  <Badge variant="outline" className="shrink-0 text-xs">
-                    <Users2 className="w-3 h-3 mr-1" />
-                    {communityParticipantCounts[c.id]} participantes
-                  </Badge>
-                ) : loadingParticipantCounts ? (
-                  <Badge variant="outline" className="shrink-0 text-xs animate-pulse">
-                    <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                    ...
-                  </Badge>
-                ) : null}
-              </div>
-            </CardHeader>
-            <CardContent className="pt-0">
-              {c.subGroups && c.subGroups.length > 0 && (
-                <div className="mb-3 space-y-1">
-                  {c.subGroups.slice(0, 3).map((sg, i) => (
-                    <div key={i} className="text-xs flex items-center gap-1.5 text-muted-foreground">
-                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${sg.isGroupAnnouncement ? 'bg-primary' : 'bg-muted-foreground/40'}`} />
-                      <span className="truncate">{sg.name}</span>
-                      {sg.isGroupAnnouncement && <Badge variant="outline" className="text-[9px] py-0 px-1">Anúncios</Badge>}
+        <TabsContent value="communities" className="space-y-4">
+          {communities.length === 0 && !loading && (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+                <Users2 className="w-12 h-12 text-muted-foreground/30 mb-3" />
+                <p className="text-muted-foreground font-medium">Nenhuma comunidade carregada</p>
+                <p className="text-sm text-muted-foreground mt-1">Clique em "Carregar" para buscar suas comunidades</p>
+              </CardContent>
+            </Card>
+          )}
+
+          <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
+            {communities.map((c) => (
+              <Card key={c.id} className="group">
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <CardTitle className="text-base truncate">{c.name || c.communityName || 'Sem nome'}</CardTitle>
+                      <CardDescription className="text-xs mt-1 font-mono truncate">{c.id}</CardDescription>
                     </div>
-                  ))}
-                  {c.subGroups.length > 3 && (
-                    <p className="text-[10px] text-muted-foreground">+{c.subGroups.length - 3} grupos</p>
+                    <Badge variant="secondary" className="shrink-0">
+                      {c.subGroups?.length || 0} grupo(s)
+                    </Badge>
+                    {communityParticipantCounts[c.id] != null ? (
+                      <Badge variant="outline" className="shrink-0 text-xs">
+                        <Users2 className="w-3 h-3 mr-1" />
+                        {communityParticipantCounts[c.id]} participantes
+                      </Badge>
+                    ) : loadingParticipantCounts ? (
+                      <Badge variant="outline" className="shrink-0 text-xs animate-pulse">
+                        <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                        ...
+                      </Badge>
+                    ) : null}
+                    {contactCountByCommunity[c.id] != null && contactCountByCommunity[c.id] > 0 && (
+                      <Badge variant="outline" className="shrink-0 text-xs text-primary">
+                        <Phone className="w-3 h-3 mr-1" />
+                        {contactCountByCommunity[c.id]} contatos
+                      </Badge>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  {c.subGroups && c.subGroups.length > 0 && (
+                    <div className="mb-3 space-y-1">
+                      {c.subGroups.slice(0, 3).map((sg, i) => (
+                        <div key={i} className="text-xs flex items-center gap-1.5 text-muted-foreground">
+                          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${sg.isGroupAnnouncement ? 'bg-primary' : 'bg-muted-foreground/40'}`} />
+                          <span className="truncate">{sg.name}</span>
+                          {sg.isGroupAnnouncement && <Badge variant="outline" className="text-[9px] py-0 px-1">Anúncios</Badge>}
+                        </div>
+                      ))}
+                      {c.subGroups.length > 3 && (
+                        <p className="text-[10px] text-muted-foreground">+{c.subGroups.length - 3} grupos</p>
+                      )}
+                    </div>
+                  )}
+                  <div className="flex flex-wrap gap-1.5">
+                    <Button variant="outline" size="sm" className="h-7 text-xs"
+                      disabled={loadingAction === `meta-${c.id}`}
+                      onClick={() => handleViewMeta(c.id)}>
+                      {loadingAction === `meta-${c.id}` ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Eye className="w-3 h-3 mr-1" />}
+                      Detalhes
+                    </Button>
+                    <Button variant="outline" size="sm" className="h-7 text-xs"
+                      onClick={() => { setAddPartCommunityId(c.id); setShowAddPart(true); }}>
+                      <UserPlus className="w-3 h-3 mr-1" />
+                      Adicionar
+                    </Button>
+                    <Button variant="outline" size="sm" className="h-7 text-xs"
+                      onClick={() => { setRemovePartCommunityId(c.id); setShowRemovePart(true); }}>
+                      <UserMinus className="w-3 h-3 mr-1" />
+                      Remover
+                    </Button>
+                    <Button variant="outline" size="sm" className="h-7 text-xs"
+                      disabled={loadingAction === `invite-${c.id}`}
+                      onClick={() => handleGetInviteLink(c.id)}>
+                      {loadingAction === `invite-${c.id}` ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Link2 className="w-3 h-3 mr-1" />}
+                      Convite
+                    </Button>
+                    <Button variant="outline" size="sm" className="h-7 text-xs"
+                      disabled={syncingContacts === c.id}
+                      onClick={() => handleSyncContacts(c.id, c.name || c.communityName || '')}>
+                      {syncingContacts === c.id ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Download className="w-3 h-3 mr-1" />}
+                      Sync
+                    </Button>
+                    <Button variant="destructive" size="sm" className="h-7 text-xs"
+                      disabled={loadingAction === `deactivate-${c.id}`}
+                      onClick={() => handleDeactivate(c.id)}>
+                      {loadingAction === `deactivate-${c.id}` ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Trash2 className="w-3 h-3 mr-1" />}
+                      Desativar
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="contacts" className="space-y-4">
+          <div className="flex flex-wrap gap-2 items-center">
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por telefone, nome ou grupo..."
+                value={contactsSearch}
+                onChange={e => setContactsSearch(e.target.value)}
+                className="pl-9 h-9"
+              />
+              {contactsSearch && (
+                <Button variant="ghost" size="sm" className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 p-0" onClick={() => setContactsSearch('')}>
+                  <X className="w-3 h-3" />
+                </Button>
+              )}
+            </div>
+            <select
+              className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+              value={contactsFilter}
+              onChange={e => setContactsFilter(e.target.value)}
+            >
+              <option value="all">Todas comunidades</option>
+              {uniqueCommunities.map(name => (
+                <option key={name} value={name}>{name}</option>
+              ))}
+            </select>
+            <Button variant="outline" size="sm" onClick={fetchContacts} disabled={loadingContacts}>
+              <RefreshCw className={`w-4 h-4 mr-1 ${loadingContacts ? 'animate-spin' : ''}`} />
+              Atualizar
+            </Button>
+            <Badge variant="secondary">{filteredContacts.length} contatos</Badge>
+          </div>
+
+          {filteredContacts.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+                <Phone className="w-12 h-12 text-muted-foreground/30 mb-3" />
+                <p className="text-muted-foreground font-medium">Nenhum contato registrado</p>
+                <p className="text-sm text-muted-foreground mt-1">Sincronize os contatos nas comunidades para vê-los aqui</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardContent className="p-0">
+                <div className="overflow-auto max-h-[60vh]">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Telefone</TableHead>
+                        <TableHead>Nome</TableHead>
+                        <TableHead>Comunidade</TableHead>
+                        <TableHead>Grupo</TableHead>
+                        <TableHead>Data</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredContacts.slice(0, 200).map((contact) => (
+                        <TableRow key={contact.id}>
+                          <TableCell className="font-mono text-xs">{contact.phone}</TableCell>
+                          <TableCell className="text-sm">{contact.name || '—'}</TableCell>
+                          <TableCell className="text-xs text-muted-foreground">{contact.community_name || '—'}</TableCell>
+                          <TableCell className="text-xs text-muted-foreground">{contact.group_name || '—'}</TableCell>
+                          <TableCell className="text-xs text-muted-foreground">
+                            {new Date(contact.created_at).toLocaleDateString('pt-BR')}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                  {filteredContacts.length > 200 && (
+                    <p className="text-xs text-muted-foreground text-center py-2">
+                      Mostrando 200 de {filteredContacts.length} contatos
+                    </p>
                   )}
                 </div>
-              )}
-              <div className="flex flex-wrap gap-1.5">
-                <Button variant="outline" size="sm" className="h-7 text-xs"
-                  disabled={loadingAction === `meta-${c.id}`}
-                  onClick={() => handleViewMeta(c.id)}>
-                  {loadingAction === `meta-${c.id}` ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Eye className="w-3 h-3 mr-1" />}
-                  Detalhes
-                </Button>
-                <Button variant="outline" size="sm" className="h-7 text-xs"
-                  onClick={() => { setAddPartCommunityId(c.id); setShowAddPart(true); }}>
-                  <UserPlus className="w-3 h-3 mr-1" />
-                  Adicionar
-                </Button>
-                <Button variant="outline" size="sm" className="h-7 text-xs"
-                  onClick={() => { setRemovePartCommunityId(c.id); setShowRemovePart(true); }}>
-                  <UserMinus className="w-3 h-3 mr-1" />
-                  Remover
-                </Button>
-                <Button variant="outline" size="sm" className="h-7 text-xs"
-                  disabled={loadingAction === `invite-${c.id}`}
-                  onClick={() => handleGetInviteLink(c.id)}>
-                  {loadingAction === `invite-${c.id}` ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Link2 className="w-3 h-3 mr-1" />}
-                  Convite
-                </Button>
-                <Button variant="destructive" size="sm" className="h-7 text-xs"
-                  disabled={loadingAction === `deactivate-${c.id}`}
-                  onClick={() => handleDeactivate(c.id)}>
-                  {loadingAction === `deactivate-${c.id}` ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Trash2 className="w-3 h-3 mr-1" />}
-                  Desativar
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+      </Tabs>
 
       {/* Create Community Dialog */}
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
