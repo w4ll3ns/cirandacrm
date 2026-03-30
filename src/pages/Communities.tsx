@@ -1,6 +1,6 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users2, Plus, RefreshCw, Trash2, UserPlus, UserMinus, Link2, RotateCcw, Eye, Loader2, Copy, Check, MessageSquare } from 'lucide-react';
+import { Users2, Plus, RefreshCw, Trash2, UserPlus, UserMinus, Link2, RotateCcw, Eye, Loader2, Copy, Check, MessageSquare, Send, Image, AudioLines, LinkIcon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,6 +8,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Progress } from '@/components/ui/progress';
+import { Label } from '@/components/ui/label';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useData } from '@/contexts/DataContext';
@@ -30,6 +34,9 @@ type CommunityMetadata = {
   subGroups?: { name: string; phone: string; isGroupAnnouncement: boolean }[];
   participants?: { phone: string; name?: string; isAdmin?: boolean }[];
 };
+
+type BroadcastType = 'text' | 'image' | 'audio' | 'link';
+type BroadcastResult = { groupPhone: string; status: string; error?: string };
 
 async function callCommunities(action: string, params: Record<string, unknown> = {}) {
   const { data: { session } } = await supabase.auth.getSession();
@@ -75,6 +82,32 @@ export default function Communities() {
   const [inviteLink, setInviteLink] = useState('');
   const [inviteLinkCommunityId, setInviteLinkCommunityId] = useState('');
   const [copiedLink, setCopiedLink] = useState(false);
+
+  // Broadcast state
+  const [showBroadcast, setShowBroadcast] = useState(false);
+  const [broadcastType, setBroadcastType] = useState<BroadcastType>('text');
+  const [broadcastMessage, setBroadcastMessage] = useState('');
+  const [broadcastMediaUrl, setBroadcastMediaUrl] = useState('');
+  const [broadcastCaption, setBroadcastCaption] = useState('');
+  const [broadcastLinkUrl, setBroadcastLinkUrl] = useState('');
+  const [broadcastLinkTitle, setBroadcastLinkTitle] = useState('');
+  const [broadcastLinkDesc, setBroadcastLinkDesc] = useState('');
+  const [broadcastLinkImage, setBroadcastLinkImage] = useState('');
+  const [selectedGroups, setSelectedGroups] = useState<Set<string>>(new Set());
+  const [broadcastRunning, setBroadcastRunning] = useState(false);
+  const [broadcastResults, setBroadcastResults] = useState<BroadcastResult[] | null>(null);
+
+  // All available groups from loaded communities
+  const allGroups = useMemo(() => {
+    const groups: { name: string; phone: string; isGroupAnnouncement: boolean; communityName: string }[] = [];
+    communities.forEach(c => {
+      const cName = c.name || c.communityName || 'Sem nome';
+      c.subGroups?.forEach(sg => {
+        groups.push({ ...sg, communityName: cName });
+      });
+    });
+    return groups;
+  }, [communities]);
 
   const fetchCommunities = useCallback(async () => {
     setLoading(true);
@@ -198,6 +231,95 @@ export default function Communities() {
     setTimeout(() => setCopiedLink(false), 2000);
   };
 
+  // Broadcast handlers
+  const toggleGroup = (phone: string) => {
+    setSelectedGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(phone)) next.delete(phone);
+      else next.add(phone);
+      return next;
+    });
+  };
+
+  const toggleAll = () => {
+    if (selectedGroups.size === allGroups.length) {
+      setSelectedGroups(new Set());
+    } else {
+      setSelectedGroups(new Set(allGroups.map(g => g.phone)));
+    }
+  };
+
+  const canSendBroadcast = () => {
+    if (selectedGroups.size === 0) return false;
+    switch (broadcastType) {
+      case 'text': return !!broadcastMessage.trim();
+      case 'image': return !!broadcastMediaUrl.trim();
+      case 'audio': return !!broadcastMediaUrl.trim();
+      case 'link': return !!broadcastLinkUrl.trim();
+    }
+  };
+
+  const handleBroadcast = async () => {
+    if (!canSendBroadcast()) return;
+    setBroadcastRunning(true);
+    setBroadcastResults(null);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('zapi-community-broadcast', {
+        body: {
+          type: broadcastType,
+          message: broadcastMessage,
+          media_url: broadcastMediaUrl || undefined,
+          caption: broadcastCaption || undefined,
+          link_url: broadcastLinkUrl || undefined,
+          link_title: broadcastLinkTitle || undefined,
+          link_description: broadcastLinkDesc || undefined,
+          link_image: broadcastLinkImage || undefined,
+          group_phones: Array.from(selectedGroups),
+        },
+      });
+
+      if (error) throw new Error(error.message);
+
+      const results: BroadcastResult[] = data?.results || [];
+      setBroadcastResults(results);
+
+      const sent = results.filter(r => r.status === 'sent').length;
+      const errors = results.filter(r => r.status === 'error').length;
+
+      if (errors === 0) {
+        toast.success(`Disparo concluído! ${sent} mensagens enviadas.`);
+      } else {
+        toast.warning(`Disparo concluído: ${sent} enviadas, ${errors} com erro.`);
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Erro no disparo');
+    } finally {
+      setBroadcastRunning(false);
+    }
+  };
+
+  const resetBroadcast = () => {
+    setBroadcastType('text');
+    setBroadcastMessage('');
+    setBroadcastMediaUrl('');
+    setBroadcastCaption('');
+    setBroadcastLinkUrl('');
+    setBroadcastLinkTitle('');
+    setBroadcastLinkDesc('');
+    setBroadcastLinkImage('');
+    setSelectedGroups(new Set());
+    setBroadcastResults(null);
+  };
+
+  const estimatedTime = useMemo(() => {
+    const count = selectedGroups.size;
+    if (count <= 1) return null;
+    const minSec = (count - 1) * 15;
+    const maxSec = (count - 1) * 25;
+    return `~${Math.round(minSec / 60)}-${Math.round(maxSec / 60)} min`;
+  }, [selectedGroups.size]);
+
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-5xl mx-auto">
       <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -208,10 +330,14 @@ export default function Communities() {
           </h1>
           <p className="text-sm text-muted-foreground mt-1">Gerencie suas comunidades do WhatsApp</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button variant="outline" size="sm" onClick={fetchCommunities} disabled={loading}>
             <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
             {loading ? 'Carregando...' : 'Carregar'}
+          </Button>
+          <Button variant="secondary" size="sm" onClick={() => { resetBroadcast(); setShowBroadcast(true); }} disabled={allGroups.length === 0}>
+            <Send className="w-4 h-4 mr-1" />
+            Disparar Mensagem
           </Button>
           <Button size="sm" onClick={() => setShowCreate(true)}>
             <Plus className="w-4 h-4 mr-1" />
@@ -477,6 +603,180 @@ export default function Communities() {
               Redefinir Link
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Broadcast Dialog */}
+      <Dialog open={showBroadcast} onOpenChange={(open) => { if (!broadcastRunning) setShowBroadcast(open); }}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Send className="w-5 h-5 text-primary" />
+              Disparar Mensagem
+            </DialogTitle>
+            <DialogDescription>
+              Envie mensagens em massa para grupos das suas comunidades com delay aleatório (15-25s) entre envios.
+            </DialogDescription>
+          </DialogHeader>
+
+          {broadcastResults ? (
+            /* Results view */
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <Badge variant="secondary" className="text-sm">
+                  {broadcastResults.filter(r => r.status === 'sent').length} enviadas
+                </Badge>
+                {broadcastResults.some(r => r.status === 'error') && (
+                  <Badge variant="destructive" className="text-sm">
+                    {broadcastResults.filter(r => r.status === 'error').length} com erro
+                  </Badge>
+                )}
+              </div>
+              <div className="space-y-1.5 max-h-60 overflow-y-auto">
+                {broadcastResults.map((r, i) => {
+                  const group = allGroups.find(g => g.phone === r.groupPhone);
+                  return (
+                    <div key={i} className={`flex items-center gap-2 text-xs py-2 px-3 rounded-md ${r.status === 'sent' ? 'bg-primary/10' : 'bg-destructive/10'}`}>
+                      <span className={`w-2 h-2 rounded-full shrink-0 ${r.status === 'sent' ? 'bg-primary' : 'bg-destructive'}`} />
+                      <span className="truncate flex-1 font-medium">{group?.name || r.groupPhone}</span>
+                      <span className={`text-[10px] ${r.status === 'sent' ? 'text-primary' : 'text-destructive'}`}>
+                        {r.status === 'sent' ? 'Enviada' : r.error || 'Erro'}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowBroadcast(false)}>Fechar</Button>
+                <Button onClick={() => setBroadcastResults(null)}>Novo Disparo</Button>
+              </DialogFooter>
+            </div>
+          ) : (
+            /* Composer view */
+            <div className="space-y-5">
+              {/* Message type tabs */}
+              <Tabs value={broadcastType} onValueChange={(v) => setBroadcastType(v as BroadcastType)}>
+                <TabsList className="grid grid-cols-4 w-full">
+                  <TabsTrigger value="text" className="text-xs gap-1"><MessageSquare className="w-3.5 h-3.5" /> Texto</TabsTrigger>
+                  <TabsTrigger value="image" className="text-xs gap-1"><Image className="w-3.5 h-3.5" /> Imagem</TabsTrigger>
+                  <TabsTrigger value="audio" className="text-xs gap-1"><AudioLines className="w-3.5 h-3.5" /> Áudio</TabsTrigger>
+                  <TabsTrigger value="link" className="text-xs gap-1"><LinkIcon className="w-3.5 h-3.5" /> Link</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="text" className="space-y-3 mt-3">
+                  <div>
+                    <Label>Mensagem *</Label>
+                    <Textarea value={broadcastMessage} onChange={e => setBroadcastMessage(e.target.value)} placeholder="Digite a mensagem..." rows={4} />
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="image" className="space-y-3 mt-3">
+                  <div>
+                    <Label>URL da Imagem *</Label>
+                    <Input value={broadcastMediaUrl} onChange={e => setBroadcastMediaUrl(e.target.value)} placeholder="https://exemplo.com/imagem.jpg" />
+                  </div>
+                  <div>
+                    <Label>Legenda</Label>
+                    <Textarea value={broadcastCaption || broadcastMessage} onChange={e => { setBroadcastCaption(e.target.value); setBroadcastMessage(e.target.value); }} placeholder="Legenda da imagem (opcional)" rows={3} />
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="audio" className="space-y-3 mt-3">
+                  <div>
+                    <Label>URL do Áudio *</Label>
+                    <Input value={broadcastMediaUrl} onChange={e => setBroadcastMediaUrl(e.target.value)} placeholder="https://exemplo.com/audio.mp3" />
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="link" className="space-y-3 mt-3">
+                  <div>
+                    <Label>URL do Link *</Label>
+                    <Input value={broadcastLinkUrl} onChange={e => setBroadcastLinkUrl(e.target.value)} placeholder="https://exemplo.com" />
+                  </div>
+                  <div>
+                    <Label>Mensagem</Label>
+                    <Textarea value={broadcastMessage} onChange={e => setBroadcastMessage(e.target.value)} placeholder="Texto que acompanha o link" rows={2} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label>Título do Preview</Label>
+                      <Input value={broadcastLinkTitle} onChange={e => setBroadcastLinkTitle(e.target.value)} placeholder="Título" />
+                    </div>
+                    <div>
+                      <Label>Imagem do Preview</Label>
+                      <Input value={broadcastLinkImage} onChange={e => setBroadcastLinkImage(e.target.value)} placeholder="URL da imagem" />
+                    </div>
+                  </div>
+                  <div>
+                    <Label>Descrição do Preview</Label>
+                    <Input value={broadcastLinkDesc} onChange={e => setBroadcastLinkDesc(e.target.value)} placeholder="Descrição curta" />
+                  </div>
+                </TabsContent>
+              </Tabs>
+
+              {/* Group selector */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <Label className="text-sm font-medium">Selecionar Grupos ({selectedGroups.size}/{allGroups.length})</Label>
+                  <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={toggleAll}>
+                    {selectedGroups.size === allGroups.length ? 'Desmarcar todos' : 'Selecionar todos'}
+                  </Button>
+                </div>
+                {allGroups.length === 0 ? (
+                  <p className="text-xs text-muted-foreground py-3 text-center bg-muted rounded-md">
+                    Carregue as comunidades primeiro para ver os grupos disponíveis.
+                  </p>
+                ) : (
+                  <div className="space-y-1 max-h-48 overflow-y-auto border rounded-md p-2">
+                    {allGroups.map((g, i) => (
+                      <label key={i} className="flex items-center gap-2 text-xs py-1.5 px-2 rounded hover:bg-muted cursor-pointer transition-colors">
+                        <Checkbox
+                          checked={selectedGroups.has(g.phone)}
+                          onCheckedChange={() => toggleGroup(g.phone)}
+                        />
+                        <span className="truncate flex-1">{g.name}</span>
+                        <span className="text-muted-foreground text-[10px] shrink-0">{g.communityName}</span>
+                        {g.isGroupAnnouncement && <Badge variant="outline" className="text-[9px] py-0 px-1 shrink-0">Anúncios</Badge>}
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Estimated time */}
+              {estimatedTime && selectedGroups.size > 0 && (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 rounded-md p-2">
+                  <Loader2 className="w-3 h-3" />
+                  <span>Tempo estimado: {estimatedTime} (delay aleatório de 15-25s entre cada envio)</span>
+                </div>
+              )}
+
+              {/* Sending state */}
+              {broadcastRunning && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                    <span className="text-sm font-medium">Enviando mensagens...</span>
+                  </div>
+                  <Progress value={undefined} className="h-2" />
+                  <p className="text-xs text-muted-foreground">
+                    Aguarde enquanto as mensagens são enviadas com delay entre cada grupo para evitar bloqueios.
+                  </p>
+                </div>
+              )}
+
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowBroadcast(false)} disabled={broadcastRunning}>Cancelar</Button>
+                <Button onClick={handleBroadcast} disabled={!canSendBroadcast() || broadcastRunning}>
+                  {broadcastRunning ? (
+                    <><Loader2 className="w-4 h-4 animate-spin mr-1" /> Enviando...</>
+                  ) : (
+                    <><Send className="w-4 h-4 mr-1" /> Iniciar Disparo ({selectedGroups.size} grupos)</>
+                  )}
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
