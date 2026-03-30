@@ -73,7 +73,7 @@ export default function Campaigns() {
   const [formImage, setFormImage] = useState('');
   const [formColorPrimary, setFormColorPrimary] = useState('#8B5CF6');
   const [formColorBg, setFormColorBg] = useState('#FFFFFF');
-  const [saving, setSaving] = false);
+  const [saving, setSaving] = useState(false);
   const [previewUrl, setPreviewUrl] = useState('');
   const [fetchingPreview, setFetchingPreview] = useState(false);
 
