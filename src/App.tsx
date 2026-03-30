@@ -18,6 +18,8 @@ import OpportunityDetail from "@/pages/OpportunityDetail";
 import FlowList from "@/pages/FlowList";
 import FlowBuilder from "@/pages/FlowBuilder";
 import Communities from "@/pages/Communities";
+import Campaigns from "@/pages/Campaigns";
+import CampaignLanding from "@/pages/CampaignLanding";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
