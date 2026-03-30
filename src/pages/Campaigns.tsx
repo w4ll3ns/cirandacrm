@@ -173,6 +173,7 @@ export default function Campaigns() {
     setFormImage(campaign.imagem_url || '');
     setFormColorPrimary(campaign.cor_primaria);
     setFormColorBg(campaign.cor_fundo);
+    setFormAutoCreate(campaign.auto_create_community ?? false);
 
     // Load existing groups
     const { data: groups } = await supabase
