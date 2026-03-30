@@ -42,6 +42,8 @@ type Community = {
 };
 
 async function callCommunities(action: string, params: Record<string, unknown> = {}) {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Sessão não encontrada');
   const { data, error } = await supabase.functions.invoke('zapi-communities', {
     body: { action, ...params },
   });
