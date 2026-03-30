@@ -156,6 +156,9 @@ export default function Campaigns() {
     setFormColorBg('#FFFFFF');
     setSelectedGroups([]);
     setPreviewUrl('');
+    setCampaignImageMode('url');
+    setCampaignImageFile(null);
+    setCampaignImagePreview(null);
     setShowForm(true);
     fetchCommunities();
   };
