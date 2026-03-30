@@ -429,6 +429,28 @@ export default function Communities() {
       const sent = results.filter(r => r.status === 'sent').length;
       const errors = results.filter(r => r.status === 'error').length;
 
+      // Save broadcast log
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        await supabase.from('broadcast_logs').insert({
+          user_id: user?.id,
+          type: broadcastType,
+          message: broadcastMessage || null,
+          media_url: broadcastMediaUrl || null,
+          caption: broadcastCaption || null,
+          link_url: broadcastLinkUrl || null,
+          link_title: broadcastLinkTitle || null,
+          link_description: broadcastLinkDesc || null,
+          link_image: broadcastLinkImage || null,
+          group_phones: Array.from(selectedGroups),
+          results: results as any,
+          sent_count: sent,
+          error_count: errors,
+        });
+      } catch (logErr) {
+        console.error('Erro ao salvar log do disparo:', logErr);
+      }
+
       if (errors === 0) {
         toast.success(`Disparo concluído! ${sent} mensagens enviadas.`);
       } else {
