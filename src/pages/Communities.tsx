@@ -1,6 +1,7 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users2, Plus, RefreshCw, Trash2, UserPlus, UserMinus, Link2, RotateCcw, Eye, Loader2, Copy, Check, MessageSquare, Send, Image, AudioLines, LinkIcon, Upload, Search, X, Video, Download, Phone } from 'lucide-react';
+import { Users2, Plus, RefreshCw, Trash2, UserPlus, UserMinus, Link2, RotateCcw, Eye, Loader2, Copy, Check, MessageSquare, Send, Image, AudioLines, LinkIcon, Upload, Search, X, Video, Download, Phone, FileSpreadsheet, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -117,6 +118,8 @@ export default function Communities() {
   const [contactsFilter, setContactsFilter] = useState('all');
   const [syncingContacts, setSyncingContacts] = useState<string | null>(null);
   const [pageTab, setPageTab] = useState<'communities' | 'contacts'>('communities');
+  const [contactsPage, setContactsPage] = useState(1);
+  const CONTACTS_PER_PAGE = 200;
 
   // All available groups from loaded communities
   const allGroups = useMemo(() => {
@@ -509,6 +512,51 @@ export default function Communities() {
     });
   }, [communityContacts, contactsSearch, contactsFilter]);
 
+  // Reset page when filters change
+  useEffect(() => { setContactsPage(1); }, [contactsSearch, contactsFilter]);
+
+  const totalPages = Math.ceil(filteredContacts.length / CONTACTS_PER_PAGE);
+  const paginatedContacts = filteredContacts.slice(
+    (contactsPage - 1) * CONTACTS_PER_PAGE,
+    contactsPage * CONTACTS_PER_PAGE
+  );
+
+  const exportCSV = () => {
+    const header = ['Telefone', 'Nome', 'Comunidade', 'Grupo', 'Data'];
+    const rows = filteredContacts.map(c => [
+      c.phone || '',
+      c.name || '',
+      c.community_name || '',
+      c.group_name || '',
+      c.created_at ? new Date(c.created_at).toLocaleDateString('pt-BR') : '',
+    ]);
+    const csv = [header, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `contatos_comunidades_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(`${filteredContacts.length} contatos exportados em CSV`);
+  };
+
+  const exportXLSX = () => {
+    const data = filteredContacts.map(c => ({
+      Telefone: c.phone || '',
+      Nome: c.name || '',
+      Comunidade: c.community_name || '',
+      Grupo: c.group_name || '',
+      Data: c.created_at ? new Date(c.created_at).toLocaleDateString('pt-BR') : '',
+    }));
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Contatos');
+    ws['!cols'] = [{ wch: 18 }, { wch: 25 }, { wch: 25 }, { wch: 25 }, { wch: 12 }];
+    XLSX.writeFile(wb, `contatos_comunidades_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    toast.success(`${filteredContacts.length} contatos exportados em XLSX`);
+  };
+
   const contactCountByCommunity = useMemo(() => {
     const counts: Record<string, number> = {};
     communityContacts.forEach(c => {
@@ -694,6 +742,14 @@ export default function Communities() {
               Atualizar
             </Button>
             <Badge variant="secondary">{filteredContacts.length} contatos</Badge>
+            <Button variant="outline" size="sm" onClick={exportCSV} disabled={filteredContacts.length === 0}>
+              <FileText className="w-4 h-4 mr-1" />
+              CSV
+            </Button>
+            <Button variant="outline" size="sm" onClick={exportXLSX} disabled={filteredContacts.length === 0}>
+              <FileSpreadsheet className="w-4 h-4 mr-1" />
+              XLSX
+            </Button>
           </div>
 
           {filteredContacts.length === 0 ? (
@@ -719,7 +775,7 @@ export default function Communities() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredContacts.slice(0, 200).map((contact) => (
+                      {paginatedContacts.map((contact) => (
                         <TableRow key={contact.id}>
                           <TableCell className="font-mono text-xs">{contact.phone}</TableCell>
                           <TableCell className="text-sm">{contact.name || '—'}</TableCell>
@@ -732,12 +788,27 @@ export default function Communities() {
                       ))}
                     </TableBody>
                   </Table>
-                  {filteredContacts.length > 200 && (
-                    <p className="text-xs text-muted-foreground text-center py-2">
-                      Mostrando 200 de {filteredContacts.length} contatos
-                    </p>
-                  )}
                 </div>
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between px-4 py-3 border-t">
+                    <p className="text-xs text-muted-foreground">
+                      Mostrando {((contactsPage - 1) * CONTACTS_PER_PAGE) + 1}–{Math.min(contactsPage * CONTACTS_PER_PAGE, filteredContacts.length)} de {filteredContacts.length}
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <Button variant="outline" size="sm" disabled={contactsPage <= 1} onClick={() => setContactsPage(p => p - 1)}>
+                        <ChevronLeft className="w-4 h-4 mr-1" />
+                        Anterior
+                      </Button>
+                      <span className="text-sm text-muted-foreground">
+                        Página {contactsPage} de {totalPages}
+                      </span>
+                      <Button variant="outline" size="sm" disabled={contactsPage >= totalPages} onClick={() => setContactsPage(p => p + 1)}>
+                        Próximo
+                        <ChevronRight className="w-4 h-4 ml-1" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
