@@ -194,6 +194,23 @@ export default function Communities() {
     if (data) setDisabledIds(new Set(data.map(d => d.community_id)));
   }, []);
 
+  const fetchBroadcastHistory = useCallback(async () => {
+    setLoadingHistory(true);
+    try {
+      const { data, error } = await supabase
+        .from('broadcast_logs')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(100);
+      if (error) throw error;
+      setBroadcastHistory(data || []);
+    } catch (err: any) {
+      console.error('Erro ao buscar histórico:', err);
+    } finally {
+      setLoadingHistory(false);
+    }
+  }, []);
+
   useEffect(() => { fetchCommunities(); fetchDisabledIds(); }, [fetchCommunities, fetchDisabledIds]);
 
   const handleToggleDisable = async (communityId: string) => {
