@@ -189,8 +189,21 @@ export default function Campaigns() {
       }))
     );
 
+    setCampaignImageMode('url');
+    setCampaignImageFile(null);
+    setCampaignImagePreview(null);
     setShowForm(true);
     fetchCommunities();
+  };
+
+  const handleCampaignImageFileChange = (file: File | null) => {
+    setCampaignImageFile(file);
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setCampaignImagePreview(url);
+    } else {
+      setCampaignImagePreview(null);
+    }
   };
 
   const toggleGroup = (communityId: string, communityName: string, groupPhone: string, groupName: string) => {
