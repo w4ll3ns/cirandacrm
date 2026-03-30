@@ -811,10 +811,37 @@ export default function Communities() {
                 </TabsContent>
 
                 <TabsContent value="image" className="space-y-3 mt-3">
-                  <div>
-                    <Label>URL da Imagem *</Label>
-                    <Input value={broadcastMediaUrl} onChange={e => setBroadcastMediaUrl(e.target.value)} placeholder="https://exemplo.com/imagem.jpg" />
+                  <div className="flex items-center gap-2 mb-1">
+                    <Button variant={mediaInputMode === 'file' ? 'default' : 'outline'} size="sm" className="h-7 text-xs" onClick={() => { setMediaInputMode('file'); setBroadcastMediaUrl(''); }}>
+                      <Upload className="w-3 h-3 mr-1" /> Enviar Arquivo
+                    </Button>
+                    <Button variant={mediaInputMode === 'url' ? 'default' : 'outline'} size="sm" className="h-7 text-xs" onClick={() => { setMediaInputMode('url'); clearFile(); }}>
+                      <LinkIcon className="w-3 h-3 mr-1" /> Colar URL
+                    </Button>
                   </div>
+                  {mediaInputMode === 'file' ? (
+                    <div>
+                      <Label>Arquivo de Imagem *</Label>
+                      <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileSelect} className="block w-full text-sm text-muted-foreground file:mr-2 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 cursor-pointer mt-1" />
+                      {broadcastFilePreview && (
+                        <div className="relative mt-2 inline-block">
+                          <img src={broadcastFilePreview} alt="Preview" className="max-h-32 rounded-md border" />
+                          <Button variant="destructive" size="icon" className="absolute -top-2 -right-2 h-5 w-5" onClick={clearFile}><X className="w-3 h-3" /></Button>
+                        </div>
+                      )}
+                      {broadcastFile && !broadcastFilePreview && (
+                        <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                          <span>{broadcastFile.name}</span>
+                          <Button variant="ghost" size="icon" className="h-5 w-5" onClick={clearFile}><X className="w-3 h-3" /></Button>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div>
+                      <Label>URL da Imagem *</Label>
+                      <Input value={broadcastMediaUrl} onChange={e => setBroadcastMediaUrl(e.target.value)} placeholder="https://exemplo.com/imagem.jpg" />
+                    </div>
+                  )}
                   <div>
                     <Label>Legenda</Label>
                     <Textarea value={broadcastCaption || broadcastMessage} onChange={e => { setBroadcastCaption(e.target.value); setBroadcastMessage(e.target.value); }} placeholder="Legenda da imagem (opcional)" rows={3} />
@@ -822,16 +849,44 @@ export default function Communities() {
                 </TabsContent>
 
                 <TabsContent value="audio" className="space-y-3 mt-3">
-                  <div>
-                    <Label>URL do Áudio *</Label>
-                    <Input value={broadcastMediaUrl} onChange={e => setBroadcastMediaUrl(e.target.value)} placeholder="https://exemplo.com/audio.mp3" />
+                  <div className="flex items-center gap-2 mb-1">
+                    <Button variant={mediaInputMode === 'file' ? 'default' : 'outline'} size="sm" className="h-7 text-xs" onClick={() => { setMediaInputMode('file'); setBroadcastMediaUrl(''); }}>
+                      <Upload className="w-3 h-3 mr-1" /> Enviar Arquivo
+                    </Button>
+                    <Button variant={mediaInputMode === 'url' ? 'default' : 'outline'} size="sm" className="h-7 text-xs" onClick={() => { setMediaInputMode('url'); clearFile(); }}>
+                      <LinkIcon className="w-3 h-3 mr-1" /> Colar URL
+                    </Button>
                   </div>
+                  {mediaInputMode === 'file' ? (
+                    <div>
+                      <Label>Arquivo de Áudio *</Label>
+                      <input ref={fileInputRef} type="file" accept="audio/*" onChange={handleFileSelect} className="block w-full text-sm text-muted-foreground file:mr-2 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 cursor-pointer mt-1" />
+                      {broadcastFile && (
+                        <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                          <AudioLines className="w-4 h-4" />
+                          <span>{broadcastFile.name}</span>
+                          <Button variant="ghost" size="icon" className="h-5 w-5" onClick={clearFile}><X className="w-3 h-3" /></Button>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div>
+                      <Label>URL do Áudio *</Label>
+                      <Input value={broadcastMediaUrl} onChange={e => setBroadcastMediaUrl(e.target.value)} placeholder="https://exemplo.com/audio.mp3" />
+                    </div>
+                  )}
                 </TabsContent>
 
                 <TabsContent value="link" className="space-y-3 mt-3">
                   <div>
                     <Label>URL do Link *</Label>
-                    <Input value={broadcastLinkUrl} onChange={e => setBroadcastLinkUrl(e.target.value)} placeholder="https://exemplo.com" />
+                    <div className="flex gap-2">
+                      <Input value={broadcastLinkUrl} onChange={e => setBroadcastLinkUrl(e.target.value)} placeholder="https://exemplo.com" className="flex-1" />
+                      <Button variant="secondary" size="sm" onClick={handleFetchLinkPreview} disabled={!broadcastLinkUrl.trim() || fetchingLinkPreview}>
+                        {fetchingLinkPreview ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Search className="w-4 h-4 mr-1" />}
+                        Buscar Preview
+                      </Button>
+                    </div>
                   </div>
                   <div>
                     <Label>Mensagem</Label>
@@ -851,6 +906,18 @@ export default function Communities() {
                     <Label>Descrição do Preview</Label>
                     <Input value={broadcastLinkDesc} onChange={e => setBroadcastLinkDesc(e.target.value)} placeholder="Descrição curta" />
                   </div>
+                  {broadcastLinkImage && (
+                    <div className="border rounded-md p-3 bg-muted/30">
+                      <p className="text-[10px] text-muted-foreground mb-1.5">Preview</p>
+                      <div className="flex gap-3 items-start">
+                        <img src={broadcastLinkImage} alt="Preview" className="w-16 h-16 rounded object-cover shrink-0" onError={(e) => (e.currentTarget.style.display = 'none')} />
+                        <div className="min-w-0">
+                          {broadcastLinkTitle && <p className="text-xs font-medium truncate">{broadcastLinkTitle}</p>}
+                          {broadcastLinkDesc && <p className="text-[10px] text-muted-foreground line-clamp-2">{broadcastLinkDesc}</p>}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </TabsContent>
               </Tabs>
 
