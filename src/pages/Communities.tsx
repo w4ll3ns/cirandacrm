@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { Users2, Plus, RefreshCw, Trash2, UserPlus, UserMinus, Link2, RotateCcw, Eye, Loader2, Copy, Check } from 'lucide-react';
+import { Users2, Plus, RefreshCw, Trash2, UserPlus, UserMinus, Link2, RotateCcw, Eye, Loader2, Copy, Check, ExternalLink } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,9 +20,11 @@ type Community = {
 
 type CommunityMetadata = {
   id: string;
-  communityName: string;
-  owner: string;
+  name?: string;
+  communityName?: string;
+  owner?: string;
   description?: string;
+  invitationLink?: string;
   subGroups?: { name: string; phone: string; isGroupAnnouncement: boolean }[];
   participants?: { phone: string; name?: string; isAdmin?: boolean }[];
 };
@@ -319,20 +321,32 @@ export default function Communities() {
       <Dialog open={showMeta} onOpenChange={setShowMeta}>
         <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{metadata?.communityName || 'Detalhes'}</DialogTitle>
-            <DialogDescription>Metadados e participantes da comunidade</DialogDescription>
+            <DialogTitle>{metadata?.name || metadata?.communityName || 'Detalhes'}</DialogTitle>
+            <DialogDescription>Metadados e grupos da comunidade</DialogDescription>
           </DialogHeader>
           {metadata && (
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                <div><span className="text-muted-foreground">ID:</span></div>
-                <div className="font-mono text-xs break-all">{metadata.id}</div>
-                <div><span className="text-muted-foreground">Owner:</span></div>
-                <div className="font-mono text-xs">{metadata.owner}</div>
+              <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-sm">
+                <span className="text-muted-foreground">ID:</span>
+                <span className="font-mono text-xs break-all">{metadata.id}</span>
+                {metadata.owner && (
+                  <>
+                    <span className="text-muted-foreground">Owner:</span>
+                    <span className="font-mono text-xs">{metadata.owner}</span>
+                  </>
+                )}
                 {metadata.description && (
                   <>
-                    <div><span className="text-muted-foreground">Descrição:</span></div>
-                    <div className="text-xs">{metadata.description}</div>
+                    <span className="text-muted-foreground">Descrição:</span>
+                    <span className="text-xs">{metadata.description}</span>
+                  </>
+                )}
+                {metadata.invitationLink && (
+                  <>
+                    <span className="text-muted-foreground">Convite:</span>
+                    <a href={metadata.invitationLink} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline truncate">
+                      {metadata.invitationLink}
+                    </a>
                   </>
                 )}
               </div>
@@ -340,14 +354,29 @@ export default function Communities() {
               {metadata.subGroups && metadata.subGroups.length > 0 && (
                 <div>
                   <h4 className="text-sm font-medium mb-2">Grupos ({metadata.subGroups.length})</h4>
-                  <div className="space-y-1 max-h-32 overflow-y-auto">
-                    {metadata.subGroups.map((sg, i) => (
-                      <div key={i} className="flex items-center gap-2 text-xs py-1 px-2 rounded bg-muted">
-                        <span className={`w-1.5 h-1.5 rounded-full ${sg.isGroupAnnouncement ? 'bg-primary' : 'bg-muted-foreground/40'}`} />
-                        <span className="truncate flex-1">{sg.name}</span>
-                        {sg.isGroupAnnouncement && <Badge variant="outline" className="text-[9px] py-0 px-1">Anúncios</Badge>}
-                      </div>
-                    ))}
+                  <div className="space-y-1.5 max-h-60 overflow-y-auto">
+                    {metadata.subGroups.map((sg, i) => {
+                      const groupLink = `https://wa.me/group/${sg.phone?.replace('-group', '').replace('@g.us', '')}`;
+                      return (
+                        <div key={i} className="flex items-center gap-2 text-xs py-2 px-3 rounded-md bg-muted hover:bg-muted/80 transition-colors">
+                          <span className={`w-2 h-2 rounded-full shrink-0 ${sg.isGroupAnnouncement ? 'bg-primary' : 'bg-muted-foreground/40'}`} />
+                          <span className="truncate flex-1 font-medium">{sg.name}</span>
+                          {sg.isGroupAnnouncement && <Badge variant="outline" className="text-[9px] py-0 px-1 shrink-0">Anúncios</Badge>}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0 shrink-0"
+                            onClick={() => {
+                              const whatsappLink = `https://api.whatsapp.com/group/${sg.phone?.replace('-group', '').replace('@g.us', '')}`;
+                              window.open(whatsappLink, '_blank');
+                            }}
+                            title="Abrir grupo no WhatsApp"
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
