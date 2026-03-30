@@ -315,6 +315,7 @@ export default function Communities() {
       case 'text': return !!broadcastMessage.trim();
       case 'image': return !!(broadcastMediaUrl.trim() || broadcastFile);
       case 'audio': return !!(broadcastMediaUrl.trim() || broadcastFile);
+      case 'video': return !!(broadcastMediaUrl.trim() || broadcastFile);
       case 'link': return !!broadcastLinkUrl.trim();
     }
   };
