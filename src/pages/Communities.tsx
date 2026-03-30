@@ -159,10 +159,29 @@ export default function Communities() {
 
   const handleViewMeta = async (communityId: string) => {
     setLoadingAction(`meta-${communityId}`);
+    setSubGroupCounts({});
     try {
       const data = await callCommunities('metadata', { communityId });
       setMetadata(data);
       setShowMeta(true);
+
+      // Fetch participant counts for each subgroup in parallel
+      if (data?.subGroups?.length) {
+        setLoadingCounts(true);
+        const counts: Record<string, number> = {};
+        await Promise.all(
+          data.subGroups.map(async (sg: { phone: string }) => {
+            try {
+              const groupData = await callCommunities('group-metadata', { groupPhone: sg.phone });
+              counts[sg.phone] = groupData?.participants?.length || 0;
+            } catch {
+              counts[sg.phone] = -1; // error indicator
+            }
+          })
+        );
+        setSubGroupCounts(counts);
+        setLoadingCounts(false);
+      }
     } catch (err: any) {
       toast.error(err.message || 'Erro ao buscar metadados');
     } finally {
