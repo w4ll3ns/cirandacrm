@@ -182,7 +182,52 @@ export default function Communities() {
     }
   }, []);
 
-  useEffect(() => { fetchCommunities(); }, [fetchCommunities]);
+  // Fetch disabled communities
+  const fetchDisabledIds = useCallback(async () => {
+    const { data } = await supabase.from('community_disabled').select('community_id');
+    if (data) setDisabledIds(new Set(data.map(d => d.community_id)));
+  }, []);
+
+  useEffect(() => { fetchCommunities(); fetchDisabledIds(); }, [fetchCommunities, fetchDisabledIds]);
+
+  const handleToggleDisable = async (communityId: string) => {
+    const isDisabled = disabledIds.has(communityId);
+    try {
+      if (isDisabled) {
+        await supabase.from('community_disabled').delete().eq('community_id', communityId);
+        toast.success('Comunidade reativada no sistema');
+      } else {
+        const { data: { user } } = await supabase.auth.getUser();
+        await supabase.from('community_disabled').insert({ community_id: communityId, disabled_by: user?.id });
+        toast.success('Comunidade desativada no sistema');
+      }
+      fetchDisabledIds();
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao alterar status');
+    }
+  };
+
+  const openDeleteConfirm = (communityId: string, communityName: string) => {
+    setDeleteTargetId(communityId);
+    setDeleteTargetName(communityName);
+    setDeleteConfirmText('');
+    setShowDeleteConfirm(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (deleteConfirmText.toLowerCase() !== 'excluir') return;
+    setLoadingAction(`deactivate-${deleteTargetId}`);
+    setShowDeleteConfirm(false);
+    try {
+      await callCommunities('deactivate', { communityId: deleteTargetId });
+      toast.success('Comunidade excluída do WhatsApp');
+      fetchCommunities();
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao excluir comunidade');
+    } finally {
+      setLoadingAction(null);
+    }
+  };
 
   const handleCreate = async () => {
     if (!newName.trim()) return;
