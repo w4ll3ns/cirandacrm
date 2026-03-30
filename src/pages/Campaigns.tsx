@@ -21,6 +21,7 @@ type Campaign = {
   slug: string;
   ativa: boolean;
   created_at: string;
+  auto_create_community: boolean;
 };
 
 type CampaignGroup = {
