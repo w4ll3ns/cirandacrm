@@ -118,6 +118,89 @@ export type Database = {
         }
         Relationships: []
       }
+      campaign_groups: {
+        Row: {
+          campaign_id: string
+          community_id: string
+          community_name: string
+          created_at: string
+          group_name: string
+          group_phone: string
+          id: string
+          max_participants: number
+          sort_order: number
+        }
+        Insert: {
+          campaign_id: string
+          community_id: string
+          community_name: string
+          created_at?: string
+          group_name: string
+          group_phone: string
+          id?: string
+          max_participants?: number
+          sort_order?: number
+        }
+        Update: {
+          campaign_id?: string
+          community_id?: string
+          community_name?: string
+          created_at?: string
+          group_name?: string
+          group_phone?: string
+          id?: string
+          max_participants?: number
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_groups_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "community_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_campaigns: {
+        Row: {
+          ativa: boolean
+          cor_fundo: string
+          cor_primaria: string
+          created_at: string
+          descricao: string | null
+          id: string
+          imagem_url: string | null
+          nome: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          ativa?: boolean
+          cor_fundo?: string
+          cor_primaria?: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          imagem_url?: string | null
+          nome: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          ativa?: boolean
+          cor_fundo?: string
+          cor_primaria?: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          imagem_url?: string | null
+          nome?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       conversation_assignments_history: {
         Row: {
           changed_by: string | null
