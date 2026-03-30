@@ -299,9 +299,9 @@ Deno.serve(async (req) => {
             if (participants.length === 0) continue;
 
             // 3. Upsert each participant into community_contacts
-            const rows = participants.map((p: { phone: string; name?: string }) => ({
+            const rows = participants.map((p: { phone: string; name?: string; short?: string; notify?: string }) => ({
               phone: p.phone,
-              name: p.name || null,
+              name: p.name || p.short || p.notify || null,
               community_id: params.communityId,
               community_name: communityName || metaSyncData.name || metaSyncData.communityName || null,
               group_phone: sg.phone,
