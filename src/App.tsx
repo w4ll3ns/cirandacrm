@@ -55,6 +55,7 @@ function AppRoutes() {
         <Route path="fluxos" element={<FlowList />} />
         <Route path="fluxos/:id" element={<FlowBuilder />} />
         <Route path="comunidades" element={<Communities />} />
+        <Route path="campanhas" element={<Campaigns />} />
         <Route path="configuracoes" element={<Settings />} />
       </Route>
       <Route path="*" element={<NotFound />} />

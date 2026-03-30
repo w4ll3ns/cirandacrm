@@ -64,7 +64,7 @@ export default function AppSidebar() {
           <SidebarGroupLabel>Menu</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {[...navItems, ...(canManageFlows ? [{ path: '/app/fluxos', icon: Workflow, label: 'Fluxos' }, { path: '/app/comunidades', icon: Users2, label: 'Comunidades' }] : [])].map(item => {
+              {[...navItems, ...(canManageFlows ? [{ path: '/app/fluxos', icon: Workflow, label: 'Fluxos' }, { path: '/app/comunidades', icon: Users2, label: 'Comunidades' }, { path: '/app/campanhas', icon: Megaphone, label: 'Campanhas' }] : [])].map(item => {
                 const badge = getBadge(item.label);
                 return (
                   <SidebarMenuItem key={item.path}>
