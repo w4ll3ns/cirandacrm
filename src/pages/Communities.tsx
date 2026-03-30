@@ -12,8 +12,9 @@ import { useIsMobile } from '@/hooks/use-mobile';
 
 type Community = {
   id: string;
-  owner: string;
-  communityName: string;
+  owner?: string;
+  name?: string;
+  communityName?: string;
   subGroups?: { name: string; phone: string; isGroupAnnouncement: boolean }[];
 };
 
@@ -229,7 +230,7 @@ export default function Communities() {
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0 flex-1">
-                  <CardTitle className="text-base truncate">{c.communityName || 'Sem nome'}</CardTitle>
+                  <CardTitle className="text-base truncate">{c.name || c.communityName || 'Sem nome'}</CardTitle>
                   <CardDescription className="text-xs mt-1 font-mono truncate">{c.id}</CardDescription>
                 </div>
                 <Badge variant="secondary" className="shrink-0">
