@@ -360,7 +360,8 @@ export default function Communities() {
                   <h4 className="text-sm font-medium mb-2">Grupos ({metadata.subGroups.length})</h4>
                   <div className="space-y-1.5 max-h-60 overflow-y-auto">
                     {metadata.subGroups.map((sg, i) => {
-                      const groupLink = `https://wa.me/group/${sg.phone?.replace('-group', '').replace('@g.us', '')}`;
+                      const groupPhone = sg.phone?.replace('-group', '').replace('@g.us', '');
+                      const existingConversation = conversas.find(c => c.telefone === sg.phone || c.telefone === groupPhone);
                       return (
                         <div key={i} className="flex items-center gap-2 text-xs py-2 px-3 rounded-md bg-muted hover:bg-muted/80 transition-colors">
                           <span className={`w-2 h-2 rounded-full shrink-0 ${sg.isGroupAnnouncement ? 'bg-primary' : 'bg-muted-foreground/40'}`} />
@@ -369,14 +370,19 @@ export default function Communities() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-6 w-6 p-0 shrink-0"
+                            className="h-6 px-2 shrink-0 text-xs gap-1"
                             onClick={() => {
-                              const whatsappLink = `https://api.whatsapp.com/group/${sg.phone?.replace('-group', '').replace('@g.us', '')}`;
-                              window.open(whatsappLink, '_blank');
+                              if (existingConversation) {
+                                navigate(`/app/conversas/${existingConversation.id}`);
+                                setShowMeta(false);
+                              } else {
+                                toast.info('Nenhuma conversa encontrada para este grupo. Envie uma mensagem primeiro.');
+                              }
                             }}
-                            title="Abrir grupo no WhatsApp"
+                            title="Abrir conversa do grupo"
                           >
-                            <ExternalLink className="w-3 h-3" />
+                            <MessageSquare className="w-3 h-3" />
+                            {existingConversation ? 'Abrir' : 'Sem conversa'}
                           </Button>
                         </div>
                       );
