@@ -502,6 +502,7 @@ export default function Communities() {
   }, [communityContacts]);
 
   const filteredContacts = useMemo(() => {
+    setContactsPage(1);
     return communityContacts.filter(c => {
       const matchSearch = !contactsSearch ||
         c.phone?.includes(contactsSearch) ||
@@ -511,6 +512,48 @@ export default function Communities() {
       return matchSearch && matchFilter;
     });
   }, [communityContacts, contactsSearch, contactsFilter]);
+
+  const totalPages = Math.ceil(filteredContacts.length / CONTACTS_PER_PAGE);
+  const paginatedContacts = filteredContacts.slice(
+    (contactsPage - 1) * CONTACTS_PER_PAGE,
+    contactsPage * CONTACTS_PER_PAGE
+  );
+
+  const exportCSV = () => {
+    const header = ['Telefone', 'Nome', 'Comunidade', 'Grupo', 'Data'];
+    const rows = filteredContacts.map(c => [
+      c.phone || '',
+      c.name || '',
+      c.community_name || '',
+      c.group_name || '',
+      c.created_at ? new Date(c.created_at).toLocaleDateString('pt-BR') : '',
+    ]);
+    const csv = [header, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `contatos_comunidades_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(`${filteredContacts.length} contatos exportados em CSV`);
+  };
+
+  const exportXLSX = () => {
+    const data = filteredContacts.map(c => ({
+      Telefone: c.phone || '',
+      Nome: c.name || '',
+      Comunidade: c.community_name || '',
+      Grupo: c.group_name || '',
+      Data: c.created_at ? new Date(c.created_at).toLocaleDateString('pt-BR') : '',
+    }));
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Contatos');
+    ws['!cols'] = [{ wch: 18 }, { wch: 25 }, { wch: 25 }, { wch: 25 }, { wch: 12 }];
+    XLSX.writeFile(wb, `contatos_comunidades_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    toast.success(`${filteredContacts.length} contatos exportados em XLSX`);
+  };
 
   const contactCountByCommunity = useMemo(() => {
     const counts: Record<string, number> = {};
