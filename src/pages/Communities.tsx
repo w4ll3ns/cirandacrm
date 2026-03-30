@@ -12,8 +12,9 @@ import { useIsMobile } from '@/hooks/use-mobile';
 
 type Community = {
   id: string;
-  owner: string;
-  communityName: string;
+  owner?: string;
+  name?: string;
+  communityName?: string;
   subGroups?: { name: string; phone: string; isGroupAnnouncement: boolean }[];
 };
 
