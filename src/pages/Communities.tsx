@@ -807,7 +807,6 @@ export default function Communities() {
                     </div>
                   </div>
                 )}
-                </div>
               </CardContent>
             </Card>
           )}
