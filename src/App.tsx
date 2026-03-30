@@ -18,6 +18,8 @@ import OpportunityDetail from "@/pages/OpportunityDetail";
 import FlowList from "@/pages/FlowList";
 import FlowBuilder from "@/pages/FlowBuilder";
 import Communities from "@/pages/Communities";
+import Campaigns from "@/pages/Campaigns";
+import CampaignLanding from "@/pages/CampaignLanding";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -40,6 +42,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<PublicRoute><Login /></PublicRoute>} />
+      <Route path="/entrar/:slug" element={<CampaignLanding />} />
       <Route path="/app" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
         <Route index element={<Home />} />
         <Route path="pipeline" element={<Pipeline />} />
@@ -52,6 +55,7 @@ function AppRoutes() {
         <Route path="fluxos" element={<FlowList />} />
         <Route path="fluxos/:id" element={<FlowBuilder />} />
         <Route path="comunidades" element={<Communities />} />
+        <Route path="campanhas" element={<Campaigns />} />
         <Route path="configuracoes" element={<Settings />} />
       </Route>
       <Route path="*" element={<NotFound />} />
