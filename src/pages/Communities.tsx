@@ -740,6 +740,14 @@ export default function Communities() {
               Atualizar
             </Button>
             <Badge variant="secondary">{filteredContacts.length} contatos</Badge>
+            <Button variant="outline" size="sm" onClick={exportCSV} disabled={filteredContacts.length === 0}>
+              <FileText className="w-4 h-4 mr-1" />
+              CSV
+            </Button>
+            <Button variant="outline" size="sm" onClick={exportXLSX} disabled={filteredContacts.length === 0}>
+              <FileSpreadsheet className="w-4 h-4 mr-1" />
+              XLSX
+            </Button>
           </div>
 
           {filteredContacts.length === 0 ? (
