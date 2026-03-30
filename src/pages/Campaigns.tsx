@@ -372,6 +372,43 @@ export default function Campaigns() {
 
           <div className="space-y-4">
             <div>
+              <Label>URL de referência (auto-preenche nome, descrição e imagem)</Label>
+              <div className="flex gap-2">
+                <Input
+                  value={previewUrl}
+                  onChange={e => setPreviewUrl(e.target.value)}
+                  placeholder="https://exemplo.com/pagina"
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={async () => {
+                    if (!previewUrl.trim()) return;
+                    setFetchingPreview(true);
+                    try {
+                      const { data, error } = await supabase.functions.invoke('fetch-link-preview', {
+                        body: { url: previewUrl },
+                      });
+                      if (error) throw new Error(error.message);
+                      if (data?.error) throw new Error(data.error);
+                      if (data?.title) setFormName(data.title);
+                      if (data?.description) setFormDesc(data.description);
+                      if (data?.image) setFormImage(data.image);
+                      toast.success('Preview carregado!');
+                    } catch (err: any) {
+                      toast.error(err.message || 'Erro ao buscar preview do link');
+                    }
+                    setFetchingPreview(false);
+                  }}
+                  disabled={fetchingPreview || !previewUrl.trim()}
+                >
+                  {fetchingPreview ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                </Button>
+              </div>
+            </div>
+
+            <div>
               <Label>Nome *</Label>
               <Input value={formName} onChange={e => setFormName(e.target.value)} placeholder="Ex: Turma 2026" />
             </div>
