@@ -22,6 +22,7 @@ export default function CampaignLanding() {
   const [joining, setJoining] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notFound, setNotFound] = useState(false);
+  const [allFull, setAllFull] = useState(false);
 
   useEffect(() => {
     if (!slug) return;
