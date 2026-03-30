@@ -107,7 +107,8 @@ export default function Campaigns() {
         comms.map(async (c: Community) => {
           try {
             const meta = await callCommunities('metadata', { communityId: c.id });
-            return { ...c, ...meta, subGroups: meta.subGroups || [] };
+            const subs = Array.isArray(meta.subGroups) ? meta.subGroups : [];
+            return { ...c, ...meta, subGroups: subs };
           } catch {
             return c;
           }
