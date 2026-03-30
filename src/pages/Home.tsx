@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Users, Eye, Clock, AlertTriangle, Trophy, ChevronRight, BarChart3 } from 'lucide-react';
+import { Plus, Users, Eye, Clock, AlertTriangle, Trophy, ChevronRight, BarChart3, Megaphone, UsersRound, XCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -8,9 +8,11 @@ import { ETAPA_LABELS, TIPO_TAREFA_LABELS } from '@/types';
 import NewLeadForm from '@/components/NewLeadForm';
 import ReportsPanel from '@/components/ReportsPanel';
 import { usePermissions } from '@/hooks/usePermissions';
+import { supabase } from '@/integrations/supabase/client';
 
 type Periodo = 'hoje' | '7dias' | 'mes';
 type HomeTab = 'resumo' | 'relatorios';
+type ActiveModule = 'crm' | 'comunidades';
 
 export default function Home() {
   const { usuario } = useAuth();
@@ -20,7 +22,45 @@ export default function Home() {
   const [periodo, setPeriodo] = useState<Periodo>('hoje');
   const [showNewLead, setShowNewLead] = useState(false);
   const [homeTab, setHomeTab] = useState<HomeTab>('resumo');
-  const { canViewReports } = usePermissions();
+  const { canViewCRM, canViewCommunities, canViewReports } = usePermissions();
+
+  const hasBoth = canViewCRM && canViewCommunities;
+  const [activeModule, setActiveModule] = useState<ActiveModule>('crm');
+
+  // Initialize activeModule based on permissions
+  useEffect(() => {
+    if (canViewCRM) setActiveModule('crm');
+    else if (canViewCommunities) setActiveModule('comunidades');
+  }, [canViewCRM, canViewCommunities]);
+
+  // Community data
+  const [communityData, setCommunityData] = useState<{
+    campanhasAtivas: number;
+    campanhasInativas: number;
+    totalGrupos: number;
+    campanhasRecentes: Array<{ id: string; nome: string; ativa: boolean; slug: string; created_at: string }>;
+  }>({ campanhasAtivas: 0, campanhasInativas: 0, totalGrupos: 0, campanhasRecentes: [] });
+  const [communityLoading, setCommunityLoading] = useState(false);
+
+  useEffect(() => {
+    if (!canViewCommunities) return;
+    const fetch = async () => {
+      setCommunityLoading(true);
+      const [campaignsRes, groupsRes] = await Promise.all([
+        supabase.from('community_campaigns').select('id, nome, ativa, slug, created_at').order('created_at', { ascending: false }).limit(10),
+        supabase.from('campaign_groups').select('id', { count: 'exact', head: true }),
+      ]);
+      const campaigns = campaignsRes.data || [];
+      setCommunityData({
+        campanhasAtivas: campaigns.filter(c => c.ativa).length,
+        campanhasInativas: campaigns.filter(c => !c.ativa).length,
+        totalGrupos: groupsRes.count || 0,
+        campanhasRecentes: campaigns.slice(0, 5),
+      });
+      setCommunityLoading(false);
+    };
+    fetch();
+  }, [canViewCommunities]);
 
   const isOwn = (internoId: string | null) => usuario?.perfil === 'admin' || internoId === usuario?.id;
 
@@ -61,6 +101,12 @@ export default function Home() {
     { label: 'Matrículas no Mês', value: kpis.matriculasMes, icon: Trophy, color: 'text-success' },
   ];
 
+  const communityKpiCards = [
+    { label: 'Campanhas Ativas', value: communityData.campanhasAtivas, icon: Megaphone, color: 'text-primary' },
+    { label: 'Total de Grupos', value: communityData.totalGrupos, icon: UsersRound, color: 'text-primary' },
+    { label: 'Campanhas Inativas', value: communityData.campanhasInativas, icon: XCircle, color: 'text-muted-foreground' },
+  ];
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -69,23 +115,48 @@ export default function Home() {
     );
   }
 
+  if (!canViewCRM && !canViewCommunities) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center space-y-2">
+          <p className="text-lg font-semibold">Bem-vindo!</p>
+          <p className="text-sm text-muted-foreground">Nenhum módulo foi atribuído à sua conta ainda. Fale com o administrador.</p>
+        </div>
+      </div>
+    );
+  }
+
+  const showCRM = activeModule === 'crm' && canViewCRM;
+  const showCommunities = activeModule === 'comunidades' && canViewCommunities;
+
   return (
     <div className="p-4 md:p-6 lg:p-8 space-y-5 max-w-7xl mx-auto">
       <div className="flex items-center justify-between">
         <div className="flex gap-2">
-          {([['hoje', 'Hoje'], ['7dias', '7 dias'], ['mes', 'Mês']] as const).map(([key, label]) => (
+          {hasBoth && (
+            <>
+              <button onClick={() => setActiveModule('crm')} className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${activeModule === 'crm' ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground border border-border'}`}>
+                CRM
+              </button>
+              <button onClick={() => setActiveModule('comunidades')} className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${activeModule === 'comunidades' ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground border border-border'}`}>
+                Comunidades
+              </button>
+              <div className="w-px bg-border mx-1" />
+            </>
+          )}
+          {showCRM && ([['hoje', 'Hoje'], ['7dias', '7 dias'], ['mes', 'Mês']] as const).map(([key, label]) => (
             <button key={key} onClick={() => setPeriodo(key)} className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${periodo === key ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground border border-border'}`}>
               {label}
             </button>
           ))}
         </div>
         <div className="flex items-center gap-2">
-          {!isMobile && canViewReports && (
+          {showCRM && !isMobile && canViewReports && (
             <button onClick={() => setHomeTab(homeTab === 'resumo' ? 'relatorios' : 'resumo')} className="bg-card text-muted-foreground border border-border px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 hover:text-foreground transition-colors">
               <BarChart3 className="w-4 h-4" /> {homeTab === 'resumo' ? 'Relatórios' : 'Resumo'}
             </button>
           )}
-          {!isMobile && (
+          {showCRM && !isMobile && (
             <button onClick={() => setShowNewLead(true)} className="bg-secondary text-secondary-foreground px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity">
               <Plus className="w-4 h-4" /> Novo Lead
             </button>
@@ -93,63 +164,131 @@ export default function Home() {
         </div>
       </div>
 
-      {homeTab === 'relatorios' && !isMobile ? (
-        <ReportsPanel />
-      ) : (
+      {/* CRM Dashboard */}
+      {showCRM && (
         <>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-            {kpiCards.map(({ label, value, icon: Icon, color }) => (
-              <div key={label} className="bg-card rounded-xl p-4 md:p-5 border border-border">
-                <div className="flex items-center gap-2 mb-2">
-                  <Icon className={`w-4 h-4 md:w-5 md:h-5 ${color}`} />
-                  <span className="text-xs md:text-sm text-muted-foreground">{label}</span>
-                </div>
-                <p className="text-2xl md:text-3xl font-bold">{value}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className={`${isMobile ? 'space-y-5' : 'grid grid-cols-3 gap-6'}`}>
-            <div className={`${isMobile ? '' : 'col-span-2'} space-y-5`}>
-              {kpis.naoLidas > 0 && (
-                <button onClick={() => navigate('/app/conversas')} className="w-full bg-secondary/10 border border-secondary/30 rounded-xl p-4 flex items-center gap-3 active:scale-[0.98] transition-transform hover:bg-secondary/15">
-                  <div className="w-10 h-10 rounded-full bg-secondary/20 flex items-center justify-center">
-                    <Clock className="w-5 h-5 text-secondary" />
-                  </div>
-                  <div className="flex-1 text-left">
-                    <p className="font-semibold text-sm">{kpis.naoLidas} conversa{kpis.naoLidas > 1 ? 's' : ''} não lida{kpis.naoLidas > 1 ? 's' : ''}</p>
-                    <p className="text-xs text-muted-foreground">Clique para ver</p>
-                  </div>
-                  <ChevronRight className="w-5 h-5 text-muted-foreground" />
-                </button>
-              )}
-            </div>
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="font-semibold text-sm md:text-base">Tarefas Prioritárias</h2>
-                <button onClick={() => navigate('/app/tarefas')} className="text-primary text-xs font-medium">Ver todas</button>
-              </div>
-              <div className="space-y-2">
-                {tarefasPrioritarias.map(t => (
-                  <div key={t.id} className="bg-card rounded-xl p-3 border border-border flex items-center gap-3">
-                    <div className={`w-2 h-2 rounded-full shrink-0 ${t.prioridade === 'alta' || t.prioridade === 'urgente' ? 'bg-secondary' : t.prioridade === 'media' ? 'bg-accent' : 'bg-muted-foreground/30'}`} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{t.titulo}</p>
-                      <p className="text-xs text-muted-foreground">{TIPO_TAREFA_LABELS[t.tipo || ''] || t.tipo || 'Tarefa'}</p>
+          {homeTab === 'relatorios' && !isMobile ? (
+            <ReportsPanel />
+          ) : (
+            <>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+                {kpiCards.map(({ label, value, icon: Icon, color }) => (
+                  <div key={label} className="bg-card rounded-xl p-4 md:p-5 border border-border">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Icon className={`w-4 h-4 md:w-5 md:h-5 ${color}`} />
+                      <span className="text-xs md:text-sm text-muted-foreground">{label}</span>
                     </div>
+                    <p className="text-2xl md:text-3xl font-bold">{value}</p>
                   </div>
                 ))}
-                {tarefasPrioritarias.length === 0 && <p className="text-sm text-muted-foreground text-center py-6">Nenhuma tarefa pendente 🎉</p>}
               </div>
-            </div>
-          </div>
+
+              <div className={`${isMobile ? 'space-y-5' : 'grid grid-cols-3 gap-6'}`}>
+                <div className={`${isMobile ? '' : 'col-span-2'} space-y-5`}>
+                  {kpis.naoLidas > 0 && (
+                    <button onClick={() => navigate('/app/conversas')} className="w-full bg-secondary/10 border border-secondary/30 rounded-xl p-4 flex items-center gap-3 active:scale-[0.98] transition-transform hover:bg-secondary/15">
+                      <div className="w-10 h-10 rounded-full bg-secondary/20 flex items-center justify-center">
+                        <Clock className="w-5 h-5 text-secondary" />
+                      </div>
+                      <div className="flex-1 text-left">
+                        <p className="font-semibold text-sm">{kpis.naoLidas} conversa{kpis.naoLidas > 1 ? 's' : ''} não lida{kpis.naoLidas > 1 ? 's' : ''}</p>
+                        <p className="text-xs text-muted-foreground">Clique para ver</p>
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                    </button>
+                  )}
+                </div>
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <h2 className="font-semibold text-sm md:text-base">Tarefas Prioritárias</h2>
+                    <button onClick={() => navigate('/app/tarefas')} className="text-primary text-xs font-medium">Ver todas</button>
+                  </div>
+                  <div className="space-y-2">
+                    {tarefasPrioritarias.map(t => (
+                      <div key={t.id} className="bg-card rounded-xl p-3 border border-border flex items-center gap-3">
+                        <div className={`w-2 h-2 rounded-full shrink-0 ${t.prioridade === 'alta' || t.prioridade === 'urgente' ? 'bg-secondary' : t.prioridade === 'media' ? 'bg-accent' : 'bg-muted-foreground/30'}`} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{t.titulo}</p>
+                          <p className="text-xs text-muted-foreground">{TIPO_TAREFA_LABELS[t.tipo || ''] || t.tipo || 'Tarefa'}</p>
+                        </div>
+                      </div>
+                    ))}
+                    {tarefasPrioritarias.length === 0 && <p className="text-sm text-muted-foreground text-center py-6">Nenhuma tarefa pendente 🎉</p>}
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {isMobile && (
+            <button onClick={() => setShowNewLead(true)} className="fixed bottom-20 right-4 w-14 h-14 bg-secondary text-secondary-foreground rounded-full shadow-lg flex items-center justify-center active:scale-95 transition-transform z-30">
+              <Plus className="w-6 h-6" />
+            </button>
+          )}
         </>
       )}
 
-      {isMobile && (
-        <button onClick={() => setShowNewLead(true)} className="fixed bottom-20 right-4 w-14 h-14 bg-secondary text-secondary-foreground rounded-full shadow-lg flex items-center justify-center active:scale-95 transition-transform z-30">
-          <Plus className="w-6 h-6" />
-        </button>
+      {/* Communities Dashboard */}
+      {showCommunities && (
+        <>
+          {communityLoading ? (
+            <div className="flex items-center justify-center h-32">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
+                {communityKpiCards.map(({ label, value, icon: Icon, color }) => (
+                  <div key={label} className="bg-card rounded-xl p-4 md:p-5 border border-border">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Icon className={`w-4 h-4 md:w-5 md:h-5 ${color}`} />
+                      <span className="text-xs md:text-sm text-muted-foreground">{label}</span>
+                    </div>
+                    <p className="text-2xl md:text-3xl font-bold">{value}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className={`${isMobile ? 'space-y-5' : 'grid grid-cols-3 gap-6'}`}>
+                <div className={`${isMobile ? '' : 'col-span-2'}`}>
+                  <div className="flex items-center justify-between mb-3">
+                    <h2 className="font-semibold text-sm md:text-base">Campanhas Recentes</h2>
+                    <button onClick={() => navigate('/app/campanhas')} className="text-primary text-xs font-medium">Ver todas</button>
+                  </div>
+                  <div className="space-y-2">
+                    {communityData.campanhasRecentes.map(c => (
+                      <div key={c.id} className="bg-card rounded-xl p-3 border border-border flex items-center gap-3">
+                        <div className={`w-2 h-2 rounded-full shrink-0 ${c.ativa ? 'bg-primary' : 'bg-muted-foreground/30'}`} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{c.nome}</p>
+                          <p className="text-xs text-muted-foreground">{c.ativa ? 'Ativa' : 'Inativa'} · /{c.slug}</p>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                      </div>
+                    ))}
+                    {communityData.campanhasRecentes.length === 0 && <p className="text-sm text-muted-foreground text-center py-6">Nenhuma campanha criada ainda</p>}
+                  </div>
+                </div>
+
+                <div>
+                  <h2 className="font-semibold text-sm md:text-base mb-3">Atalhos</h2>
+                  <div className="space-y-2">
+                    <button onClick={() => navigate('/app/comunidades')} className="w-full bg-card rounded-xl p-3 border border-border flex items-center gap-3 hover:bg-accent/50 transition-colors">
+                      <UsersRound className="w-5 h-5 text-primary" />
+                      <span className="text-sm font-medium">Comunidades</span>
+                      <ChevronRight className="w-4 h-4 text-muted-foreground ml-auto" />
+                    </button>
+                    <button onClick={() => navigate('/app/campanhas')} className="w-full bg-card rounded-xl p-3 border border-border flex items-center gap-3 hover:bg-accent/50 transition-colors">
+                      <Megaphone className="w-5 h-5 text-primary" />
+                      <span className="text-sm font-medium">Campanhas</span>
+                      <ChevronRight className="w-4 h-4 text-muted-foreground ml-auto" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </>
       )}
 
       <NewLeadForm open={showNewLead} onClose={() => setShowNewLead(false)} />
