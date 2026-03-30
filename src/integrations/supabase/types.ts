@@ -251,6 +251,27 @@ export type Database = {
           },
         ]
       }
+      community_disabled: {
+        Row: {
+          community_id: string
+          disabled_at: string
+          disabled_by: string | null
+          id: string
+        }
+        Insert: {
+          community_id: string
+          disabled_at?: string
+          disabled_by?: string | null
+          id?: string
+        }
+        Update: {
+          community_id?: string
+          disabled_at?: string
+          disabled_by?: string | null
+          id?: string
+        }
+        Relationships: []
+      }
       conversation_assignments_history: {
         Row: {
           changed_by: string | null
