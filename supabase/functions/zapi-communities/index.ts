@@ -251,7 +251,41 @@ Deno.serve(async (req) => {
 
         const communityName = params.communityName || "";
 
-        // 1. Get community metadata to find subgroups
+        // 1. Fetch all contacts from Z-API to build phone→name map
+        const contactsMap = new Map<string, string>();
+        let contactsPage = 1;
+        const contactsPageSize = 500;
+        while (true) {
+          try {
+            const cRes = await fetch(
+              `${baseUrl}/contacts?page=${contactsPage}&pageSize=${contactsPageSize}`,
+              {
+                method: "GET",
+                headers: {
+                  "Content-Type": "application/json",
+                  ...(clientToken ? { "Client-Token": clientToken } : {}),
+                },
+              }
+            );
+            if (!cRes.ok) break;
+            const cData = await cRes.json();
+            const items = Array.isArray(cData) ? cData : (cData.contacts || cData.data || []);
+            if (items.length === 0) break;
+            for (const c of items) {
+              if (c.phone) {
+                const cName = c.name || c.short || c.notify || null;
+                if (cName) contactsMap.set(c.phone, cName);
+              }
+            }
+            if (items.length < contactsPageSize) break;
+            contactsPage++;
+          } catch {
+            break;
+          }
+        }
+        console.log(`Contacts map built with ${contactsMap.size} entries`);
+
+        // 2. Get community metadata to find subgroups
         const metaSyncRes = await fetch(
           `${baseUrl}/communities-metadata/${params.communityId}`,
           {
@@ -277,7 +311,7 @@ Deno.serve(async (req) => {
         let totalExisting = 0;
         let totalErrors = 0;
 
-        // 2. For each subgroup, fetch group-metadata (participants)
+        // 3. For each subgroup, fetch group-metadata (participants)
         for (const sg of subGroupsList) {
           try {
             const grpRes = await fetch(`${baseUrl}/group-metadata/${sg.phone}`, {
@@ -298,10 +332,10 @@ Deno.serve(async (req) => {
 
             if (participants.length === 0) continue;
 
-            // 3. Upsert each participant into community_contacts
-            const rows = participants.map((p: { phone: string; name?: string; short?: string; notify?: string }) => ({
+            // 4. Upsert each participant, using contactsMap for names
+            const rows = participants.map((p: { phone: string }) => ({
               phone: p.phone,
-              name: p.name || p.short || p.notify || null,
+              name: contactsMap.get(p.phone) || null,
               community_id: params.communityId,
               community_name: communityName || metaSyncData.name || metaSyncData.communityName || null,
               group_phone: sg.phone,
