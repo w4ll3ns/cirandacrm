@@ -107,7 +107,8 @@ export default function Campaigns() {
         comms.map(async (c: Community) => {
           try {
             const meta = await callCommunities('metadata', { communityId: c.id });
-            return { ...c, ...meta, subGroups: meta.subGroups || [] };
+            const subs = Array.isArray(meta.subGroups) ? meta.subGroups : [];
+            return { ...c, ...meta, subGroups: subs };
           } catch {
             return c;
           }
@@ -118,9 +119,10 @@ export default function Campaigns() {
       // Fetch participant counts for all subgroups
       setLoadingCounts(true);
       const counts: Record<string, number> = {};
-      const allSubs = enriched.flatMap((c: Community) =>
-        (c.subGroups || []).filter(s => !s.isGroupAnnouncement).map(s => s.phone)
-      );
+      const allSubs = enriched.flatMap((c: Community) => {
+        const sgs = Array.isArray(c.subGroups) ? c.subGroups : [];
+        return sgs.filter(s => !s.isGroupAnnouncement).map(s => s.phone);
+      });
       await Promise.all(
         allSubs.map(async (phone: string) => {
           try {
@@ -417,7 +419,7 @@ export default function Campaigns() {
                 <div className="space-y-3 max-h-60 overflow-y-auto border rounded-lg p-3">
                   {communities.map(comm => {
                     const commName = comm.communityName || comm.name || comm.id;
-                    const subs = comm.subGroups || [];
+                    const subs = Array.isArray(comm.subGroups) ? comm.subGroups : [];
                     if (subs.length === 0) return null;
                     return (
                       <div key={comm.id}>
