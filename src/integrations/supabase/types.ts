@@ -118,6 +118,60 @@ export type Database = {
         }
         Relationships: []
       }
+      broadcast_logs: {
+        Row: {
+          caption: string | null
+          created_at: string
+          error_count: number
+          group_phones: string[]
+          id: string
+          link_description: string | null
+          link_image: string | null
+          link_title: string | null
+          link_url: string | null
+          media_url: string | null
+          message: string | null
+          results: Json
+          sent_count: number
+          type: string
+          user_id: string | null
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          error_count?: number
+          group_phones: string[]
+          id?: string
+          link_description?: string | null
+          link_image?: string | null
+          link_title?: string | null
+          link_url?: string | null
+          media_url?: string | null
+          message?: string | null
+          results?: Json
+          sent_count?: number
+          type: string
+          user_id?: string | null
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          error_count?: number
+          group_phones?: string[]
+          id?: string
+          link_description?: string | null
+          link_image?: string | null
+          link_title?: string | null
+          link_url?: string | null
+          media_url?: string | null
+          message?: string | null
+          results?: Json
+          sent_count?: number
+          type?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       campaign_groups: {
         Row: {
           campaign_id: string
