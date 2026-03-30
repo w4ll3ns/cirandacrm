@@ -42,6 +42,8 @@ type Community = {
 };
 
 async function callCommunities(action: string, params: Record<string, unknown> = {}) {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Sessão não encontrada');
   const { data, error } = await supabase.functions.invoke('zapi-communities', {
     body: { action, ...params },
   });
@@ -96,7 +98,7 @@ export default function Campaigns() {
     setLoadingCommunities(true);
     try {
       const list = await callCommunities('list', { page: 1, pageSize: 50 });
-      const comms = Array.isArray(list) ? list : [];
+      const comms: Community[] = Array.isArray(list) ? list : list?.communities || list?.data || [];
 
       // Enrich with metadata to get subGroups
       const enriched = await Promise.all(
