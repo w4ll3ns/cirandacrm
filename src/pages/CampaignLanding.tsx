@@ -47,6 +47,7 @@ export default function CampaignLanding() {
     if (!slug) return;
     setJoining(true);
     setError(null);
+    setAllFull(false);
 
     try {
       const res = await supabase.functions.invoke('community-join', {
@@ -54,7 +55,12 @@ export default function CampaignLanding() {
       });
 
       if (res.error) {
-        setError(res.error.message || 'Erro ao buscar grupo disponível');
+        const msg = res.error.message || '';
+        if (msg.includes('lotados') || msg.includes('409')) {
+          setAllFull(true);
+        } else {
+          setError(msg || 'Erro ao buscar grupo disponível');
+        }
         setJoining(false);
         return;
       }
@@ -63,7 +69,11 @@ export default function CampaignLanding() {
       if (data?.invitationLink) {
         window.location.href = data.invitationLink;
       } else if (data?.error) {
-        setError(data.error);
+        if (data.error.includes('lotados')) {
+          setAllFull(true);
+        } else {
+          setError(data.error);
+        }
         setJoining(false);
       } else {
         setError('Não foi possível encontrar um grupo disponível.');
