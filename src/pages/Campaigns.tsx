@@ -281,6 +281,7 @@ export default function Campaigns() {
             cor_primaria: formColorPrimary,
             cor_fundo: formColorBg,
             slug,
+            auto_create_community: formAutoCreate,
           })
           .select()
           .single();

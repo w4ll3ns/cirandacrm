@@ -1,0 +1,1 @@
+ALTER TABLE public.community_campaigns ADD COLUMN auto_create_community boolean NOT NULL DEFAULT false;
