@@ -42,6 +42,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<PublicRoute><Login /></PublicRoute>} />
+      <Route path="/entrar/:slug" element={<CampaignLanding />} />
       <Route path="/app" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
         <Route index element={<Home />} />
         <Route path="pipeline" element={<Pipeline />} />
