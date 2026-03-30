@@ -110,12 +110,10 @@ function ProfileCard({ usuario }: { usuario: any }) {
 function AboutCard() {
   return (
     <div className="bg-card rounded-xl p-6 border border-border flex flex-col items-center justify-center text-center">
-      <div className="w-14 h-14 rounded-2xl bg-primary flex items-center justify-center mb-3">
-        <span className="text-primary-foreground font-black text-lg">H</span>
-      </div>
-      <p className="text-sm font-semibold">Centro Educacional Hora de Aprender</p>
-      <p className="text-xs text-muted-foreground mt-1">CRM Hora de Aprender · v2.0</p>
-      <p className="text-[10px] text-muted-foreground/50 mt-1">Desenvolvido por WS Soluções Digitais</p>
+      <img src="/logo.png" alt="Dezenas CRM" className="w-14 h-14 rounded-2xl object-contain mb-3" />
+      <p className="text-sm font-semibold">Dezenas CRM</p>
+      <p className="text-xs text-muted-foreground mt-1">Dezenas CRM · v2.0</p>
+      <p className="text-[10px] text-muted-foreground/50 mt-1">Realizando Sonhos!</p>
     </div>
   );
 }
