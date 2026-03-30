@@ -440,9 +440,42 @@ export default function Campaigns() {
             </div>
 
             <div>
-              <Label>URL da Imagem de Capa</Label>
-              <Input value={formImage} onChange={e => setFormImage(e.target.value)} placeholder="https://..." />
-              {formImage && <img src={formImage} alt="preview" className="mt-2 h-24 rounded-lg object-cover" />}
+              <Label>Imagem de Capa</Label>
+              <div className="flex gap-1 mb-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={campaignImageMode === 'url' ? 'default' : 'outline'}
+                  onClick={() => setCampaignImageMode('url')}
+                >
+                  <Link className="h-3 w-3 mr-1" /> Colar URL
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={campaignImageMode === 'file' ? 'default' : 'outline'}
+                  onClick={() => setCampaignImageMode('file')}
+                >
+                  <Upload className="h-3 w-3 mr-1" /> Enviar Arquivo
+                </Button>
+              </div>
+              {campaignImageMode === 'url' ? (
+                <>
+                  <Input value={formImage} onChange={e => setFormImage(e.target.value)} placeholder="https://..." />
+                  {formImage && <img src={formImage} alt="preview" className="mt-2 h-24 rounded-lg object-cover" />}
+                </>
+              ) : (
+                <>
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={e => handleCampaignImageFileChange(e.target.files?.[0] || null)}
+                  />
+                  {campaignImagePreview && (
+                    <img src={campaignImagePreview} alt="preview" className="mt-2 h-24 rounded-lg object-cover" />
+                  )}
+                </>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
