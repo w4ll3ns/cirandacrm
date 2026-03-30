@@ -1,41 +1,30 @@
 
 
-## Problemas Encontrados no Teste
+## Correções: Carregamento automático de comunidades
 
-### 1. Parsing incorreto da resposta da lista de comunidades
-Em `Campaigns.tsx` (linha 98-99), o parsing da resposta é:
+### Problema 1: Communities.tsx não carrega automaticamente
+A página de Comunidades não tem `useEffect` para chamar `fetchCommunities` ao montar. O usuário precisa clicar manualmente em "Carregar Comunidades".
+
+**Correção**: Adicionar `useEffect(() => { fetchCommunities(); }, [fetchCommunities]);` para carregar automaticamente ao abrir a página. Manter o botão "Carregar Comunidades" como opção de refresh manual.
+
+### Problema 2: Campaigns.tsx — grupos não carregam no dialog
+O `fetchCommunities` só é chamado ao abrir o dialog de criação/edição, mas o carregamento pode falhar silenciosamente.
+
+**Correção**: Adicionar logs de erro mais claros e garantir que o `fetchCommunities` é chamado corretamente ao abrir o dialog. Adicionar um botão de retry dentro do dialog caso o carregamento falhe.
+
+### Arquivos alterados
+
+| Arquivo | Mudança |
+|---|---|
+| `src/pages/Communities.tsx` | Adicionar `useEffect` para auto-carregar comunidades ao montar |
+| `src/pages/Campaigns.tsx` | Adicionar botão de retry no dialog + melhorar feedback de erro |
+
+### Detalhes técnicos
+
+**Communities.tsx** — adicionar após a definição de `fetchCommunities`:
 ```typescript
-const list = await callCommunities('list', { page: 1, pageSize: 50 });
-const comms = Array.isArray(list) ? list : [];
+useEffect(() => { fetchCommunities(); }, [fetchCommunities]);
 ```
 
-Mas em `Communities.tsx` (linha 116), o mesmo dado é tratado assim:
-```typescript
-const list = Array.isArray(data) ? data : data?.communities || data?.data || [];
-```
-
-A Z-API pode retornar os dados como `{ communities: [...] }` ou outro formato aninhado, e o Campaigns.tsx não lida com isso, resultando em um array vazio.
-
-### 2. Falta de verificação de sessão
-Em `Communities.tsx`, a função `callCommunities` verifica a sessão antes de chamar a edge function. Em `Campaigns.tsx`, não há essa verificação, o que pode causar erro de autenticação silencioso.
-
-### 3. Seção de grupos fica vazia sem feedback
-Quando a lista retorna vazia (pelo parsing incorreto), a UI mostra a seção de grupos completamente vazia - sem mensagem de erro nem indicador.
-
----
-
-### Correções
-
-**Arquivo: `src/pages/Campaigns.tsx`**
-
-1. Corrigir `callCommunities` para verificar sessão (igual ao Communities.tsx)
-2. Corrigir `fetchCommunities` para lidar com formatos alternativos de resposta:
-```typescript
-const data = await callCommunities('list', { page: 1, pageSize: 50 });
-const comms: Community[] = Array.isArray(data) ? data : data?.communities || data?.data || [];
-```
-
-3. Adicionar `console.log` temporário para debug da resposta recebida (remover depois)
-
-Essas são as correções mínimas para que a seção de grupos carregue corretamente no dialog de criação de campanha, permitindo selecionar os subgrupos e completar o fluxo.
+**Campaigns.tsx** — no bloco de "Grupos / Subgrupos" do dialog, adicionar um botão de retry quando `communities.length === 0` e `!loadingCommunities`, permitindo recarregar sem fechar o dialog.
 
