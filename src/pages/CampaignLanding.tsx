@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Users2, Loader2, AlertCircle } from 'lucide-react';
+import { Users2, Loader2, AlertCircle, UserX } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 
@@ -22,6 +22,7 @@ export default function CampaignLanding() {
   const [joining, setJoining] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notFound, setNotFound] = useState(false);
+  const [allFull, setAllFull] = useState(false);
 
   useEffect(() => {
     if (!slug) return;
@@ -46,6 +47,7 @@ export default function CampaignLanding() {
     if (!slug) return;
     setJoining(true);
     setError(null);
+    setAllFull(false);
 
     try {
       const res = await supabase.functions.invoke('community-join', {
@@ -53,7 +55,12 @@ export default function CampaignLanding() {
       });
 
       if (res.error) {
-        setError(res.error.message || 'Erro ao buscar grupo disponível');
+        const msg = res.error.message || '';
+        if (msg.includes('lotados') || msg.includes('409')) {
+          setAllFull(true);
+        } else {
+          setError(msg || 'Erro ao buscar grupo disponível');
+        }
         setJoining(false);
         return;
       }
@@ -62,7 +69,11 @@ export default function CampaignLanding() {
       if (data?.invitationLink) {
         window.location.href = data.invitationLink;
       } else if (data?.error) {
-        setError(data.error);
+        if (data.error.includes('lotados')) {
+          setAllFull(true);
+        } else {
+          setError(data.error);
+        }
         setJoining(false);
       } else {
         setError('Não foi possível encontrar um grupo disponível.');
@@ -95,6 +106,43 @@ export default function CampaignLanding() {
   }
 
   if (!campaign) return null;
+
+  if (allFull) {
+    return (
+      <div
+        className="min-h-screen flex items-center justify-center px-4 py-8"
+        style={{ backgroundColor: campaign.cor_fundo }}
+      >
+        <div className="w-full max-w-md space-y-6 text-center">
+          <div
+            className="w-24 h-24 rounded-2xl flex items-center justify-center mx-auto shadow-lg opacity-80"
+            style={{ backgroundColor: campaign.cor_primaria }}
+          >
+            <UserX className="h-12 w-12 text-white" />
+          </div>
+          <div className="space-y-2">
+            <h1 className="text-2xl font-bold" style={{ color: campaign.cor_primaria }}>
+              Comunidade Lotada
+            </h1>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Todos os grupos estão cheios no momento. Novas vagas podem abrir em breve!
+            </p>
+          </div>
+          <Button
+            onClick={() => { setAllFull(false); handleJoin(); }}
+            variant="outline"
+            className="w-full h-14 text-lg font-semibold rounded-xl shadow-md"
+            style={{ borderColor: campaign.cor_primaria, color: campaign.cor_primaria }}
+          >
+            Tentar novamente
+          </Button>
+          <p className="text-xs text-muted-foreground/60">
+            Tente novamente mais tarde — vagas podem abrir a qualquer momento
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
