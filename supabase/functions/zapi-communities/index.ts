@@ -1,0 +1,223 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+};
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+  const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    return new Response(JSON.stringify({ error: "Missing env vars" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+  try {
+    // Authenticate user
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser(
+      authHeader.replace("Bearer ", "")
+    );
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: "Invalid token" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Check admin role
+    const { data: roleData } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (!roleData || roleData.role !== "admin") {
+      return new Response(JSON.stringify({ error: "Admin access required" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Get active Z-API instance
+    const { data: instance } = await supabase
+      .from("zapi_instances")
+      .select("*")
+      .eq("connected", true)
+      .limit(1)
+      .maybeSingle();
+
+    if (!instance) {
+      return new Response(JSON.stringify({ error: "No active Z-API instance" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const baseUrl = `https://api.z-api.io/instances/${instance.instance_id}/token/${instance.token}`;
+    const clientToken = instance.client_token;
+
+    const body = await req.json();
+    const { action, ...params } = body;
+
+    let zapiResponse: Response;
+
+    switch (action) {
+      case "list": {
+        const page = params.page || 1;
+        const pageSize = params.pageSize || 20;
+        zapiResponse = await fetch(
+          `${baseUrl}/communities?page=${page}&pageSize=${pageSize}`,
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              ...(clientToken ? { "Client-Token": clientToken } : {}),
+            },
+          }
+        );
+        break;
+      }
+
+      case "create": {
+        zapiResponse = await fetch(`${baseUrl}/communities`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(clientToken ? { "Client-Token": clientToken } : {}),
+          },
+          body: JSON.stringify({
+            name: params.name,
+            ...(params.description ? { description: params.description } : {}),
+          }),
+        });
+        break;
+      }
+
+      case "metadata": {
+        zapiResponse = await fetch(
+          `${baseUrl}/communities-metadata/${params.communityId}`,
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              ...(clientToken ? { "Client-Token": clientToken } : {}),
+            },
+          }
+        );
+        break;
+      }
+
+      case "add-participant": {
+        zapiResponse = await fetch(`${baseUrl}/add-participant`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(clientToken ? { "Client-Token": clientToken } : {}),
+          },
+          body: JSON.stringify({
+            communityId: params.communityId,
+            phones: params.phones,
+            autoInvite: params.autoInvite ?? true,
+          }),
+        });
+        break;
+      }
+
+      case "remove-participant": {
+        zapiResponse = await fetch(`${baseUrl}/remove-participant`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(clientToken ? { "Client-Token": clientToken } : {}),
+          },
+          body: JSON.stringify({
+            communityId: params.communityId,
+            phones: params.phones,
+          }),
+        });
+        break;
+      }
+
+      case "deactivate": {
+        zapiResponse = await fetch(
+          `${baseUrl}/communities/${params.communityId}`,
+          {
+            method: "DELETE",
+            headers: {
+              "Content-Type": "application/json",
+              ...(clientToken ? { "Client-Token": clientToken } : {}),
+            },
+          }
+        );
+        break;
+      }
+
+      case "invite-link": {
+        // Get invite link via group-invitation-link endpoint
+        zapiResponse = await fetch(
+          `${baseUrl}/group-invitation-link/${params.communityId}`,
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              ...(clientToken ? { "Client-Token": clientToken } : {}),
+            },
+          }
+        );
+        break;
+      }
+
+      case "redefine-invite-link": {
+        zapiResponse = await fetch(
+          `${baseUrl}/redefine-invitation-link/${params.communityId}`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...(clientToken ? { "Client-Token": clientToken } : {}),
+            },
+          }
+        );
+        break;
+      }
+
+      default:
+        return new Response(JSON.stringify({ error: `Unknown action: ${action}` }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+    }
+
+    const responseData = await zapiResponse.json();
+    console.log(`Communities ${action} response:`, JSON.stringify(responseData));
+
+    return new Response(JSON.stringify(responseData), {
+      status: zapiResponse.ok ? 200 : zapiResponse.status,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  } catch (error) {
+    console.error("Communities error:", error);
+    return new Response(
+      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+});
