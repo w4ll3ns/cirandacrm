@@ -136,6 +136,8 @@ export default function Communities() {
     }
   }, []);
 
+  useEffect(() => { fetchCommunities(); }, [fetchCommunities]);
+
   const handleCreate = async () => {
     if (!newName.trim()) return;
     setLoadingAction('create');
