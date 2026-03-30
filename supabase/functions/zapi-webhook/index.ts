@@ -126,6 +126,8 @@ Deno.serve(async (req) => {
       .from("responsaveis")
       .select("id, nome")
       .or(`telefone.eq.${phone},whatsapp.eq.${phone}`)
+      .order("created_at", { ascending: true })
+      .limit(1)
       .maybeSingle();
 
     // Update name if current name is generic and senderName is available
