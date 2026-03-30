@@ -396,7 +396,7 @@ export default function Campaigns() {
                 <div className="space-y-3 max-h-60 overflow-y-auto border rounded-lg p-3">
                   {communities.map(comm => {
                     const commName = comm.communityName || comm.name || comm.id;
-                    const subs = (comm.subGroups || []).filter(s => !s.isGroupAnnouncement);
+                    const subs = comm.subGroups || [];
                     if (subs.length === 0) return null;
                     return (
                       <div key={comm.id}>
