@@ -688,7 +688,10 @@ export default function Communities() {
         </div>
       </div>
 
-      <Tabs value={pageTab} onValueChange={(v) => setPageTab(v as 'communities' | 'contacts')} className="w-full">
+      <Tabs value={pageTab} onValueChange={(v) => {
+        setPageTab(v as 'communities' | 'contacts' | 'history');
+        if (v === 'history') fetchBroadcastHistory();
+      }} className="w-full">
         <TabsList>
           <TabsTrigger value="communities">Comunidades</TabsTrigger>
           <TabsTrigger value="contacts">
@@ -697,6 +700,7 @@ export default function Communities() {
               <Badge variant="secondary" className="ml-1.5 text-[10px] py-0 px-1.5">{communityContacts.length}</Badge>
             )}
           </TabsTrigger>
+          <TabsTrigger value="history">Histórico</TabsTrigger>
         </TabsList>
 
         <TabsContent value="communities" className="space-y-4">
