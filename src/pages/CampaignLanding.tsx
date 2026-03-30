@@ -55,11 +55,11 @@ export default function CampaignLanding() {
       });
 
       if (res.error) {
-        const msg = res.error.message || '';
-        if (msg.includes('lotados') || msg.includes('409')) {
+        const bodyError = typeof res.data?.error === 'string' ? res.data.error : '';
+        if (bodyError.includes('lotados')) {
           setAllFull(true);
         } else {
-          setError(msg || 'Erro ao buscar grupo disponível');
+          setError(bodyError || res.error.message || 'Erro ao buscar grupo disponível');
         }
         setJoining(false);
         return;
