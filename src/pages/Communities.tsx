@@ -745,16 +745,26 @@ export default function Communities() {
                       {syncingContacts === c.id ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Download className="w-3 h-3 mr-1" />}
                       Sync
                     </Button>
+                    <Button
+                      variant={isDisabled ? 'default' : 'outline'}
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => handleToggleDisable(c.id)}
+                    >
+                      {isDisabled ? <Power className="w-3 h-3 mr-1" /> : <Ban className="w-3 h-3 mr-1" />}
+                      {isDisabled ? 'Ativar' : 'Desativar'}
+                    </Button>
                     <Button variant="destructive" size="sm" className="h-7 text-xs"
                       disabled={loadingAction === `deactivate-${c.id}`}
-                      onClick={() => handleDeactivate(c.id)}>
+                      onClick={() => openDeleteConfirm(c.id, c.name || c.communityName || 'Sem nome')}>
                       {loadingAction === `deactivate-${c.id}` ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Trash2 className="w-3 h-3 mr-1" />}
-                      Desativar
+                      Excluir
                     </Button>
                   </div>
                 </CardContent>
               </Card>
-            ))}
+              );
+            })}
           </div>
         </TabsContent>
 
