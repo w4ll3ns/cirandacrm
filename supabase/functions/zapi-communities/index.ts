@@ -171,9 +171,9 @@ Deno.serve(async (req) => {
       }
 
       case "invite-link": {
-        // Get invite link via group-invitation-link endpoint
+        // Use communities-metadata which returns invitationLink
         zapiResponse = await fetch(
-          `${baseUrl}/group-invitation-link/${params.communityId}`,
+          `${baseUrl}/communities-metadata/${params.communityId}`,
           {
             method: "GET",
             headers: {
@@ -182,12 +182,37 @@ Deno.serve(async (req) => {
             },
           }
         );
-        break;
+        // Extract just the invite link from metadata
+        const metaData = await zapiResponse.json();
+        console.log(`Communities invite-link metadata response:`, JSON.stringify(metaData));
+        return new Response(
+          JSON.stringify({ invitationLink: metaData?.invitationLink || null }),
+          {
+            status: 200,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
       }
 
       case "redefine-invite-link": {
+        // Use the community's announcement group phone for redefine
+        // First get metadata to find the announcement group
+        const metaResp = await fetch(
+          `${baseUrl}/communities-metadata/${params.communityId}`,
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              ...(clientToken ? { "Client-Token": clientToken } : {}),
+            },
+          }
+        );
+        const metaInfo = await metaResp.json();
+        const announcementGroup = metaInfo?.subGroups?.find((g: any) => g.isGroupAnnouncement);
+        const groupPhone = announcementGroup?.phone || `${params.communityId}@g.us`;
+        
         zapiResponse = await fetch(
-          `${baseUrl}/redefine-invitation-link/${params.communityId}`,
+          `${baseUrl}/redefine-invitation-link/${groupPhone}`,
           {
             method: "POST",
             headers: {
