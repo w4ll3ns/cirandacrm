@@ -502,7 +502,6 @@ export default function Communities() {
   }, [communityContacts]);
 
   const filteredContacts = useMemo(() => {
-    setContactsPage(1);
     return communityContacts.filter(c => {
       const matchSearch = !contactsSearch ||
         c.phone?.includes(contactsSearch) ||
@@ -512,6 +511,9 @@ export default function Communities() {
       return matchSearch && matchFilter;
     });
   }, [communityContacts, contactsSearch, contactsFilter]);
+
+  // Reset page when filters change
+  useEffect(() => { setContactsPage(1); }, [contactsSearch, contactsFilter]);
 
   const totalPages = Math.ceil(filteredContacts.length / CONTACTS_PER_PAGE);
   const paginatedContacts = filteredContacts.slice(
