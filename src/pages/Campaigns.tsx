@@ -161,6 +161,7 @@ export default function Campaigns() {
     setCampaignImageMode('url');
     setCampaignImageFile(null);
     setCampaignImagePreview(null);
+    setFormAutoCreate(false);
     setShowForm(true);
     fetchCommunities();
   };
