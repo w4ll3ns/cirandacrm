@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX idx_responsaveis_telefone_unique ON public.responsaveis (telefone);
