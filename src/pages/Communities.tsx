@@ -20,9 +20,11 @@ type Community = {
 
 type CommunityMetadata = {
   id: string;
-  communityName: string;
-  owner: string;
+  name?: string;
+  communityName?: string;
+  owner?: string;
   description?: string;
+  invitationLink?: string;
   subGroups?: { name: string; phone: string; isGroupAnnouncement: boolean }[];
   participants?: { phone: string; name?: string; isAdmin?: boolean }[];
 };
