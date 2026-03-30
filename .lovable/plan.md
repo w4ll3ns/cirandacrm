@@ -1,65 +1,34 @@
 
 
-## Sistema de Módulos: CRM e Comunidades
+## Home com Dashboard por Módulo
 
-Criar um sistema de permissões por módulo para que o admin defina quais usuários têm acesso ao **CRM** (Pipeline, Conversas, Contatos, Tarefas, Fluxos) e ao **Gerenciamento de Comunidades** (Comunidades, Campanhas).
+A página Home será adaptada para mostrar conteúdo relevante com base nos módulos que o usuário tem acesso. Usuários com ambos os módulos verão tabs para alternar entre dashboards.
 
-### 1. Nova tabela `user_modules`
+### Lógica
 
-```sql
-CREATE TABLE public.user_modules (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  module text NOT NULL, -- 'crm' ou 'comunidades'
-  created_at timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (user_id, module)
-);
+- **Só CRM**: Dashboard atual (KPIs de leads, tarefas, conversas não lidas)
+- **Só Comunidades**: Novo dashboard com KPIs de comunidades/campanhas (total de campanhas ativas, grupos gerenciados, último disparo)
+- **Ambos (ou admin)**: Tabs "CRM" / "Comunidades" no topo para alternar, com conteúdo de cada dashboard
+- **Nenhum módulo**: Tela de boas-vindas simples
 
-ALTER TABLE public.user_modules ENABLE ROW LEVEL SECURITY;
+### Alterações em `src/pages/Home.tsx`
 
--- Admins gerenciam, todos autenticados podem ver os próprios
-CREATE POLICY "Users can view own modules" ON public.user_modules
-  FOR SELECT TO authenticated USING (auth.uid() = user_id);
+1. **Importar `usePermissions`** (já importado) — usar `canViewCRM` e `canViewCommunities` para decidir o que renderizar
 
-CREATE POLICY "Admins can view all modules" ON public.user_modules
-  FOR SELECT TO authenticated USING (has_role(auth.uid(), 'admin'));
+2. **Novo state `activeModule`**: `'crm' | 'comunidades'` — inicializado automaticamente com base nos módulos disponíveis
 
-CREATE POLICY "Admins can manage modules" ON public.user_modules
-  FOR ALL TO authenticated USING (has_role(auth.uid(), 'admin'));
-```
+3. **Tabs no topo** (quando ambos os módulos disponíveis): Botões "CRM" e "Comunidades" ao lado do filtro de período
 
-Admins recebem acesso a ambos os módulos automaticamente (tratado no código).
+4. **Dashboard CRM** (conteúdo atual): KPI cards de leads/visitas/follow-ups/matrículas, conversas não lidas, tarefas prioritárias, botão "Novo Lead"
 
-### 2. Hook `usePermissions.ts`
+5. **Novo Dashboard Comunidades**: 
+   - KPI cards: Campanhas Ativas, Total de Grupos nas Campanhas, Campanhas Inativas
+   - Lista de campanhas recentes com status
+   - Atalhos rápidos para "Comunidades" e "Campanhas"
+   - Dados carregados via query direta ao Supabase (`community_campaigns`, `campaign_groups`)
 
-- Buscar módulos do usuário na tabela `user_modules`
-- Expor `hasModule(module: 'crm' | 'comunidades'): boolean`
-- Admins têm acesso a tudo automaticamente
-- Atualizar `canManageFlows`/`canViewFlows` para depender de `hasModule('crm')`
-- Adicionar `canViewCommunities` → `hasModule('comunidades')` ou admin
+6. **Esconder elementos CRM** quando `activeModule === 'comunidades'`: botão "Novo Lead", filtro de período (não relevante), relatórios
 
-### 3. Navegação (`AppSidebar.tsx` e `BottomNav.tsx`)
-
-- Items CRM (Pipeline, Conversas, Contatos, Tarefas, Fluxos): visíveis se `hasModule('crm')`
-- Items Comunidades (Comunidades, Campanhas): visíveis se `hasModule('comunidades')`
-- Home, Configurações: sempre visíveis
-
-### 4. Gestão de módulos no `TeamManagement.tsx`
-
-- Para cada membro, exibir checkboxes/toggles: "CRM" e "Comunidades"
-- Admin pode ativar/desativar módulos por usuário
-- Ao convidar novo membro, incluir seleção de módulos
-
-### 5. Edge Function `invite-member`
-
-- Aceitar array `modules: string[]` no body
-- Inserir registros em `user_modules` junto com o role
-
-### Arquivos alterados
-- **Migration**: criar tabela `user_modules`
-- `src/hooks/usePermissions.ts`: buscar e expor módulos
-- `src/components/AppSidebar.tsx`: filtrar nav por módulo
-- `src/components/BottomNav.tsx`: filtrar nav por módulo
-- `src/components/TeamManagement.tsx`: UI de módulos por usuário + convite
-- `supabase/functions/invite-member/index.ts`: inserir módulos ao convidar
+### Arquivo alterado
+- `src/pages/Home.tsx` — único arquivo
 
