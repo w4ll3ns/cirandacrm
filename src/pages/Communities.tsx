@@ -101,6 +101,14 @@ export default function Communities() {
   const [broadcastRunning, setBroadcastRunning] = useState(false);
   const [broadcastResults, setBroadcastResults] = useState<BroadcastResult[] | null>(null);
 
+  // File upload & link preview states
+  const [broadcastFile, setBroadcastFile] = useState<File | null>(null);
+  const [broadcastFilePreview, setBroadcastFilePreview] = useState<string | null>(null);
+  const [uploadingBroadcastFile, setUploadingBroadcastFile] = useState(false);
+  const [mediaInputMode, setMediaInputMode] = useState<'url' | 'file'>('file');
+  const [fetchingLinkPreview, setFetchingLinkPreview] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   // All available groups from loaded communities
   const allGroups = useMemo(() => {
     const groups: { name: string; phone: string; isGroupAnnouncement: boolean; communityName: string }[] = [];
