@@ -241,6 +241,105 @@ Deno.serve(async (req) => {
         break;
       }
 
+      case "sync-participants": {
+        if (!params.communityId) {
+          return new Response(JSON.stringify({ error: "communityId is required" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        const communityName = params.communityName || "";
+
+        // 1. Get community metadata to find subgroups
+        const metaSyncRes = await fetch(
+          `${baseUrl}/communities-metadata/${params.communityId}`,
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              ...(clientToken ? { "Client-Token": clientToken } : {}),
+            },
+          }
+        );
+
+        if (!metaSyncRes.ok) {
+          return new Response(JSON.stringify({ error: "Failed to fetch community metadata" }), {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        const metaSyncData = await metaSyncRes.json();
+        const subGroupsList = metaSyncData.subGroups || [];
+
+        let totalNew = 0;
+        let totalExisting = 0;
+        let totalErrors = 0;
+
+        // 2. For each subgroup, fetch group-metadata (participants)
+        for (const sg of subGroupsList) {
+          try {
+            const grpRes = await fetch(`${baseUrl}/group-metadata/${sg.phone}`, {
+              method: "GET",
+              headers: {
+                "Content-Type": "application/json",
+                ...(clientToken ? { "Client-Token": clientToken } : {}),
+              },
+            });
+
+            if (!grpRes.ok) {
+              totalErrors++;
+              continue;
+            }
+
+            const grpData = await grpRes.json();
+            const participants = grpData.participants || [];
+
+            if (participants.length === 0) continue;
+
+            // 3. Upsert each participant into community_contacts
+            const rows = participants.map((p: { phone: string; name?: string }) => ({
+              phone: p.phone,
+              name: p.name || null,
+              community_id: params.communityId,
+              community_name: communityName || metaSyncData.name || metaSyncData.communityName || null,
+              group_phone: sg.phone,
+              group_name: sg.name || null,
+            }));
+
+            const { data: upsertData, error: upsertErr } = await supabase
+              .from("community_contacts")
+              .upsert(rows, { onConflict: "phone,community_id,group_phone", ignoreDuplicates: false })
+              .select("id");
+
+            if (upsertErr) {
+              console.error(`Upsert error for group ${sg.phone}:`, upsertErr);
+              totalErrors++;
+            } else {
+              totalNew += upsertData?.length || 0;
+            }
+          } catch (err) {
+            console.error(`Error syncing group ${sg.phone}:`, err);
+            totalErrors++;
+          }
+        }
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            totalNew,
+            totalExisting,
+            totalErrors,
+            subGroupsProcessed: subGroupsList.length,
+          }),
+          {
+            status: 200,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+
       default:
         return new Response(JSON.stringify({ error: `Unknown action: ${action}` }), {
           status: 400,
