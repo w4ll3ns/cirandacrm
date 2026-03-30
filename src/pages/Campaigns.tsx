@@ -81,6 +81,7 @@ export default function Campaigns() {
   const [campaignImageFile, setCampaignImageFile] = useState<File | null>(null);
   const [campaignImagePreview, setCampaignImagePreview] = useState<string | null>(null);
   const [uploadingCampaignImage, setUploadingCampaignImage] = useState(false);
+  const [formAutoCreate, setFormAutoCreate] = useState(false);
 
   // Group selection
   const [communities, setCommunities] = useState<Community[]>([]);
