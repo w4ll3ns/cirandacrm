@@ -1361,6 +1361,40 @@ export default function Communities() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Excluir Comunidade</DialogTitle>
+            <DialogDescription>
+              Esta ação irá desconectar a comunidade <strong>{deleteTargetName}</strong> do WhatsApp permanentemente. Todos os grupos serão desconectados.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Para confirmar, digite <strong className="text-destructive">excluir</strong> no campo abaixo:
+            </p>
+            <Input
+              value={deleteConfirmText}
+              onChange={e => setDeleteConfirmText(e.target.value)}
+              placeholder="Digite 'excluir' para confirmar"
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>Cancelar</Button>
+            <Button
+              variant="destructive"
+              disabled={deleteConfirmText.toLowerCase() !== 'excluir'}
+              onClick={handleConfirmDelete}
+            >
+              <Trash2 className="w-4 h-4 mr-1" />
+              Excluir Permanentemente
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

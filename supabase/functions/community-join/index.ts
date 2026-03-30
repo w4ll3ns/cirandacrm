@@ -82,8 +82,24 @@ Deno.serve(async (req) => {
       ...(clientToken ? { "Client-Token": clientToken } : {}),
     };
 
+    // Filter out disabled communities
+    const communityIds = [...new Set(groups.map((g: { community_id: string }) => g.community_id))];
+    const { data: disabledRows } = await supabase
+      .from("community_disabled")
+      .select("community_id")
+      .in("community_id", communityIds);
+    const disabledSet = new Set((disabledRows || []).map((r: { community_id: string }) => r.community_id));
+    const activeGroups = groups.filter((g: { community_id: string }) => !disabledSet.has(g.community_id));
+
+    if (activeGroups.length === 0) {
+      return new Response(
+        JSON.stringify({ error: "Todos os grupos estão lotados no momento. Tente novamente mais tarde." }),
+        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Check each group for available spots
-    for (const group of groups) {
+    for (const group of activeGroups) {
       try {
         const metaRes = await fetch(
           `${baseUrl}/communities-metadata/${group.community_id}`,
