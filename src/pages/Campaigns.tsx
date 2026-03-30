@@ -433,6 +433,11 @@ export default function Campaigns() {
                                 className="rounded"
                               />
                               <span className="text-sm flex-1 truncate">{sub.name}</span>
+                              {loadingCounts ? (
+                                <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                              ) : groupParticipantCounts[sub.phone] !== undefined ? (
+                                <span className="text-xs text-muted-foreground whitespace-nowrap">({groupParticipantCounts[sub.phone].toLocaleString('pt-BR')} atuais)</span>
+                              ) : null}
                               {selected && (
                                 <div className="flex items-center gap-1">
                                   <span className="text-xs text-muted-foreground">Máx:</span>
