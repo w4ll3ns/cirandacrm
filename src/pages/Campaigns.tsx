@@ -221,6 +221,20 @@ export default function Campaigns() {
 
     setSaving(true);
     try {
+      let finalImageUrl = formImage || null;
+
+      // Upload file if selected
+      if (campaignImageFile) {
+        setUploadingCampaignImage(true);
+        const ext = campaignImageFile.name.split('.').pop() || 'jpg';
+        const path = `campaigns/${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${ext}`;
+        const { error: upErr } = await supabase.storage.from('chat-media').upload(path, campaignImageFile, { contentType: campaignImageFile.type });
+        if (upErr) throw new Error('Erro ao fazer upload da imagem: ' + upErr.message);
+        const { data: urlData } = supabase.storage.from('chat-media').getPublicUrl(path);
+        finalImageUrl = urlData.publicUrl;
+        setUploadingCampaignImage(false);
+      }
+
       let campaignId = editingId;
 
       if (editingId) {
@@ -229,7 +243,7 @@ export default function Campaigns() {
           .update({
             nome: formName,
             descricao: formDesc || null,
-            imagem_url: formImage || null,
+            imagem_url: finalImageUrl,
             cor_primaria: formColorPrimary,
             cor_fundo: formColorBg,
           })
