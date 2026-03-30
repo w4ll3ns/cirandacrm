@@ -76,6 +76,10 @@ export default function Campaigns() {
   const [saving, setSaving] = useState(false);
   const [previewUrl, setPreviewUrl] = useState('');
   const [fetchingPreview, setFetchingPreview] = useState(false);
+  const [campaignImageMode, setCampaignImageMode] = useState<'url' | 'file'>('url');
+  const [campaignImageFile, setCampaignImageFile] = useState<File | null>(null);
+  const [campaignImagePreview, setCampaignImagePreview] = useState<string | null>(null);
+  const [uploadingCampaignImage, setUploadingCampaignImage] = useState(false);
 
   // Group selection
   const [communities, setCommunities] = useState<Community[]>([]);
