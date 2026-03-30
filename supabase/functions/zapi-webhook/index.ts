@@ -126,6 +126,8 @@ Deno.serve(async (req) => {
       .from("responsaveis")
       .select("id, nome")
       .or(`telefone.eq.${phone},whatsapp.eq.${phone}`)
+      .order("created_at", { ascending: true })
+      .limit(1)
       .maybeSingle();
 
     // Update name if current name is generic and senderName is available
@@ -140,17 +142,30 @@ Deno.serve(async (req) => {
     }
 
     if (!responsavel) {
+      // Use upsert to handle race conditions with unique telefone constraint
       const { data: newResp } = await supabase
         .from("responsaveis")
-        .insert({
+        .upsert({
           nome: payload.senderName || `WhatsApp ${phone}`,
           telefone: phone,
           whatsapp: phone,
           origem: "whatsapp",
-        })
+        }, { onConflict: "telefone", ignoreDuplicates: true })
         .select("id")
         .single();
-      responsavel = newResp;
+      
+      // If upsert returned nothing (duplicate ignored), fetch the existing one
+      if (!newResp) {
+        const { data: existingResp } = await supabase
+          .from("responsaveis")
+          .select("id, nome")
+          .eq("telefone", phone)
+          .limit(1)
+          .maybeSingle();
+        responsavel = existingResp;
+      } else {
+        responsavel = newResp;
+      }
     }
 
     if (!responsavel) {
