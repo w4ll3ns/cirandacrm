@@ -423,7 +423,7 @@ export default function Communities() {
               <div className="flex items-center gap-2">
                 <Input value={inviteLink} readOnly className="text-xs font-mono" />
                 <Button variant="outline" size="icon" className="shrink-0" onClick={() => copyToClipboard(inviteLink)}>
-                  {copiedLink ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                  {copiedLink ? <Check className="w-4 h-4 text-primary" /> : <Copy className="w-4 h-4" />}
                 </Button>
               </div>
             ) : (
