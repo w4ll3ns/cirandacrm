@@ -1,18 +1,25 @@
 
 
-## Atualizar Branding Restante → Dezenas CRM
+## Corrigir 404 no Vercel para rotas SPA
 
-### Locais pendentes encontrados
+### Problema
+O Vercel serve arquivos estáticos e não sabe redirecionar rotas como `/entrar/:slug` para o `index.html`. Como o app é uma SPA (Single Page Application) com React Router, todas as rotas precisam ser redirecionadas para `index.html`.
 
-1. **`src/pages/Settings.tsx`** (AboutCard, linhas 112-119):
-   - Ícone "H" → substituir por `<img src="/logo.png" ...>`
-   - "Centro Educacional Hora de Aprender" → "Dezenas CRM"
-   - "CRM Hora de Aprender · v2.0" → "Dezenas CRM · v2.0"
+### Solução
+Criar um arquivo `vercel.json` na raiz do projeto com uma regra de rewrite que redireciona todas as rotas para `index.html`.
 
-2. **`src/hooks/useInboundNotification.ts`** (linha 5):
-   - `ORIGINAL_TITLE = 'Ciranda CRM'` → `'Dezenas CRM'`
+### Alteração
 
-### Arquivos alterados
-- `src/pages/Settings.tsx`
-- `src/hooks/useInboundNotification.ts`
+**Criar `vercel.json`** na raiz do projeto:
+
+```json
+{
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
+```
+
+### Arquivo alterado
+- `vercel.json` (novo)
 
