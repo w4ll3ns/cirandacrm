@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Users2, Plus, RefreshCw, Trash2, UserPlus, UserMinus, Link2, RotateCcw, Eye, Loader2, Copy, Check, MessageSquare, Send, Image, AudioLines, LinkIcon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -135,6 +135,8 @@ export default function Communities() {
       setLoading(false);
     }
   }, []);
+
+  useEffect(() => { fetchCommunities(); }, [fetchCommunities]);
 
   const handleCreate = async () => {
     if (!newName.trim()) return;
