@@ -1,55 +1,18 @@
 
 
-## Flag de Criação Automática de Comunidade + Configurações Z-API
+## Fix: Detecção do estado "lotado" no frontend
 
-### Contexto
-Quando todos os grupos de uma campanha estão lotados e a flag `auto_create_community` está ativa, o sistema cria automaticamente uma nova comunidade no WhatsApp. O nome segue o padrão sequencial: se a campanha tem comunidades terminando em `#55`, a próxima será `#56`.
+### Problema
+O `supabase.functions.invoke()` retorna `res.error.message = "Edge Function returned a non-2xx status code"` para qualquer resposta non-2xx. A mensagem genérica não contém "lotados" nem "409", então a lógica de detecção do estado `allFull` nunca é ativada.
 
-### API Z-API utilizada
+Porém, o body JSON da resposta (com `{ error: "Todos os grupos estão lotados..." }`) ainda vem em `res.data`.
 
-**Criar comunidade**: `POST /communities` com `{ name, description }`
-- Retorna `{ id, subGroups: [{ name, phone }] }`
+### Solução
+Ajustar o `handleJoin` em `CampaignLanding.tsx` para:
+1. Quando houver `res.error`, verificar também `res.data?.error` (o body retornado pela edge function)
+2. Checar se `res.data?.error` contém "lotados" para ativar o estado `allFull`
+3. Manter o fallback para a mensagem genérica como erro normal
 
-**Configurar comunidade**: `POST /communities/settings` com:
-- `communityId` (string, obrigatório) - ID da comunidade
-- `whoCanAddNewGroups` (string: `"admins"` ou `"all"`, obrigatório) - Quem pode adicionar novos grupos
-
-### Alterações
-
-**1. Migration - Nova coluna na tabela `community_campaigns`**
-```sql
-ALTER TABLE public.community_campaigns
-  ADD COLUMN auto_create_community boolean NOT NULL DEFAULT false;
-```
-
-**2. `src/pages/Campaigns.tsx` - Toggle no formulário**
-- Adicionar estado `formAutoCreate` (boolean)
-- Switch no formulário: "Criar comunidade automaticamente quando todos os grupos estiverem lotados"
-- Salvar/carregar `auto_create_community` no insert/update
-- Atualizar tipo `Campaign` com `auto_create_community`
-
-**3. `supabase/functions/community-join/index.ts` - Lógica de auto-criação**
-Após confirmar que todos os grupos estão lotados e `campaign.auto_create_community === true`:
-1. Extrair o número sequencial do nome da última comunidade (ex: `@DEZENINHAS - #98` → 98)
-2. Criar nova comunidade: `POST /communities` com `{ name: "@DEZENINHAS - #99" }`
-3. Aplicar configurações: `POST /communities/settings` com `{ communityId, whoCanAddNewGroups: "admins" }`
-4. Buscar metadata para obter subgrupo e link de convite
-5. Inserir novo registro em `campaign_groups` com `max_participants` herdado do primeiro grupo
-6. Retornar o link de convite ao usuário
-
-A lógica de extração do sequencial:
-- Pega o nome da última comunidade nos `campaign_groups` da campanha
-- Usa regex para encontrar `#(\d+)` no final do nome
-- Incrementa +1 para o novo nome
-- Se não encontrar padrão, usa `#2` como fallback
-
-**4. `supabase/functions/zapi-communities/index.ts` - Novo action `community-settings`**
-- Adicionar action `community-settings` que faz proxy para `POST /communities/settings`
-- Body: `{ communityId, whoCanAddNewGroups }`
-
-### Arquivos alterados
-- Migration (nova coluna `auto_create_community`)
-- `src/pages/Campaigns.tsx`
-- `supabase/functions/community-join/index.ts`
-- `supabase/functions/zapi-communities/index.ts`
+### Arquivo alterado
+- `src/pages/CampaignLanding.tsx` — ajustar a lógica no `handleJoin` (linhas 57-66)
 
