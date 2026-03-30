@@ -78,6 +78,8 @@ export default function Campaigns() {
   // Group selection
   const [communities, setCommunities] = useState<Community[]>([]);
   const [loadingCommunities, setLoadingCommunities] = useState(false);
+  const [groupParticipantCounts, setGroupParticipantCounts] = useState<Record<string, number>>({});
+  const [loadingCounts, setLoadingCounts] = useState(false);
   const [selectedGroups, setSelectedGroups] = useState<
     { communityId: string; communityName: string; groupPhone: string; groupName: string; maxParticipants: number; sortOrder: number }[]
   >([]);
