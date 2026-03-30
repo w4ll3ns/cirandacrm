@@ -17,6 +17,7 @@ import Settings from "@/pages/Settings";
 import OpportunityDetail from "@/pages/OpportunityDetail";
 import FlowList from "@/pages/FlowList";
 import FlowBuilder from "@/pages/FlowBuilder";
+import Communities from "@/pages/Communities";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -50,6 +51,7 @@ function AppRoutes() {
         <Route path="oportunidades/:id" element={<OpportunityDetail />} />
         <Route path="fluxos" element={<FlowList />} />
         <Route path="fluxos/:id" element={<FlowBuilder />} />
+        <Route path="comunidades" element={<Communities />} />
         <Route path="configuracoes" element={<Settings />} />
       </Route>
       <Route path="*" element={<NotFound />} />

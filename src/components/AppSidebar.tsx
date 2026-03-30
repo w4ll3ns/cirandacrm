@@ -1,4 +1,4 @@
-import { Home, Kanban, MessageCircle, Users, CheckSquare, Settings, LogOut, Workflow } from 'lucide-react';
+import { Home, Kanban, MessageCircle, Users, CheckSquare, Settings, LogOut, Workflow, Users2 } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
@@ -64,7 +64,7 @@ export default function AppSidebar() {
           <SidebarGroupLabel>Menu</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {[...navItems, ...(canManageFlows ? [{ path: '/app/fluxos', icon: Workflow, label: 'Fluxos' }] : [])].map(item => {
+              {[...navItems, ...(canManageFlows ? [{ path: '/app/fluxos', icon: Workflow, label: 'Fluxos' }, { path: '/app/comunidades', icon: Users2, label: 'Comunidades' }] : [])].map(item => {
                 const badge = getBadge(item.label);
                 return (
                   <SidebarMenuItem key={item.path}>
