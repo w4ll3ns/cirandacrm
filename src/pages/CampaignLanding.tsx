@@ -50,29 +50,35 @@ export default function CampaignLanding() {
     setAllFull(false);
 
     try {
-      const res = await supabase.functions.invoke('community-join', {
-        body: { slug },
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/community-join`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({ slug }),
       });
 
-      if (res.error) {
-        const bodyError = typeof res.data?.error === 'string' ? res.data.error : '';
-        if (bodyError.includes('lotados')) {
+      const data = await response.json().catch(() => null);
+      const responseError = typeof data?.error === 'string' ? data.error : '';
+
+      if (!response.ok) {
+        if (response.status === 409 || responseError.toLowerCase().includes('lotados')) {
           setAllFull(true);
         } else {
-          setError(bodyError || res.error.message || 'Erro ao buscar grupo disponível');
+          setError(responseError || 'Erro ao buscar grupo disponível');
         }
         setJoining(false);
         return;
       }
 
-      const data = res.data;
       if (data?.invitationLink) {
         window.location.href = data.invitationLink;
-      } else if (data?.error) {
-        if (data.error.includes('lotados')) {
+      } else if (responseError) {
+        if (responseError.toLowerCase().includes('lotados')) {
           setAllFull(true);
         } else {
-          setError(data.error);
+          setError(responseError);
         }
         setJoining(false);
       } else {
