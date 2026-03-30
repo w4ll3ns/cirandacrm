@@ -201,6 +201,53 @@ export type Database = {
         }
         Relationships: []
       }
+      community_contacts: {
+        Row: {
+          campaign_id: string | null
+          community_id: string
+          community_name: string | null
+          created_at: string
+          group_name: string | null
+          group_phone: string | null
+          id: string
+          joined_at: string
+          name: string | null
+          phone: string
+        }
+        Insert: {
+          campaign_id?: string | null
+          community_id: string
+          community_name?: string | null
+          created_at?: string
+          group_name?: string | null
+          group_phone?: string | null
+          id?: string
+          joined_at?: string
+          name?: string | null
+          phone: string
+        }
+        Update: {
+          campaign_id?: string | null
+          community_id?: string
+          community_name?: string | null
+          created_at?: string
+          group_name?: string | null
+          group_phone?: string | null
+          id?: string
+          joined_at?: string
+          name?: string | null
+          phone?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_contacts_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "community_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversation_assignments_history: {
         Row: {
           changed_by: string | null
