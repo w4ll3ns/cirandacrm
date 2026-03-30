@@ -1,43 +1,44 @@
 
 
-## Desativar (soft) vs Excluir comunidade
+## Histórico de Disparos em Massa
 
-### Problema atual
-O botão "Desativar" chama a Z-API para desconectar a comunidade no WhatsApp (ação destrutiva). O usuário quer separar em duas ações:
-- **Desativar**: flag local no sistema (soft-disable), não afeta o WhatsApp
-- **Excluir**: ação destrutiva atual (Z-API deactivate), com confirmação digitando "excluir"
+### Contexto
+Salvar cada disparo (broadcast) feito para comunidades, registrando tipo, conteúdo, grupos alvo, resultados e quem disparou.
 
 ### Alterações
 
-**1. Migration — Nova tabela `community_disabled`**
-Tabela simples para rastrear comunidades desativadas localmente:
+**1. Migration — Nova tabela `broadcast_logs`**
 ```sql
-CREATE TABLE public.community_disabled (
+CREATE TABLE public.broadcast_logs (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  community_id text NOT NULL UNIQUE,
-  disabled_at timestamptz NOT NULL DEFAULT now(),
-  disabled_by uuid REFERENCES auth.users(id)
+  user_id uuid REFERENCES auth.users(id),
+  type text NOT NULL,              -- text, image, audio, video, link
+  message text,
+  media_url text,
+  caption text,
+  link_url text,
+  link_title text,
+  link_description text,
+  link_image text,
+  group_phones text[] NOT NULL,
+  results jsonb NOT NULL DEFAULT '[]',
+  sent_count integer NOT NULL DEFAULT 0,
+  error_count integer NOT NULL DEFAULT 0,
+  created_at timestamptz NOT NULL DEFAULT now()
 );
-ALTER TABLE public.community_disabled ENABLE ROW LEVEL SECURITY;
--- Políticas: authenticated pode ver, admin pode gerenciar
 ```
+RLS: admin/gestor pode ver e inserir.
 
-**2. `src/pages/Communities.tsx`**
+**2. `src/pages/Communities.tsx` — Salvar após disparo**
+No `handleBroadcast`, após receber os resultados, inserir registro na `broadcast_logs` com todos os dados do disparo e resultados.
 
-- **Carregar comunidades desativadas** do banco ao iniciar e manter em estado local `disabledIds: Set<string>`
-- **Botão "Desativar/Ativar"** (toggle): insere ou remove registro na tabela `community_disabled`. Comunidade desativada mostra badge "Desativada" e visual esmaecido (opacity)
-- **Botão "Excluir"** (vermelho): abre dialog de confirmação onde o usuário precisa digitar "excluir" para confirmar. Só então chama `handleDeactivate` (Z-API)
-- **Filtrar comunidades desativadas** das rotinas: não aparecem no disparo em massa, não são usadas como opção em campanhas
-
-**3. `src/pages/Campaigns.tsx`**
-- Ao buscar grupos para campanhas, filtrar comunidades que estão na tabela `community_disabled`
-
-**4. `supabase/functions/community-join/index.ts`**
-- Antes de processar o join, verificar se a comunidade do grupo não está desativada
+**3. `src/pages/Communities.tsx` — Nova aba "Histórico"**
+Adicionar uma aba "Histórico" no Tabs existente (ao lado de Comunidades e Contatos) que:
+- Lista os disparos em ordem decrescente (mais recente primeiro)
+- Mostra: data/hora, tipo (badge), mensagem (truncada), qtd grupos, enviados/erros
+- Permite expandir para ver detalhes completos (grupos, resultados individuais)
 
 ### Arquivos alterados
-- Migration (nova tabela `community_disabled`)
-- `src/pages/Communities.tsx` — lógica de desativar/ativar + dialog de exclusão com digitação
-- `src/pages/Campaigns.tsx` — filtrar comunidades desativadas
-- `supabase/functions/community-join/index.ts` — verificar status antes do join
+- Migration (nova tabela `broadcast_logs`)
+- `src/pages/Communities.tsx` — salvar disparo + aba de histórico
 
