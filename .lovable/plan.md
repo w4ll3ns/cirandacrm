@@ -1,45 +1,48 @@
 
 
-## Auto-fetch de preview de link ao criar campanha
+## Melhorias no Disparo de Mensagem (Comunidades)
 
-### Problema
-Hoje o usuário precisa preencher manualmente o nome, descrição e URL da imagem ao criar uma campanha. O ideal é colar um link e o sistema extrair automaticamente o preview (OG tags: título, descrição, imagem).
+### 1. Auto-fetch de preview no tab "Link"
+Ao colar a URL no campo "URL do Link", adicionar botão "Buscar Preview" que chama a edge function `fetch-link-preview` já existente para preencher automaticamente título, descrição e imagem do preview. Campos continuam editáveis.
 
-### Solução
+### 2. Upload de arquivo para Imagem, Áudio (e Vídeo)
+Nos tabs de Imagem e Áudio, adicionar opção de upload de arquivo como alternativa à URL. O usuário escolhe: colar URL ou fazer upload do arquivo. O upload vai para o bucket `chat-media`, e a URL pública resultante é usada como `media_url` no disparo.
 
-#### 1. Nova Edge Function `fetch-link-preview`
-- Recebe uma URL no body
-- Faz fetch do HTML da página
-- Extrai as meta tags Open Graph: `og:title`, `og:description`, `og:image`
-- Retorna `{ title, description, image }` para o frontend
+### Alterações
 
-#### 2. Alterações no formulário de campanha (`src/pages/Campaigns.tsx`)
-- Adicionar um novo campo "URL de referência" no topo do formulário
-- Ao colar/digitar uma URL e clicar em um botão "Buscar preview" (ou com debounce ao colar):
-  - Chamar `supabase.functions.invoke('fetch-link-preview', { body: { url } })`
-  - Preencher automaticamente `formName` com `og:title`, `formDesc` com `og:description`, `formImage` com `og:image`
-  - Mostrar loading enquanto busca
-- Os campos continuam editáveis após o auto-preenchimento (o usuário pode ajustar)
-- Se o fetch falhar, exibir um toast de aviso e deixar os campos manuais
+**Arquivo: `src/pages/Communities.tsx`**
 
-#### 3. Fluxo do usuário
-```text
-[Cola URL] → [Clica "Buscar"] → [Loading...] → [Campos preenchidos automaticamente]
-                                                  Nome: "Título da página"
-                                                  Descrição: "Descrição OG"
-                                                  Imagem: preview carregada
-```
+1. **Novos states**:
+   - `fetchingLinkPreview: boolean` — loading do fetch de preview
+   - `broadcastFile: File | null` — arquivo selecionado para upload (imagem/áudio)
+   - `broadcastFilePreview: string | null` — preview local do arquivo
+   - `uploadingBroadcastFile: boolean` — loading do upload
+
+2. **Tab Link (linhas ~761-783)**:
+   - Adicionar botão "Buscar Preview" ao lado do campo URL
+   - Ao clicar, chamar `supabase.functions.invoke('fetch-link-preview', { body: { url: broadcastLinkUrl } })`
+   - Preencher `broadcastLinkTitle`, `broadcastLinkDesc`, `broadcastLinkImage` com os dados retornados
+   - Mostrar spinner durante o fetch
+
+3. **Tab Imagem (linhas ~743-752)**:
+   - Substituir campo "URL da Imagem" por toggle: "Colar URL" ou "Enviar Arquivo"
+   - Se arquivo: input file (accept="image/*") com preview da imagem
+   - Se URL: input text como hoje
+
+4. **Tab Áudio (linhas ~754-758)**:
+   - Mesmo padrão: toggle entre URL e upload de arquivo (accept="audio/*")
+
+5. **`handleBroadcast` (linha ~314)**:
+   - Se `broadcastFile` existe, fazer upload para `chat-media` primeiro, obter URL pública, e usar como `media_url`
+
+6. **`canSendBroadcast` (linha ~304)**:
+   - Para image/audio: aceitar `broadcastFile` OU `broadcastMediaUrl`
+
+7. **`resetBroadcast` (linha ~354)**:
+   - Limpar `broadcastFile` e `broadcastFilePreview`
 
 ### Detalhes técnicos
-
-**Edge Function `fetch-link-preview/index.ts`:**
-- Usa `fetch()` para baixar o HTML
-- Regex simples para extrair `<meta property="og:..." content="...">` 
-- Fallback para `<title>` e `<meta name="description">` se OG tags ausentes
-- CORS headers padrão, sem JWT
-
-**Campos do formulário:**
-- O campo de URL fica acima dos campos nome/descrição/imagem
-- Botão "Buscar preview" ao lado do input de URL
-- Os campos preenchidos automaticamente ficam com um indicador visual sutil
+- Upload usa `supabase.storage.from('chat-media').upload(path, file)` + `getPublicUrl()` (mesmo padrão já usado em ConversationDetail)
+- Edge function `fetch-link-preview` já existe e retorna `{ title, description, image }`
+- Nenhuma alteração na edge function `zapi-community-broadcast` necessária — ela já recebe `media_url` como string
 
