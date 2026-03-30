@@ -259,7 +259,7 @@ export default function Campaigns() {
           .insert({
             nome: formName,
             descricao: formDesc || null,
-            imagem_url: formImage || null,
+            imagem_url: finalImageUrl,
             cor_primaria: formColorPrimary,
             cor_fundo: formColorBg,
             slug,
