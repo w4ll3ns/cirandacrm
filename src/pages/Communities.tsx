@@ -126,9 +126,14 @@ export default function Communities() {
   const [contactsSearch, setContactsSearch] = useState('');
   const [contactsFilter, setContactsFilter] = useState('all');
   const [syncingContacts, setSyncingContacts] = useState<string | null>(null);
-  const [pageTab, setPageTab] = useState<'communities' | 'contacts'>('communities');
+  const [pageTab, setPageTab] = useState<'communities' | 'contacts' | 'history'>('communities');
   const [contactsPage, setContactsPage] = useState(1);
   const CONTACTS_PER_PAGE = 200;
+
+  // Broadcast history state
+  const [broadcastHistory, setBroadcastHistory] = useState<any[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
 
   // All available groups from loaded communities (exclude disabled)
   const allGroups = useMemo(() => {
