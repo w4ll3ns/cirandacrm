@@ -405,6 +405,11 @@ export default function Communities() {
                 <Badge variant="secondary" className="shrink-0">
                   {c.subGroups?.length || 0} grupo(s)
                 </Badge>
+                {(c as any).participants?.length > 0 && (
+                  <Badge variant="outline" className="shrink-0 text-xs">
+                    {(c as any).participants.length} participantes
+                  </Badge>
+                )}
               </div>
             </CardHeader>
             <CardContent className="pt-0">
