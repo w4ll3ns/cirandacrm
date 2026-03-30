@@ -444,6 +444,66 @@ export default function Communities() {
     }
   };
 
+  // Fetch contacts from DB
+  const fetchContacts = useCallback(async () => {
+    setLoadingContacts(true);
+    try {
+      const { data, error } = await supabase
+        .from('community_contacts')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(1000);
+      if (error) throw error;
+      setCommunityContacts(data || []);
+    } catch (err: any) {
+      toast.error('Erro ao carregar contatos: ' + (err.message || ''));
+    } finally {
+      setLoadingContacts(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchContacts(); }, [fetchContacts]);
+
+  const handleSyncContacts = async (communityId: string, communityName: string) => {
+    setSyncingContacts(communityId);
+    try {
+      const data = await callCommunities('sync-participants', { communityId, communityName });
+      toast.success(`Sincronização concluída! ${data.totalNew || 0} contatos processados, ${data.totalErrors || 0} erros.`);
+      fetchContacts();
+    } catch (err: any) {
+      toast.error('Erro ao sincronizar: ' + (err.message || ''));
+    } finally {
+      setSyncingContacts(null);
+    }
+  };
+
+  // Unique community names for filter
+  const uniqueCommunities = useMemo(() => {
+    const names = new Set(communityContacts.map(c => c.community_name).filter(Boolean));
+    return Array.from(names);
+  }, [communityContacts]);
+
+  const filteredContacts = useMemo(() => {
+    return communityContacts.filter(c => {
+      const matchSearch = !contactsSearch ||
+        c.phone?.includes(contactsSearch) ||
+        c.name?.toLowerCase().includes(contactsSearch.toLowerCase()) ||
+        c.group_name?.toLowerCase().includes(contactsSearch.toLowerCase());
+      const matchFilter = contactsFilter === 'all' || c.community_name === contactsFilter;
+      return matchSearch && matchFilter;
+    });
+  }, [communityContacts, contactsSearch, contactsFilter]);
+
+  const contactCountByCommunity = useMemo(() => {
+    const counts: Record<string, number> = {};
+    communityContacts.forEach(c => {
+      if (c.community_id) {
+        counts[c.community_id] = (counts[c.community_id] || 0) + 1;
+      }
+    });
+    return counts;
+  }, [communityContacts]);
+
   const estimatedTime = useMemo(() => {
     const count = selectedGroups.size;
     if (count <= 1) return null;
