@@ -78,6 +78,8 @@ export default function Campaigns() {
   // Group selection
   const [communities, setCommunities] = useState<Community[]>([]);
   const [loadingCommunities, setLoadingCommunities] = useState(false);
+  const [groupParticipantCounts, setGroupParticipantCounts] = useState<Record<string, number>>({});
+  const [loadingCounts, setLoadingCounts] = useState(false);
   const [selectedGroups, setSelectedGroups] = useState<
     { communityId: string; communityName: string; groupPhone: string; groupName: string; maxParticipants: number; sortOrder: number }[]
   >([]);
@@ -112,6 +114,25 @@ export default function Campaigns() {
         })
       );
       setCommunities(enriched);
+
+      // Fetch participant counts for all subgroups
+      setLoadingCounts(true);
+      const counts: Record<string, number> = {};
+      const allSubs = enriched.flatMap((c: Community) =>
+        (c.subGroups || []).filter(s => !s.isGroupAnnouncement).map(s => s.phone)
+      );
+      await Promise.all(
+        allSubs.map(async (phone: string) => {
+          try {
+            const meta = await callCommunities('group-metadata', { groupPhone: phone });
+            counts[phone] = meta?.participants?.length ?? 0;
+          } catch {
+            counts[phone] = 0;
+          }
+        })
+      );
+      setGroupParticipantCounts(counts);
+      setLoadingCounts(false);
     } catch (err) {
       toast.error('Erro ao carregar comunidades');
     }
@@ -412,6 +433,11 @@ export default function Campaigns() {
                                 className="rounded"
                               />
                               <span className="text-sm flex-1 truncate">{sub.name}</span>
+                              {loadingCounts ? (
+                                <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                              ) : groupParticipantCounts[sub.phone] !== undefined ? (
+                                <span className="text-xs text-muted-foreground whitespace-nowrap">({groupParticipantCounts[sub.phone].toLocaleString('pt-BR')} atuais)</span>
+                              ) : null}
                               {selected && (
                                 <div className="flex items-center gap-1">
                                   <span className="text-xs text-muted-foreground">Máx:</span>
