@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Megaphone, Plus, Copy, Check, Loader2, Trash2, ExternalLink, ToggleLeft, ToggleRight, Pencil } from 'lucide-react';
+import { Megaphone, Plus, Copy, Check, Loader2, Trash2, ExternalLink, ToggleLeft, ToggleRight, Pencil, Link, Search } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
