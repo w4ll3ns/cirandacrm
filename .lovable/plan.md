@@ -1,34 +1,60 @@
 
 
-## Home com Dashboard por Módulo
+## Registrar Contatos de Comunidades no Banco de Dados
 
-A página Home será adaptada para mostrar conteúdo relevante com base nos módulos que o usuário tem acesso. Usuários com ambos os módulos verão tabs para alternar entre dashboards.
+Criar uma tabela para armazenar todos os contatos que entraram em comunidades e alimentá-la automaticamente quando novos participantes forem detectados.
 
-### Lógica
+### 1. Nova tabela `community_contacts`
 
-- **Só CRM**: Dashboard atual (KPIs de leads, tarefas, conversas não lidas)
-- **Só Comunidades**: Novo dashboard com KPIs de comunidades/campanhas (total de campanhas ativas, grupos gerenciados, último disparo)
-- **Ambos (ou admin)**: Tabs "CRM" / "Comunidades" no topo para alternar, com conteúdo de cada dashboard
-- **Nenhum módulo**: Tela de boas-vindas simples
+```sql
+CREATE TABLE public.community_contacts (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  phone text NOT NULL,
+  name text,
+  community_id text NOT NULL,        -- ID da comunidade Z-API
+  community_name text,
+  group_phone text,                   -- subgrupo onde entrou
+  group_name text,
+  campaign_id uuid REFERENCES community_campaigns(id) ON DELETE SET NULL,
+  joined_at timestamptz NOT NULL DEFAULT now(),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (phone, community_id, group_phone)
+);
 
-### Alterações em `src/pages/Home.tsx`
+ALTER TABLE public.community_contacts ENABLE ROW LEVEL SECURITY;
+-- Authenticated podem visualizar; admins gerenciam
+```
 
-1. **Importar `usePermissions`** (já importado) — usar `canViewCRM` e `canViewCommunities` para decidir o que renderizar
+O `UNIQUE` constraint evita duplicatas — o mesmo telefone no mesmo subgrupo não é inserido duas vezes.
 
-2. **Novo state `activeModule`**: `'crm' | 'comunidades'` — inicializado automaticamente com base nos módulos disponíveis
+### 2. Alimentação automática — dois pontos de entrada
 
-3. **Tabs no topo** (quando ambos os módulos disponíveis): Botões "CRM" e "Comunidades" ao lado do filtro de período
+**a) Edge Function `community-join` (landing page de campanha)**
+Quando um lead clica para entrar via campanha e recebe o link de convite, registrar o contato na tabela `community_contacts` com os dados da campanha, grupo e telefone (se disponível via formulário na landing page — ou apenas registrar o grupo/campanha sem telefone por enquanto, e capturar depois).
 
-4. **Dashboard CRM** (conteúdo atual): KPI cards de leads/visitas/follow-ups/matrículas, conversas não lidas, tarefas prioritárias, botão "Novo Lead"
+**b) Edge Function `zapi-communities` → action `metadata` / `group-metadata`**
+Criar uma nova action `sync-participants` que, ao ser chamada (manual ou periodicamente), compara os participantes atuais de cada subgrupo da comunidade com os já registrados em `community_contacts` e insere os novos. Isso é o mecanismo principal de detecção.
 
-5. **Novo Dashboard Comunidades**: 
-   - KPI cards: Campanhas Ativas, Total de Grupos nas Campanhas, Campanhas Inativas
-   - Lista de campanhas recentes com status
-   - Atalhos rápidos para "Comunidades" e "Campanhas"
-   - Dados carregados via query direta ao Supabase (`community_campaigns`, `campaign_groups`)
+**c) Botão "Sincronizar Contatos" na UI de Comunidades**
+Ao visualizar os detalhes de uma comunidade, adicionar um botão que chama `sync-participants` para carregar todos os participantes de todos os subgrupos e gravar os novos no banco.
 
-6. **Esconder elementos CRM** quando `activeModule === 'comunidades'`: botão "Novo Lead", filtro de período (não relevante), relatórios
+### 3. Alterações na Edge Function `zapi-communities`
 
-### Arquivo alterado
-- `src/pages/Home.tsx` — único arquivo
+Adicionar case `sync-participants`:
+- Recebe `communityId` e `communityName`
+- Busca metadata da comunidade (subgrupos)
+- Para cada subgrupo, busca `group-metadata` (lista de participantes)
+- Faz upsert em `community_contacts` para cada participante (phone, name, community_id, group_phone, group_name)
+- Retorna contagem de novos vs existentes
+
+### 4. UI na página Communities
+
+- **Botão "Sincronizar Contatos"** no dialog de detalhes da comunidade (ao lado dos botões existentes)
+- **Nova aba/seção "Contatos"** na página de Comunidades mostrando a lista de `community_contacts` com filtros por comunidade/grupo, busca por telefone/nome, e contagem total
+- Exibir badge com total de contatos registrados no card de cada comunidade
+
+### 5. Arquivos alterados
+- **Migration SQL**: criar tabela `community_contacts`
+- **`supabase/functions/zapi-communities/index.ts`**: nova action `sync-participants`
+- **`src/pages/Communities.tsx`**: botão de sync + aba de contatos
 
