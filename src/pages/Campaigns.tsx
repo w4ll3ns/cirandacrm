@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Megaphone, Plus, Copy, Check, Loader2, Trash2, ExternalLink, ToggleLeft, ToggleRight, Pencil, Link, Search } from 'lucide-react';
+import { Megaphone, Plus, Copy, Check, Loader2, Trash2, ExternalLink, ToggleLeft, ToggleRight, Pencil, Link, Search, Upload, ImageIcon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -76,6 +76,10 @@ export default function Campaigns() {
   const [saving, setSaving] = useState(false);
   const [previewUrl, setPreviewUrl] = useState('');
   const [fetchingPreview, setFetchingPreview] = useState(false);
+  const [campaignImageMode, setCampaignImageMode] = useState<'url' | 'file'>('url');
+  const [campaignImageFile, setCampaignImageFile] = useState<File | null>(null);
+  const [campaignImagePreview, setCampaignImagePreview] = useState<string | null>(null);
+  const [uploadingCampaignImage, setUploadingCampaignImage] = useState(false);
 
   // Group selection
   const [communities, setCommunities] = useState<Community[]>([]);
@@ -152,6 +156,9 @@ export default function Campaigns() {
     setFormColorBg('#FFFFFF');
     setSelectedGroups([]);
     setPreviewUrl('');
+    setCampaignImageMode('url');
+    setCampaignImageFile(null);
+    setCampaignImagePreview(null);
     setShowForm(true);
     fetchCommunities();
   };
@@ -182,8 +189,21 @@ export default function Campaigns() {
       }))
     );
 
+    setCampaignImageMode('url');
+    setCampaignImageFile(null);
+    setCampaignImagePreview(null);
     setShowForm(true);
     fetchCommunities();
+  };
+
+  const handleCampaignImageFileChange = (file: File | null) => {
+    setCampaignImageFile(file);
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setCampaignImagePreview(url);
+    } else {
+      setCampaignImagePreview(null);
+    }
   };
 
   const toggleGroup = (communityId: string, communityName: string, groupPhone: string, groupName: string) => {
@@ -214,6 +234,20 @@ export default function Campaigns() {
 
     setSaving(true);
     try {
+      let finalImageUrl = formImage || null;
+
+      // Upload file if selected
+      if (campaignImageFile) {
+        setUploadingCampaignImage(true);
+        const ext = campaignImageFile.name.split('.').pop() || 'jpg';
+        const path = `campaigns/${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${ext}`;
+        const { error: upErr } = await supabase.storage.from('chat-media').upload(path, campaignImageFile, { contentType: campaignImageFile.type });
+        if (upErr) throw new Error('Erro ao fazer upload da imagem: ' + upErr.message);
+        const { data: urlData } = supabase.storage.from('chat-media').getPublicUrl(path);
+        finalImageUrl = urlData.publicUrl;
+        setUploadingCampaignImage(false);
+      }
+
       let campaignId = editingId;
 
       if (editingId) {
@@ -222,7 +256,7 @@ export default function Campaigns() {
           .update({
             nome: formName,
             descricao: formDesc || null,
-            imagem_url: formImage || null,
+            imagem_url: finalImageUrl,
             cor_primaria: formColorPrimary,
             cor_fundo: formColorBg,
           })
@@ -238,7 +272,7 @@ export default function Campaigns() {
           .insert({
             nome: formName,
             descricao: formDesc || null,
-            imagem_url: formImage || null,
+            imagem_url: finalImageUrl,
             cor_primaria: formColorPrimary,
             cor_fundo: formColorBg,
             slug,
@@ -419,9 +453,42 @@ export default function Campaigns() {
             </div>
 
             <div>
-              <Label>URL da Imagem de Capa</Label>
-              <Input value={formImage} onChange={e => setFormImage(e.target.value)} placeholder="https://..." />
-              {formImage && <img src={formImage} alt="preview" className="mt-2 h-24 rounded-lg object-cover" />}
+              <Label>Imagem de Capa</Label>
+              <div className="flex gap-1 mb-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={campaignImageMode === 'url' ? 'default' : 'outline'}
+                  onClick={() => setCampaignImageMode('url')}
+                >
+                  <Link className="h-3 w-3 mr-1" /> Colar URL
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={campaignImageMode === 'file' ? 'default' : 'outline'}
+                  onClick={() => setCampaignImageMode('file')}
+                >
+                  <Upload className="h-3 w-3 mr-1" /> Enviar Arquivo
+                </Button>
+              </div>
+              {campaignImageMode === 'url' ? (
+                <>
+                  <Input value={formImage} onChange={e => setFormImage(e.target.value)} placeholder="https://..." />
+                  {formImage && <img src={formImage} alt="preview" className="mt-2 h-24 rounded-lg object-cover" />}
+                </>
+              ) : (
+                <>
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={e => handleCampaignImageFileChange(e.target.files?.[0] || null)}
+                  />
+                  {campaignImagePreview && (
+                    <img src={campaignImagePreview} alt="preview" className="mt-2 h-24 rounded-lg object-cover" />
+                  )}
+                </>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
