@@ -1,26 +1,27 @@
 
 
-## Corrigir Edge Function `invite-member`
+## Corrigir Acesso de Gestores à Página de Comunidades
 
 ### Problema
-A edge function falha com `supabaseKey is required` porque usa `Deno.env.get("SUPABASE_PUBLISHABLE_KEY")` — esse nome não existe nos secrets. O nome correto é `SUPABASE_ANON_KEY`.
+A edge function `zapi-communities` verifica `roleData.role !== "admin"` (linha 52), bloqueando qualquer usuário que não seja admin. O usuário Miqueias tem role `gestor`, então recebe erro 403.
 
-### Correção
+### Solução
+Alterar a verificação de role na edge function para permitir acesso de `admin` e `gestor`.
 
-**`supabase/functions/invite-member/index.ts`** — linha 34:
+### Alteração
+
+**`supabase/functions/zapi-communities/index.ts`** — linha 52:
 
 Trocar:
 ```typescript
-const supabaseUser = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_PUBLISHABLE_KEY") || "");
+if (!roleData || roleData.role !== "admin") {
 ```
 
 Por:
 ```typescript
-const supabaseUser = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY") || "");
+if (!roleData || !["admin", "gestor"].includes(roleData.role)) {
 ```
 
-Depois, re-deploy da função e teste.
-
 ### Arquivo alterado
-- `supabase/functions/invite-member/index.ts`
+- `supabase/functions/zapi-communities/index.ts`
 
