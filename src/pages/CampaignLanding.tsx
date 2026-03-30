@@ -107,6 +107,43 @@ export default function CampaignLanding() {
 
   if (!campaign) return null;
 
+  if (allFull) {
+    return (
+      <div
+        className="min-h-screen flex items-center justify-center px-4 py-8"
+        style={{ backgroundColor: campaign.cor_fundo }}
+      >
+        <div className="w-full max-w-md space-y-6 text-center">
+          <div
+            className="w-24 h-24 rounded-2xl flex items-center justify-center mx-auto shadow-lg opacity-80"
+            style={{ backgroundColor: campaign.cor_primaria }}
+          >
+            <UserX className="h-12 w-12 text-white" />
+          </div>
+          <div className="space-y-2">
+            <h1 className="text-2xl font-bold" style={{ color: campaign.cor_primaria }}>
+              Comunidade Lotada
+            </h1>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Todos os grupos estão cheios no momento. Novas vagas podem abrir em breve!
+            </p>
+          </div>
+          <Button
+            onClick={() => { setAllFull(false); handleJoin(); }}
+            variant="outline"
+            className="w-full h-14 text-lg font-semibold rounded-xl shadow-md"
+            style={{ borderColor: campaign.cor_primaria, color: campaign.cor_primaria }}
+          >
+            Tentar novamente
+          </Button>
+          <p className="text-xs text-muted-foreground/60">
+            Tente novamente mais tarde — vagas podem abrir a qualquer momento
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       className="min-h-screen flex items-center justify-center px-4 py-8"
