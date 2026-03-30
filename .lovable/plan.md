@@ -1,25 +1,33 @@
 
 
-## Upload de imagem de capa na campanha
+## Adicionar suporte a Vídeo no disparo de mensagens (Comunidades)
 
-### Alteração
+### Alterações em `src/pages/Communities.tsx`
 
-**Arquivo: `src/pages/Campaigns.tsx`**
+1. **Tipo**: Adicionar `'video'` ao `BroadcastType` → `'text' | 'image' | 'audio' | 'video' | 'link'`
 
-1. **Novos states**:
-   - `campaignImageMode: 'url' | 'file'` — toggle entre colar URL ou upload
-   - `campaignImageFile: File | null` — arquivo selecionado
-   - `uploadingCampaignImage: boolean` — loading do upload
+2. **Grid dos tabs**: Mudar de `grid-cols-4` para `grid-cols-5`, adicionar tab "Vídeo" com ícone `Video` do lucide-react
 
-2. **Campo de imagem (linhas ~421-425)**: Substituir o input simples por um toggle (botões "Colar URL" / "Enviar Arquivo"):
-   - Se URL: input text como hoje
-   - Se arquivo: input file (`accept="image/*"`) com preview local
+3. **Novo `TabsContent value="video"`**: Mesmo padrão dos tabs Imagem/Áudio — toggle "Enviar Arquivo" / "Colar URL", com `accept="video/*"`, preview do nome do arquivo, e campo de legenda (caption)
 
-3. **`handleCreateOrUpdate` (linhas ~215-245)**: Antes de salvar, se `campaignImageFile` existir, fazer upload para bucket `chat-media`, obter URL pública, e usar como `imagem_url`.
+4. **`canSendBroadcast`**: Adicionar case `'video'` → aceitar `broadcastMediaUrl` ou `broadcastFile`
 
-4. **`resetForm` (linha ~147)**: Limpar `campaignImageFile` e resetar `campaignImageMode` para `'url'`.
+5. **`handleBroadcast`**: Incluir `'video'` na condição de upload de arquivo (linha 340: `broadcastType === 'image' || broadcastType === 'audio' || broadcastType === 'video'`)
 
-5. **`handleEditCampaign` (linha ~160)**: Setar `campaignImageMode` para `'url'` ao editar campanha existente.
+6. **`caption`**: O campo de legenda do vídeo envia como `caption` no body, igual à imagem — a edge function `zapi-community-broadcast` já suporta o campo `caption` implicitamente na estrutura
 
-Mesmo padrão de toggle já implementado nos tabs de Imagem/Áudio em Communities.tsx.
+### Alterações em `supabase/functions/zapi-community-broadcast/index.ts`
+
+Adicionar case `'video'` no switch:
+```typescript
+case "video":
+  endpoint = `${baseUrl}/send-video`;
+  payload = { phone, video: media_url, caption: caption || message || "" };
+  break;
+```
+
+### Resumo
+- 2 arquivos alterados: `Communities.tsx` e `zapi-community-broadcast/index.ts`
+- Padrão idêntico ao tab de Imagem (upload/URL + legenda)
+- Segue a documentação Z-API para `send-video`
 
