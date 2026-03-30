@@ -1,27 +1,30 @@
-import { Home, Kanban, MessageCircle, Users, CheckSquare, Workflow } from 'lucide-react';
+import { Home, Kanban, MessageCircle, Users, CheckSquare, Workflow, Users2, Megaphone } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useData } from '@/contexts/DataContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
-
-const baseTabs = [
-  { path: '/app', icon: Home, label: 'Início' },
-  { path: '/app/pipeline', icon: Kanban, label: 'Pipeline' },
-  { path: '/app/conversas', icon: MessageCircle, label: 'Conversas' },
-  { path: '/app/contatos', icon: Users, label: 'Contatos' },
-  { path: '/app/tarefas', icon: CheckSquare, label: 'Tarefas' },
-];
 
 export default function BottomNav() {
   const location = useLocation();
   const navigate = useNavigate();
   const { conversas, tarefas } = useData();
   const { usuario } = useAuth();
-  const { canViewFlows } = usePermissions();
+  const { canViewCRM, canViewCommunities, canViewFlows } = usePermissions();
 
-  const tabs = canViewFlows
-    ? [...baseTabs, { path: '/app/fluxos', icon: Workflow, label: 'Fluxos' }]
-    : baseTabs;
+  const tabs = [
+    { path: '/app', icon: Home, label: 'Início' },
+    ...(canViewCRM ? [
+      { path: '/app/pipeline', icon: Kanban, label: 'Pipeline' },
+      { path: '/app/conversas', icon: MessageCircle, label: 'Conversas' },
+      { path: '/app/contatos', icon: Users, label: 'Contatos' },
+      { path: '/app/tarefas', icon: CheckSquare, label: 'Tarefas' },
+    ] : []),
+    ...(canViewFlows ? [{ path: '/app/fluxos', icon: Workflow, label: 'Fluxos' }] : []),
+    ...(canViewCommunities ? [
+      { path: '/app/comunidades', icon: Users2, label: 'Comunidades' },
+      { path: '/app/campanhas', icon: Megaphone, label: 'Campanhas' },
+    ] : []),
+  ];
 
   const unread = conversas.filter(c => c.status === 'nao_lida' &&
     (usuario?.perfil === 'admin' || c.assigned_user_id === usuario?.id)).length;

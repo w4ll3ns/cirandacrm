@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { UserPlus, Shield, X, UserX, UserCheck } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useProfiles, Profile } from '@/hooks/useProfiles';
+import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import type { AppRole } from '@/types';
 
@@ -11,6 +12,11 @@ const ROLE_LABELS: Record<string, string> = {
   atendente: 'Atendente',
 };
 
+const MODULE_LABELS: Record<string, string> = {
+  crm: 'CRM',
+  comunidades: 'Comunidades',
+};
+
 export default function TeamManagement() {
   const { profiles, loading, refetch } = useProfiles();
   const [showInvite, setShowInvite] = useState(false);
@@ -18,8 +24,66 @@ export default function TeamManagement() {
   const [inviteEmail, setInviteEmail] = useState('');
   const [invitePassword, setInvitePassword] = useState('');
   const [inviteRole, setInviteRole] = useState<AppRole>('atendente');
+  const [inviteModules, setInviteModules] = useState<string[]>(['crm']);
   const [submitting, setSubmitting] = useState(false);
   const [editingRole, setEditingRole] = useState<string | null>(null);
+  const [userModules, setUserModules] = useState<Record<string, string[]>>({});
+  const [modulesLoaded, setModulesLoaded] = useState(false);
+
+  // Fetch modules for all users
+  const fetchModules = async () => {
+    const { data } = await supabase.from('user_modules').select('user_id, module');
+    if (data) {
+      const map: Record<string, string[]> = {};
+      data.forEach(d => {
+        if (!map[d.user_id]) map[d.user_id] = [];
+        map[d.user_id].push(d.module);
+      });
+      setUserModules(map);
+    }
+    setModulesLoaded(true);
+  };
+
+  // Load modules on first render
+  if (!modulesLoaded) fetchModules();
+
+  const toggleInviteModule = (mod: string) => {
+    setInviteModules(prev =>
+      prev.includes(mod) ? prev.filter(m => m !== mod) : [...prev, mod]
+    );
+  };
+
+  const handleToggleModule = async (userId: string, mod: string) => {
+    const current = userModules[userId] || [];
+    const has = current.includes(mod);
+
+    try {
+      if (has) {
+        const { error } = await supabase
+          .from('user_modules')
+          .delete()
+          .eq('user_id', userId)
+          .eq('module', mod);
+        if (error) throw error;
+        setUserModules(prev => ({
+          ...prev,
+          [userId]: (prev[userId] || []).filter(m => m !== mod),
+        }));
+      } else {
+        const { error } = await supabase
+          .from('user_modules')
+          .insert({ user_id: userId, module: mod });
+        if (error) throw error;
+        setUserModules(prev => ({
+          ...prev,
+          [userId]: [...(prev[userId] || []), mod],
+        }));
+      }
+      toast.success('Módulo atualizado');
+    } catch {
+      toast.error('Erro ao atualizar módulo');
+    }
+  };
 
   const handleInvite = async () => {
     if (!inviteName.trim() || !inviteEmail.trim() || !invitePassword.trim()) {
@@ -28,6 +92,10 @@ export default function TeamManagement() {
     }
     if (invitePassword.length < 6) {
       toast.error('A senha deve ter pelo menos 6 caracteres');
+      return;
+    }
+    if (inviteModules.length === 0) {
+      toast.error('Selecione pelo menos um módulo');
       return;
     }
 
@@ -39,6 +107,7 @@ export default function TeamManagement() {
           email: inviteEmail.trim(),
           password: invitePassword.trim(),
           role: inviteRole,
+          modules: inviteModules,
         },
       });
 
@@ -51,7 +120,9 @@ export default function TeamManagement() {
       setInviteEmail('');
       setInvitePassword('');
       setInviteRole('atendente');
+      setInviteModules(['crm']);
       refetch();
+      fetchModules();
     } catch (err: any) {
       console.error(err);
       toast.error(err.message || 'Erro ao convidar membro');
@@ -62,15 +133,13 @@ export default function TeamManagement() {
 
   const handleChangeRole = async (userId: string, newRole: AppRole) => {
     try {
-      // Delete existing role
       await supabase.from('user_roles').delete().eq('user_id', userId);
-      // Insert new role
       const { error } = await supabase.from('user_roles').insert({ user_id: userId, role: newRole });
       if (error) throw error;
       toast.success('Perfil atualizado');
       setEditingRole(null);
       refetch();
-    } catch (err: any) {
+    } catch {
       toast.error('Erro ao alterar perfil');
     }
   };
@@ -84,7 +153,7 @@ export default function TeamManagement() {
       if (error) throw error;
       toast.success(profile.active ? 'Membro desativado' : 'Membro reativado');
       refetch();
-    } catch (err: any) {
+    } catch {
       toast.error('Erro ao alterar status');
     }
   };
@@ -104,37 +173,59 @@ export default function TeamManagement() {
         </button>
       </div>
 
-      {profiles.map(u => (
-        <div key={u.id} className={`py-3 flex items-center gap-3 text-sm ${!u.active ? 'opacity-50' : ''}`}>
-          <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">
-            {u.name.charAt(0)}
+      {profiles.map(u => {
+        const isAdmin = u.role === 'admin';
+        const mods = userModules[u.id] || [];
+        return (
+          <div key={u.id} className={`py-3 space-y-2 ${!u.active ? 'opacity-50' : ''}`}>
+            <div className="flex items-center gap-3 text-sm">
+              <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">
+                {u.name.charAt(0)}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium truncate">{u.name}</p>
+                <p className="text-xs text-muted-foreground">{u.email}</p>
+              </div>
+              {editingRole === u.id ? (
+                <select
+                  value={u.role || 'atendente'}
+                  onChange={e => handleChangeRole(u.id, e.target.value as AppRole)}
+                  className="text-xs border border-border rounded-lg px-2 py-1 bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+                  autoFocus
+                  onBlur={() => setEditingRole(null)}
+                >
+                  <option value="admin">Administrador</option>
+                  <option value="gestor">Gestor</option>
+                  <option value="atendente">Atendente</option>
+                </select>
+              ) : (
+                <button onClick={() => setEditingRole(u.id)} className="text-[10px] bg-muted px-2 py-1 rounded-full font-medium text-muted-foreground hover:text-foreground transition-colors">
+                  {ROLE_LABELS[u.role || 'atendente'] || 'Atendente'}
+                </button>
+              )}
+              <button onClick={() => handleToggleActive(u)} className="p-1 rounded-lg hover:bg-muted transition-colors" title={u.active ? 'Desativar' : 'Reativar'}>
+                {u.active ? <UserX className="w-4 h-4 text-muted-foreground" /> : <UserCheck className="w-4 h-4 text-green-500" />}
+              </button>
+            </div>
+            {!isAdmin && (
+              <div className="flex items-center gap-4 pl-12">
+                {Object.entries(MODULE_LABELS).map(([mod, label]) => (
+                  <label key={mod} className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
+                    <Checkbox
+                      checked={mods.includes(mod)}
+                      onCheckedChange={() => handleToggleModule(u.id, mod)}
+                    />
+                    {label}
+                  </label>
+                ))}
+              </div>
+            )}
+            {isAdmin && (
+              <p className="text-[10px] text-muted-foreground pl-12 italic">Admins têm acesso a todos os módulos</p>
+            )}
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-medium truncate">{u.name}</p>
-            <p className="text-xs text-muted-foreground">{u.email}</p>
-          </div>
-          {editingRole === u.id ? (
-            <select
-              value={u.role || 'atendente'}
-              onChange={e => handleChangeRole(u.id, e.target.value as AppRole)}
-              className="text-xs border border-border rounded-lg px-2 py-1 bg-background focus:outline-none focus:ring-2 focus:ring-primary"
-              autoFocus
-              onBlur={() => setEditingRole(null)}
-            >
-              <option value="admin">Administrador</option>
-              <option value="gestor">Gestor</option>
-              <option value="atendente">Atendente</option>
-            </select>
-          ) : (
-            <button onClick={() => setEditingRole(u.id)} className="text-[10px] bg-muted px-2 py-1 rounded-full font-medium text-muted-foreground hover:text-foreground transition-colors">
-              {ROLE_LABELS[u.role || 'atendente'] || 'Atendente'}
-            </button>
-          )}
-          <button onClick={() => handleToggleActive(u)} className="p-1 rounded-lg hover:bg-muted transition-colors" title={u.active ? 'Desativar' : 'Reativar'}>
-            {u.active ? <UserX className="w-4 h-4 text-muted-foreground" /> : <UserCheck className="w-4 h-4 text-success" />}
-          </button>
-        </div>
-      ))}
+        );
+      })}
 
       {/* Invite Modal */}
       {showInvite && (
@@ -165,6 +256,20 @@ export default function TeamManagement() {
                   <option value="gestor">Gestor</option>
                   <option value="admin">Administrador</option>
                 </select>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground uppercase">Módulos</label>
+                <div className="flex items-center gap-4 mt-2">
+                  {Object.entries(MODULE_LABELS).map(([mod, label]) => (
+                    <label key={mod} className="flex items-center gap-1.5 text-sm cursor-pointer">
+                      <Checkbox
+                        checked={inviteModules.includes(mod)}
+                        onCheckedChange={() => toggleInviteModule(mod)}
+                      />
+                      {label}
+                    </label>
+                  ))}
+                </div>
               </div>
               <button onClick={handleInvite} disabled={submitting} className="w-full bg-primary text-primary-foreground rounded-xl py-3 text-sm font-semibold disabled:opacity-50 mt-2">
                 {submitting ? 'Adicionando...' : 'Adicionar à Equipe'}
