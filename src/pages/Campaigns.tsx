@@ -114,6 +114,25 @@ export default function Campaigns() {
         })
       );
       setCommunities(enriched);
+
+      // Fetch participant counts for all subgroups
+      setLoadingCounts(true);
+      const counts: Record<string, number> = {};
+      const allSubs = enriched.flatMap((c: Community) =>
+        (c.subGroups || []).filter(s => !s.isGroupAnnouncement).map(s => s.phone)
+      );
+      await Promise.all(
+        allSubs.map(async (phone: string) => {
+          try {
+            const meta = await callCommunities('group-metadata', { groupPhone: phone });
+            counts[phone] = meta?.participants?.length ?? 0;
+          } catch {
+            counts[phone] = 0;
+          }
+        })
+      );
+      setGroupParticipantCounts(counts);
+      setLoadingCounts(false);
     } catch (err) {
       toast.error('Erro ao carregar comunidades');
     }
