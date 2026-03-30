@@ -740,6 +740,28 @@ export default function Communities() {
                   </div>
                 </div>
               )}
+
+              {/* Sync Contacts Button */}
+              <div className="pt-2 border-t">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  disabled={syncingContacts === metadata.id}
+                  onClick={() => handleSyncContacts(metadata.id, metadata.name || metadata.communityName || '')}
+                >
+                  {syncingContacts === metadata.id ? (
+                    <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Sincronizando contatos...</>
+                  ) : (
+                    <><Download className="w-4 h-4 mr-2" /> Sincronizar Contatos</>
+                  )}
+                </Button>
+                {contactCountByCommunity[metadata.id] != null && (
+                  <p className="text-xs text-muted-foreground text-center mt-1">
+                    {contactCountByCommunity[metadata.id]} contatos registrados
+                  </p>
+                )}
+              </div>
             </div>
           )}
         </DialogContent>
