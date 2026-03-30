@@ -156,6 +156,23 @@ Deno.serve(async (req) => {
         break;
       }
 
+      case "group-metadata": {
+        if (!params.groupPhone) {
+          return new Response(JSON.stringify({ error: "groupPhone is required" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        zapiResponse = await fetch(`${baseUrl}/group-metadata/${params.groupPhone}`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            ...(clientToken ? { "Client-Token": clientToken } : {}),
+          },
+        });
+        break;
+      }
+
       case "deactivate": {
         zapiResponse = await fetch(
           `${baseUrl}/communities/${params.communityId}`,
