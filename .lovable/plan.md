@@ -1,32 +1,25 @@
 
 
-## Exibir badge de participantes no card da comunidade
+## Exibir quantidade atual de participantes nos subgrupos ao cadastrar campanha
 
 ### Problema
-O badge de participantes no card só aparece se `c.participants` existir, mas os dados retornados pela listagem de comunidades (`action: list`) não incluem participantes — apenas o `communities-metadata` retorna essa informação. Por isso o badge nunca aparece.
+No dialog de "Nova Campanha", os subgrupos são listados sem informação de quantos participantes já existem em cada grupo. O usuário precisa dessa informação para configurar os limites corretamente.
 
 ### Solução
-Ao carregar as comunidades automaticamente, buscar os metadados de cada comunidade em paralelo para obter a contagem de participantes, e armazenar num state `Record<string, number>`. Exibir o badge no card usando esse state.
 
-### Mudanças em `src/pages/Communities.tsx`
+**Arquivo: `src/pages/Campaigns.tsx`**
 
-1. **Novo state**: `communityParticipantCounts: Record<string, number>` para guardar total de participantes por comunidade ID.
+1. Adicionar state `groupParticipantCounts: Record<string, number>` para armazenar contagens por phone.
 
-2. **Após `fetchCommunities`**: Fazer chamadas paralelas de `metadata` para cada comunidade retornada, extrair `participants.length` e popular o state.
+2. Após o `fetchCommunities` carregar e enriquecer as comunidades, buscar `group-metadata` em paralelo para cada subgrupo de todas as comunidades. Popular o state com `phone -> participants.length`.
 
-3. **No card** (linhas ~405-412): Substituir o badge condicional `(c as any).participants?.length` por uma leitura do `communityParticipantCounts[c.id]`, exibindo o badge sempre que houver dado disponível:
+3. Na listagem de subgrupos no dialog (linha ~414), exibir a contagem atual ao lado do nome do grupo:
 
-```tsx
-<Badge variant="secondary" className="shrink-0">
-  {c.subGroups?.length || 0} grupo(s)
-</Badge>
-{communityParticipantCounts[c.id] != null && (
-  <Badge variant="outline" className="shrink-0 text-xs">
-    <Users2 className="w-3 h-3 mr-1" />
-    {communityParticipantCounts[c.id]} participantes
-  </Badge>
-)}
+```
+[x] @DEZENINHAS - #99    (1.245 atuais)    Máx: 2000
 ```
 
-4. **Loading indicator**: Enquanto os counts estiverem sendo carregados, mostrar um skeleton/spinner sutil no lugar do badge.
+Formato: badge discreto com `text-muted-foreground` mostrando `{count} atuais` entre o nome e o campo "Máx".
+
+4. Mostrar um indicador de loading (spinner pequeno) enquanto as contagens estão sendo carregadas.
 
