@@ -448,13 +448,28 @@ export default function Communities() {
   const fetchContacts = useCallback(async () => {
     setLoadingContacts(true);
     try {
-      const { data, error } = await supabase
-        .from('community_contacts')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(1000);
-      if (error) throw error;
-      setCommunityContacts(data || []);
+      let allData: any[] = [];
+      const PAGE_SIZE = 1000;
+      let from = 0;
+      let hasMore = true;
+
+      while (hasMore) {
+        const { data, error } = await supabase
+          .from('community_contacts')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .range(from, from + PAGE_SIZE - 1);
+        if (error) throw error;
+        if (data && data.length > 0) {
+          allData = allData.concat(data);
+          from += PAGE_SIZE;
+          if (data.length < PAGE_SIZE) hasMore = false;
+        } else {
+          hasMore = false;
+        }
+      }
+
+      setCommunityContacts(allData);
     } catch (err: any) {
       toast.error('Erro ao carregar contatos: ' + (err.message || ''));
     } finally {
