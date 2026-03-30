@@ -1,28 +1,32 @@
 
 
-## Paginação e Exportação de Contatos de Comunidades
+## Corrigir Nomes dos Contatos de Comunidades
 
-### 1. Paginação (200 por página)
+### Problema
+O endpoint Z-API `group-metadata/{groupPhone}` retorna participantes apenas com o campo `phone` — sem nenhum campo de nome. O código atual tenta ler `p.name || p.short || p.notify` mas nenhum desses campos existe na resposta, resultando em todos os nomes `null` no banco.
 
-Na aba "Contatos" de `Communities.tsx`:
-- Adicionar estado `contactsPage` (default 1)
-- Substituir o `filteredContacts.slice(0, 200)` por paginação real: `filteredContacts.slice((page-1)*200, page*200)`
-- Resetar página ao mudar filtro/busca
-- Adicionar controles de paginação abaixo da tabela (anterior/próximo + indicador "Página X de Y")
+### Solução
+No case `sync-participants` da edge function `zapi-communities`, após coletar todos os phones dos participantes, buscar os nomes usando o endpoint `/contacts` da Z-API (que retorna `name`, `short`, `notify`, `phone`) e cruzar os dados antes do upsert.
 
-### 2. Exportação XLSX e CSV
+### Alterações
 
-Adicionar dois botões de exportação ao lado do badge de contagem:
-- **CSV**: gerar string CSV client-side com `Blob` e trigger download
-- **XLSX**: usar biblioteca `xlsx` (SheetJS) para gerar arquivo Excel client-side
+**`supabase/functions/zapi-communities/index.ts`** — case `sync-participants`:
 
-Ambos exportam os `filteredContacts` (respeitando filtro/busca atual) com colunas: Telefone, Nome, Comunidade, Grupo, Data.
+1. Antes do loop de subgrupos, buscar todos os contatos da instância via `GET /contacts` (paginado) e criar um Map `phone → name` para lookup rápido
+2. No mapeamento de participantes, fazer lookup no Map de contatos para obter o nome: `contactsMap.get(p.phone) || null`
+3. A busca de contatos usa o mesmo padrão paginado já existente no case `list`
 
-### 3. Dependência
+### Fluxo técnico
 
-Instalar `xlsx` via npm para a exportação Excel.
+```text
+1. GET /contacts?page=1&pageSize=500  →  Map<phone, name>
+   (repetir até não ter mais páginas)
+2. Para cada subgrupo:
+   GET /group-metadata/{sg.phone}  →  lista de phones
+3. Cruzar phone com Map para obter nome
+4. Upsert no community_contacts com nome preenchido
+```
 
-### Arquivos alterados
-- `src/pages/Communities.tsx` — paginação + botões de export
-- `package.json` — adicionar `xlsx`
+### Arquivo alterado
+- `supabase/functions/zapi-communities/index.ts`
 
