@@ -514,6 +514,15 @@ export default function Campaigns() {
               </div>
             </div>
 
+            {/* Auto Create Community Toggle */}
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <div className="space-y-0.5">
+                <Label className="text-sm font-medium">Criação automática de comunidade</Label>
+                <p className="text-xs text-muted-foreground">Criar nova comunidade automaticamente quando todos os grupos estiverem lotados</p>
+              </div>
+              <Switch checked={formAutoCreate} onCheckedChange={setFormAutoCreate} />
+            </div>
+
             {/* Group Selection */}
             <div>
               <Label className="mb-2 block">Grupos / Subgrupos *</Label>

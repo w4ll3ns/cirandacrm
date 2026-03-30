@@ -374,6 +374,27 @@ Deno.serve(async (req) => {
         );
       }
 
+      case "community-settings": {
+        if (!params.communityId || !params.whoCanAddNewGroups) {
+          return new Response(JSON.stringify({ error: "communityId and whoCanAddNewGroups are required" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        zapiResponse = await fetch(`${baseUrl}/communities/settings`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(clientToken ? { "Client-Token": clientToken } : {}),
+          },
+          body: JSON.stringify({
+            communityId: params.communityId,
+            whoCanAddNewGroups: params.whoCanAddNewGroups,
+          }),
+        });
+        break;
+      }
+
       default:
         return new Response(JSON.stringify({ error: `Unknown action: ${action}` }), {
           status: 400,

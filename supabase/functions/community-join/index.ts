@@ -77,19 +77,17 @@ Deno.serve(async (req) => {
 
     const baseUrl = `https://api.z-api.io/instances/${instance.instance_id}/token/${instance.token}`;
     const clientToken = instance.client_token;
+    const zapiHeaders = {
+      "Content-Type": "application/json",
+      ...(clientToken ? { "Client-Token": clientToken } : {}),
+    };
 
     // Check each group for available spots
     for (const group of groups) {
       try {
         const metaRes = await fetch(
           `${baseUrl}/communities-metadata/${group.community_id}`,
-          {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-              ...(clientToken ? { "Client-Token": clientToken } : {}),
-            },
-          }
+          { method: "GET", headers: zapiHeaders }
         );
 
         if (!metaRes.ok) continue;
@@ -97,23 +95,15 @@ Deno.serve(async (req) => {
         const meta = await metaRes.json();
         const subGroups = meta.subGroups || [];
 
-        // Find the matching subgroup by phone
         const targetSub = subGroups.find(
           (sg: { phone: string }) => sg.phone === group.group_phone
         );
 
         if (!targetSub) continue;
 
-        // Get participant count for this subgroup
         const groupInfoRes = await fetch(
           `${baseUrl}/group-metadata/${targetSub.phone}`,
-          {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-              ...(clientToken ? { "Client-Token": clientToken } : {}),
-            },
-          }
+          { method: "GET", headers: zapiHeaders }
         );
 
         if (!groupInfoRes.ok) continue;
@@ -122,7 +112,6 @@ Deno.serve(async (req) => {
         const currentParticipants = groupInfo.participants?.length || 0;
 
         if (currentParticipants < group.max_participants) {
-          // Has space! Get invitation link
           const inviteLink = groupInfo.invitationLink || meta.invitationLink;
 
           if (inviteLink) {
@@ -142,8 +131,148 @@ Deno.serve(async (req) => {
           }
         }
       } catch {
-        // Skip this group and try next
         continue;
+      }
+    }
+
+    // All groups full — check auto_create_community flag
+    if (campaign.auto_create_community) {
+      try {
+        // Extract sequential number from last community name
+        const lastGroup = groups[groups.length - 1];
+        const lastCommunityName = lastGroup.community_name;
+        const seqMatch = lastCommunityName.match(/#(\d+)/);
+        const lastSeq = seqMatch ? parseInt(seqMatch[1], 10) : 1;
+        const nextSeq = lastSeq + 1;
+
+        // Build new community name preserving the base pattern
+        const baseName = lastCommunityName.replace(/#\d+/, "").trimEnd();
+        const newCommunityName = `${baseName}#${nextSeq}`;
+
+        console.log(`Auto-creating community: "${newCommunityName}" (seq ${nextSeq})`);
+
+        // 1. Create community via Z-API
+        const createRes = await fetch(`${baseUrl}/communities`, {
+          method: "POST",
+          headers: zapiHeaders,
+          body: JSON.stringify({ name: newCommunityName }),
+        });
+
+        if (!createRes.ok) {
+          const errBody = await createRes.text();
+          console.error("Failed to create community:", errBody);
+          throw new Error("Falha ao criar comunidade automaticamente");
+        }
+
+        const createData = await createRes.json();
+        const newCommunityId = createData.id || createData.communityId;
+        console.log(`Community created: ${newCommunityId}`, JSON.stringify(createData));
+
+        // 2. Apply community settings (admins only can add groups)
+        try {
+          const settingsRes = await fetch(`${baseUrl}/communities/settings`, {
+            method: "POST",
+            headers: zapiHeaders,
+            body: JSON.stringify({
+              communityId: newCommunityId,
+              whoCanAddNewGroups: "admins",
+            }),
+          });
+          const settingsData = await settingsRes.json();
+          console.log("Community settings applied:", JSON.stringify(settingsData));
+        } catch (settErr) {
+          console.error("Failed to apply community settings:", settErr);
+          // Non-critical, continue
+        }
+
+        // 3. Wait a moment and fetch metadata to get subgroup and invite link
+        await new Promise((r) => setTimeout(r, 2000));
+
+        const metaRes = await fetch(
+          `${baseUrl}/communities-metadata/${newCommunityId}`,
+          { method: "GET", headers: zapiHeaders }
+        );
+
+        if (!metaRes.ok) {
+          throw new Error("Falha ao buscar metadata da nova comunidade");
+        }
+
+        const metaData = await metaRes.json();
+        console.log("New community metadata:", JSON.stringify(metaData));
+
+        const subGroups = metaData.subGroups || [];
+        const announcementGroup = subGroups.find((sg: { isGroupAnnouncement?: boolean }) => sg.isGroupAnnouncement);
+        const targetSubGroup = announcementGroup || subGroups[0];
+
+        if (!targetSubGroup) {
+          throw new Error("Nenhum subgrupo encontrado na nova comunidade");
+        }
+
+        // 4. Insert new group into campaign_groups
+        const maxSort = Math.max(...groups.map((g: { sort_order: number }) => g.sort_order), 0);
+        const inheritedMax = groups[0].max_participants;
+
+        const { error: insertErr } = await supabase.from("campaign_groups").insert({
+          campaign_id: campaign.id,
+          community_id: newCommunityId,
+          community_name: newCommunityName,
+          group_phone: targetSubGroup.phone,
+          group_name: targetSubGroup.name || newCommunityName,
+          max_participants: inheritedMax,
+          sort_order: maxSort + 1,
+        });
+
+        if (insertErr) {
+          console.error("Failed to insert campaign_group:", insertErr);
+        }
+
+        // 5. Get invite link
+        const inviteLink = metaData.invitationLink || null;
+
+        if (inviteLink) {
+          return new Response(
+            JSON.stringify({
+              success: true,
+              invitationLink: inviteLink,
+              groupName: targetSubGroup.name || newCommunityName,
+              currentParticipants: 0,
+              maxParticipants: inheritedMax,
+              autoCreated: true,
+            }),
+            {
+              status: 200,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            }
+          );
+        }
+
+        // If no invite link yet, try group-metadata
+        const grpMetaRes = await fetch(
+          `${baseUrl}/group-metadata/${targetSubGroup.phone}`,
+          { method: "GET", headers: zapiHeaders }
+        );
+        if (grpMetaRes.ok) {
+          const grpMeta = await grpMetaRes.json();
+          if (grpMeta.invitationLink) {
+            return new Response(
+              JSON.stringify({
+                success: true,
+                invitationLink: grpMeta.invitationLink,
+                groupName: targetSubGroup.name || newCommunityName,
+                currentParticipants: 0,
+                maxParticipants: inheritedMax,
+                autoCreated: true,
+              }),
+              {
+                status: 200,
+                headers: { ...corsHeaders, "Content-Type": "application/json" },
+              }
+            );
+          }
+        }
+      } catch (autoErr) {
+        console.error("Auto-create community error:", autoErr);
+        // Fall through to 409
       }
     }
 
