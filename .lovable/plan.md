@@ -1,25 +1,32 @@
 
 
-## Exibir quantidade atual de participantes nos subgrupos ao cadastrar campanha
+## Fix: contagem de participantes no modal de campanha
 
 ### Problema
-No dialog de "Nova Campanha", os subgrupos são listados sem informação de quantos participantes já existem em cada grupo. O usuário precisa dessa informação para configurar os limites corretamente.
+A mesma causa raiz do bug anterior em Communities.tsx: `c.subGroups` pode ser um objeto (truthy) retornado pela API, e `(c.subGroups || [])` nao converte para array. O `flatMap` com `.filter()` falha silenciosamente, resultando em `allSubs` vazio -- nenhuma contagem e buscada.
 
-### Solução
+### Correcao
 
 **Arquivo: `src/pages/Campaigns.tsx`**
 
-1. Adicionar state `groupParticipantCounts: Record<string, number>` para armazenar contagens por phone.
-
-2. Após o `fetchCommunities` carregar e enriquecer as comunidades, buscar `group-metadata` em paralelo para cada subgrupo de todas as comunidades. Popular o state com `phone -> participants.length`.
-
-3. Na listagem de subgrupos no dialog (linha ~414), exibir a contagem atual ao lado do nome do grupo:
-
+1. **Linha ~121-122** -- No `fetchCommunities`, trocar:
+```ts
+const allSubs = enriched.flatMap((c: Community) =>
+  (c.subGroups || []).filter(...)
 ```
-[x] @DEZENINHAS - #99    (1.245 atuais)    Máx: 2000
+por:
+```ts
+const allSubs = enriched.flatMap((c: Community) => {
+  const sgs = Array.isArray(c.subGroups) ? c.subGroups : [];
+  return sgs.filter(s => !s.isGroupAnnouncement).map(s => s.phone);
+});
 ```
 
-Formato: badge discreto com `text-muted-foreground` mostrando `{count} atuais` entre o nome e o campo "Máx".
+2. **Linha ~110** -- Na construcao do `enriched`, garantir que `subGroups` seja array:
+```ts
+const subs = Array.isArray(meta.subGroups) ? meta.subGroups : [];
+return { ...c, ...meta, subGroups: subs };
+```
 
-4. Mostrar um indicador de loading (spinner pequeno) enquanto as contagens estão sendo carregadas.
+3. **Na renderizacao dos subgrupos no dialog** (~linha 420-430), aplicar o mesmo `Array.isArray` guard ao iterar `comm.subGroups`.
 
