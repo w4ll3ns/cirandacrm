@@ -2,7 +2,7 @@ import { useEffect, useRef, useCallback } from 'react';
 import { toast } from 'sonner';
 import { useData } from '@/contexts/DataContext';
 
-const ORIGINAL_TITLE = 'Ciranda CRM';
+const ORIGINAL_TITLE = 'Dezenas CRM';
 let unreadCount = 0;
 
 function playNotificationSound() {
