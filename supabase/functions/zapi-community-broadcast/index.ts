@@ -115,6 +115,10 @@ Deno.serve(async (req) => {
             endpoint = `${baseUrl}/send-audio`;
             payload = { phone, audio: media_url };
             break;
+          case "video":
+            endpoint = `${baseUrl}/send-video`;
+            payload = { phone, video: media_url, caption: caption || message || "" };
+            break;
           case "link":
             endpoint = `${baseUrl}/send-link`;
             payload = {

@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users2, Plus, RefreshCw, Trash2, UserPlus, UserMinus, Link2, RotateCcw, Eye, Loader2, Copy, Check, MessageSquare, Send, Image, AudioLines, LinkIcon, Upload, Search, X } from 'lucide-react';
+import { Users2, Plus, RefreshCw, Trash2, UserPlus, UserMinus, Link2, RotateCcw, Eye, Loader2, Copy, Check, MessageSquare, Send, Image, AudioLines, LinkIcon, Upload, Search, X, Video } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -35,7 +35,7 @@ type CommunityMetadata = {
   participants?: { phone: string; name?: string; isAdmin?: boolean }[];
 };
 
-type BroadcastType = 'text' | 'image' | 'audio' | 'link';
+type BroadcastType = 'text' | 'image' | 'audio' | 'video' | 'link';
 type BroadcastResult = { groupPhone: string; status: string; error?: string };
 
 async function callCommunities(action: string, params: Record<string, unknown> = {}) {
@@ -315,6 +315,7 @@ export default function Communities() {
       case 'text': return !!broadcastMessage.trim();
       case 'image': return !!(broadcastMediaUrl.trim() || broadcastFile);
       case 'audio': return !!(broadcastMediaUrl.trim() || broadcastFile);
+      case 'video': return !!(broadcastMediaUrl.trim() || broadcastFile);
       case 'link': return !!broadcastLinkUrl.trim();
     }
   };
@@ -337,7 +338,7 @@ export default function Communities() {
       let mediaUrl = broadcastMediaUrl || undefined;
 
       // Upload file if selected
-      if (broadcastFile && (broadcastType === 'image' || broadcastType === 'audio')) {
+      if (broadcastFile && (broadcastType === 'image' || broadcastType === 'audio' || broadcastType === 'video')) {
         setUploadingBroadcastFile(true);
         try {
           mediaUrl = await uploadFileToStorage(broadcastFile);
@@ -796,10 +797,11 @@ export default function Communities() {
             <div className="space-y-5">
               {/* Message type tabs */}
               <Tabs value={broadcastType} onValueChange={(v) => setBroadcastType(v as BroadcastType)}>
-                <TabsList className="grid grid-cols-4 w-full">
+                <TabsList className="grid grid-cols-5 w-full">
                   <TabsTrigger value="text" className="text-xs gap-1"><MessageSquare className="w-3.5 h-3.5" /> Texto</TabsTrigger>
                   <TabsTrigger value="image" className="text-xs gap-1"><Image className="w-3.5 h-3.5" /> Imagem</TabsTrigger>
                   <TabsTrigger value="audio" className="text-xs gap-1"><AudioLines className="w-3.5 h-3.5" /> Áudio</TabsTrigger>
+                  <TabsTrigger value="video" className="text-xs gap-1"><Video className="w-3.5 h-3.5" /> Vídeo</TabsTrigger>
                   <TabsTrigger value="link" className="text-xs gap-1"><LinkIcon className="w-3.5 h-3.5" /> Link</TabsTrigger>
                 </TabsList>
 
@@ -875,6 +877,39 @@ export default function Communities() {
                       <Input value={broadcastMediaUrl} onChange={e => setBroadcastMediaUrl(e.target.value)} placeholder="https://exemplo.com/audio.mp3" />
                     </div>
                   )}
+                </TabsContent>
+
+                <TabsContent value="video" className="space-y-3 mt-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Button variant={mediaInputMode === 'file' ? 'default' : 'outline'} size="sm" className="h-7 text-xs" onClick={() => { setMediaInputMode('file'); setBroadcastMediaUrl(''); }}>
+                      <Upload className="w-3 h-3 mr-1" /> Enviar Arquivo
+                    </Button>
+                    <Button variant={mediaInputMode === 'url' ? 'default' : 'outline'} size="sm" className="h-7 text-xs" onClick={() => { setMediaInputMode('url'); clearFile(); }}>
+                      <LinkIcon className="w-3 h-3 mr-1" /> Colar URL
+                    </Button>
+                  </div>
+                  {mediaInputMode === 'file' ? (
+                    <div>
+                      <Label>Arquivo de Vídeo *</Label>
+                      <input ref={fileInputRef} type="file" accept="video/*" onChange={handleFileSelect} className="block w-full text-sm text-muted-foreground file:mr-2 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 cursor-pointer mt-1" />
+                      {broadcastFile && (
+                        <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                          <Video className="w-4 h-4" />
+                          <span>{broadcastFile.name}</span>
+                          <Button variant="ghost" size="icon" className="h-5 w-5" onClick={clearFile}><X className="w-3 h-3" /></Button>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div>
+                      <Label>URL do Vídeo *</Label>
+                      <Input value={broadcastMediaUrl} onChange={e => setBroadcastMediaUrl(e.target.value)} placeholder="https://exemplo.com/video.mp4" />
+                    </div>
+                  )}
+                  <div>
+                    <Label>Legenda</Label>
+                    <Textarea value={broadcastCaption || broadcastMessage} onChange={e => { setBroadcastCaption(e.target.value); setBroadcastMessage(e.target.value); }} placeholder="Legenda do vídeo (opcional)" rows={3} />
+                  </div>
                 </TabsContent>
 
                 <TabsContent value="link" className="space-y-3 mt-3">
