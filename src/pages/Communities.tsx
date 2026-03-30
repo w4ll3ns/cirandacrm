@@ -666,14 +666,19 @@ export default function Communities() {
           )}
 
           <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
-            {communities.map((c) => (
-              <Card key={c.id} className="group">
+            {communities.map((c) => {
+              const isDisabled = disabledIds.has(c.id);
+              return (
+              <Card key={c.id} className={`group ${isDisabled ? 'opacity-50' : ''}`}>
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
                       <CardTitle className="text-base truncate">{c.name || c.communityName || 'Sem nome'}</CardTitle>
                       <CardDescription className="text-xs mt-1 font-mono truncate">{c.id}</CardDescription>
                     </div>
+                    {isDisabled && (
+                      <Badge variant="destructive" className="shrink-0">Desativada</Badge>
+                    )}
                     <Badge variant="secondary" className="shrink-0">
                       {c.subGroups?.length || 0} grupo(s)
                     </Badge>
