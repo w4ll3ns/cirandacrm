@@ -1,19 +1,20 @@
 
 
-## Melhorar Captura de Nomes dos Contatos de Comunidades
+## Corrigir Limite de 1000 Contatos de Comunidades
 
-O código atual já salva `p.name` dos participantes retornados pela Z-API, mas a API do grupo-metadata pode retornar o nome em campos diferentes: `name` (nome salvo nos contatos), `short` (nome abreviado), ou `notify` (pushname do WhatsApp). Precisamos capturar todas essas variantes.
+### Problema
+Há um `.limit(1000)` explícito na query `fetchContacts` (linha 455 de `Communities.tsx`), e o Supabase também tem um limite padrão de 1000 linhas. Comunidades com mais de 1000 participantes ficam truncadas.
 
-### Alteração na Edge Function `zapi-communities`
+### Solução
 
-No case `sync-participants`, ao mapear participantes, usar fallback entre os campos disponíveis:
+**`src/pages/Communities.tsx`** — Remover o `.limit(1000)` e implementar paginação ou carregamento completo:
 
-```typescript
-name: p.name || p.short || p.notify || null
-```
+1. **Remover `.limit(1000)`** da query em `fetchContacts`
+2. **Implementar busca paginada** para carregar todos os registros: fazer fetch em lotes de 1000 usando `.range(from, to)` até não haver mais resultados, concatenando os dados
+3. Manter a filtragem/busca client-side existente sobre o conjunto completo
 
-Isso garante que, mesmo que `name` esteja vazio, usaremos `short` ou `notify` como alternativa.
+A edge function `zapi-communities` (sync-participants) não tem limite — ela já faz upsert de todos os participantes de todos os subgrupos. O problema é apenas na leitura/exibição.
 
 ### Arquivo alterado
-- `supabase/functions/zapi-communities/index.ts` — ajustar mapeamento do nome do participante no `sync-participants`
+- `src/pages/Communities.tsx` — ajustar `fetchContacts` para buscar todos os registros sem limite
 
