@@ -1,27 +1,36 @@
 
 
-## Corrigir Acesso de Gestores à Página de Comunidades
+## Rebrand: Hora de Aprender → Dezenas CRM
 
-### Problema
-A edge function `zapi-communities` verifica `roleData.role !== "admin"` (linha 52), bloqueando qualquer usuário que não seja admin. O usuário Miqueias tem role `gestor`, então recebe erro 403.
+### Resumo
+Substituir toda a identidade visual do sistema (logo, textos, favicon) de "Centro Educacional Hora de Aprender / CRM Escolar" para "Dezenas CRM" usando a imagem enviada como nova logo.
 
-### Solução
-Alterar a verificação de role na edge function para permitir acesso de `admin` e `gestor`.
+### Alterações
 
-### Alteração
+1. **Copiar nova logo** — salvar a imagem enviada como `public/logo.png` (substituindo a atual) e como `public/favicon.ico` (ou gerar um favicon a partir dela)
 
-**`supabase/functions/zapi-communities/index.ts`** — linha 52:
+2. **`index.html`** — Atualizar title, description e meta tags:
+   - Title: "Dezenas CRM"
+   - Description: "Dezenas CRM - Realizando Sonhos!"
 
-Trocar:
-```typescript
-if (!roleData || roleData.role !== "admin") {
-```
+3. **`src/components/AppSidebar.tsx`** (linha 65-69):
+   - alt: "Dezenas CRM"
+   - Texto: "Dezenas CRM" em vez de "Hora de Aprender"
+   - Subtítulo: "Realizando Sonhos!" em vez de "CRM Escolar"
 
-Por:
-```typescript
-if (!roleData || !["admin", "gestor"].includes(roleData.role)) {
-```
+4. **`src/components/Layout.tsx`** (linha 20-22):
+   - alt e título: "Dezenas CRM"
 
-### Arquivo alterado
-- `supabase/functions/zapi-communities/index.ts`
+5. **`src/pages/Login.tsx`** (linhas 66-68, 100-102):
+   - Desktop: alt "Dezenas CRM", título "Dezenas CRM", subtexto "Realizando Sonhos!"
+   - Mobile: mesmas alterações
+
+6. **Atualizar memory de branding** para refletir a nova identidade "Dezenas CRM"
+
+### Arquivos alterados
+- `public/logo.png` (substituído pela nova imagem)
+- `index.html`
+- `src/components/AppSidebar.tsx`
+- `src/components/Layout.tsx`
+- `src/pages/Login.tsx`
 
