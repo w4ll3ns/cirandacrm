@@ -773,7 +773,7 @@ export default function Communities() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredContacts.slice(0, 200).map((contact) => (
+                      {paginatedContacts.map((contact) => (
                         <TableRow key={contact.id}>
                           <TableCell className="font-mono text-xs">{contact.phone}</TableCell>
                           <TableCell className="text-sm">{contact.name || '—'}</TableCell>
@@ -786,11 +786,27 @@ export default function Communities() {
                       ))}
                     </TableBody>
                   </Table>
-                  {filteredContacts.length > 200 && (
-                    <p className="text-xs text-muted-foreground text-center py-2">
-                      Mostrando 200 de {filteredContacts.length} contatos
+                </div>
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between px-4 py-3 border-t">
+                    <p className="text-xs text-muted-foreground">
+                      Mostrando {((contactsPage - 1) * CONTACTS_PER_PAGE) + 1}–{Math.min(contactsPage * CONTACTS_PER_PAGE, filteredContacts.length)} de {filteredContacts.length}
                     </p>
-                  )}
+                    <div className="flex items-center gap-2">
+                      <Button variant="outline" size="sm" disabled={contactsPage <= 1} onClick={() => setContactsPage(p => p - 1)}>
+                        <ChevronLeft className="w-4 h-4 mr-1" />
+                        Anterior
+                      </Button>
+                      <span className="text-sm text-muted-foreground">
+                        Página {contactsPage} de {totalPages}
+                      </span>
+                      <Button variant="outline" size="sm" disabled={contactsPage >= totalPages} onClick={() => setContactsPage(p => p + 1)}>
+                        Próximo
+                        <ChevronRight className="w-4 h-4 ml-1" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
                 </div>
               </CardContent>
             </Card>
