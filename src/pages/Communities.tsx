@@ -130,10 +130,11 @@ export default function Communities() {
   const [contactsPage, setContactsPage] = useState(1);
   const CONTACTS_PER_PAGE = 200;
 
-  // All available groups from loaded communities
+  // All available groups from loaded communities (exclude disabled)
   const allGroups = useMemo(() => {
     const groups: { name: string; phone: string; isGroupAnnouncement: boolean; communityName: string }[] = [];
     communities.forEach(c => {
+      if (disabledIds.has(c.id)) return;
       const cName = c.name || c.communityName || 'Sem nome';
       const sgs = Array.isArray(c.subGroups) ? c.subGroups : [];
       sgs.forEach(sg => {
@@ -141,7 +142,7 @@ export default function Communities() {
       });
     });
     return groups;
-  }, [communities]);
+  }, [communities, disabledIds]);
 
   const fetchCommunities = useCallback(async () => {
     setLoading(true);
