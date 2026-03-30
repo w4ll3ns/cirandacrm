@@ -66,6 +66,8 @@ export default function Communities() {
   // Metadata dialog
   const [showMeta, setShowMeta] = useState(false);
   const [metadata, setMetadata] = useState<CommunityMetadata | null>(null);
+  const [subGroupCounts, setSubGroupCounts] = useState<Record<string, number>>({});
+  const [loadingCounts, setLoadingCounts] = useState(false);
 
   // Add participant dialog
   const [showAddPart, setShowAddPart] = useState(false);
