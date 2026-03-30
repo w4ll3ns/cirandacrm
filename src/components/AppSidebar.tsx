@@ -10,12 +10,20 @@ import {
   SidebarSeparator, useSidebar,
 } from '@/components/ui/sidebar';
 
-const navItems = [
-  { path: '/app', icon: Home, label: 'Início', end: true },
+const crmItems = [
   { path: '/app/pipeline', icon: Kanban, label: 'Pipeline' },
   { path: '/app/conversas', icon: MessageCircle, label: 'Conversas' },
   { path: '/app/contatos', icon: Users, label: 'Contatos' },
   { path: '/app/tarefas', icon: CheckSquare, label: 'Tarefas' },
+];
+
+const flowItems = [
+  { path: '/app/fluxos', icon: Workflow, label: 'Fluxos' },
+];
+
+const communityItems = [
+  { path: '/app/comunidades', icon: Users2, label: 'Comunidades' },
+  { path: '/app/campanhas', icon: Megaphone, label: 'Campanhas' },
 ];
 
 export default function AppSidebar() {
@@ -23,7 +31,7 @@ export default function AppSidebar() {
   const collapsed = state === 'collapsed';
   const { usuario, logout } = useAuth();
   const { conversas = [], tarefas = [] } = useData();
-  const { canManageFlows } = usePermissions();
+  const { canViewCRM, canViewCommunities, canViewFlows } = usePermissions();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -31,6 +39,13 @@ export default function AppSidebar() {
     (usuario?.perfil === 'admin' || c.assigned_user_id === usuario?.id)).length;
   const overdue = tarefas.filter(t => t.status === 'pendente' && t.due_date && new Date(t.due_date) < new Date() &&
     (usuario?.perfil === 'admin' || t.responsavel_interno_id === usuario?.id)).length;
+
+  const navItems: Array<{ path: string; icon: any; label: string; end?: boolean }> = [
+    { path: '/app', icon: Home, label: 'Início', end: true },
+    ...(canViewCRM ? crmItems : []),
+    ...(canViewFlows ? flowItems : []),
+    ...(canViewCommunities ? communityItems : []),
+  ];
 
   const getBadge = (label: string) => {
     if (label === 'Conversas' && unread > 0) return unread;
@@ -64,7 +79,7 @@ export default function AppSidebar() {
           <SidebarGroupLabel>Menu</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {[...navItems, ...(canManageFlows ? [{ path: '/app/fluxos', icon: Workflow, label: 'Fluxos' }, { path: '/app/comunidades', icon: Users2, label: 'Comunidades' }, { path: '/app/campanhas', icon: Megaphone, label: 'Campanhas' }] : [])].map(item => {
+              {navItems.map(item => {
                 const badge = getBadge(item.label);
                 return (
                   <SidebarMenuItem key={item.path}>

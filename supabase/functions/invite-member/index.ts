@@ -58,7 +58,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { name, email, password, role } = await req.json();
+    const { name, email, password, role, modules } = await req.json();
 
     if (!name || !email || !password) {
       return new Response(JSON.stringify({ error: "Nome, email e senha são obrigatórios" }), {
@@ -97,6 +97,21 @@ Deno.serve(async (req) => {
       user_id: newUser.user.id,
       role: assignRole,
     });
+
+    // Assign modules
+    const validModules = ["crm", "comunidades"];
+    const assignModules = Array.isArray(modules)
+      ? modules.filter((m: string) => validModules.includes(m))
+      : ["crm"];
+
+    if (assignModules.length > 0) {
+      await supabaseAdmin.from("user_modules").insert(
+        assignModules.map((mod: string) => ({
+          user_id: newUser.user.id,
+          module: mod,
+        }))
+      );
+    }
 
     return new Response(JSON.stringify({ ok: true, user_id: newUser.user.id }), {
       status: 200,
