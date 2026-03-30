@@ -40,7 +40,7 @@ export default function AppSidebar() {
   const overdue = tarefas.filter(t => t.status === 'pendente' && t.due_date && new Date(t.due_date) < new Date() &&
     (usuario?.perfil === 'admin' || t.responsavel_interno_id === usuario?.id)).length;
 
-  const navItems = [
+  const navItems: Array<{ path: string; icon: any; label: string; end?: boolean }> = [
     { path: '/app', icon: Home, label: 'Início', end: true },
     ...(canViewCRM ? crmItems : []),
     ...(canViewFlows ? flowItems : []),
