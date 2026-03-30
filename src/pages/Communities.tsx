@@ -66,6 +66,8 @@ export default function Communities() {
   // Metadata dialog
   const [showMeta, setShowMeta] = useState(false);
   const [metadata, setMetadata] = useState<CommunityMetadata | null>(null);
+  const [subGroupCounts, setSubGroupCounts] = useState<Record<string, number>>({});
+  const [loadingCounts, setLoadingCounts] = useState(false);
 
   // Add participant dialog
   const [showAddPart, setShowAddPart] = useState(false);
@@ -157,10 +159,29 @@ export default function Communities() {
 
   const handleViewMeta = async (communityId: string) => {
     setLoadingAction(`meta-${communityId}`);
+    setSubGroupCounts({});
     try {
       const data = await callCommunities('metadata', { communityId });
       setMetadata(data);
       setShowMeta(true);
+
+      // Fetch participant counts for each subgroup in parallel
+      if (data?.subGroups?.length) {
+        setLoadingCounts(true);
+        const counts: Record<string, number> = {};
+        await Promise.all(
+          data.subGroups.map(async (sg: { phone: string }) => {
+            try {
+              const groupData = await callCommunities('group-metadata', { groupPhone: sg.phone });
+              counts[sg.phone] = groupData?.participants?.length || 0;
+            } catch {
+              counts[sg.phone] = -1; // error indicator
+            }
+          })
+        );
+        setSubGroupCounts(counts);
+        setLoadingCounts(false);
+      }
     } catch (err: any) {
       toast.error(err.message || 'Erro ao buscar metadados');
     } finally {
@@ -384,6 +405,11 @@ export default function Communities() {
                 <Badge variant="secondary" className="shrink-0">
                   {c.subGroups?.length || 0} grupo(s)
                 </Badge>
+                {(c as any).participants?.length > 0 && (
+                  <Badge variant="outline" className="shrink-0 text-xs">
+                    {(c as any).participants.length} participantes
+                  </Badge>
+                )}
               </div>
             </CardHeader>
             <CardContent className="pt-0">
@@ -509,6 +535,13 @@ export default function Communities() {
                           <span className={`w-2 h-2 rounded-full shrink-0 ${sg.isGroupAnnouncement ? 'bg-primary' : 'bg-muted-foreground/40'}`} />
                           <span className="truncate flex-1 font-medium">{sg.name}</span>
                           {sg.isGroupAnnouncement && <Badge variant="outline" className="text-[9px] py-0 px-1 shrink-0">Anúncios</Badge>}
+                          {loadingCounts ? (
+                            <Loader2 className="w-3 h-3 animate-spin shrink-0 text-muted-foreground" />
+                          ) : subGroupCounts[sg.phone] !== undefined && subGroupCounts[sg.phone] >= 0 ? (
+                            <Badge variant="secondary" className="text-[9px] py-0 px-1.5 shrink-0">
+                              {subGroupCounts[sg.phone]} participantes
+                            </Badge>
+                          ) : null}
                           <Button
                             variant="ghost"
                             size="sm"
