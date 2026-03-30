@@ -132,6 +132,18 @@ export default function Communities() {
         })
       );
       setCommunities(enriched);
+
+      // Fetch participant counts from metadata (participants array)
+      setLoadingParticipantCounts(true);
+      const counts: Record<string, number> = {};
+      enriched.forEach((c: any) => {
+        if (c.participants?.length != null) {
+          counts[c.id] = c.participants.length;
+        }
+      });
+      setCommunityParticipantCounts(counts);
+      setLoadingParticipantCounts(false);
+
       toast.success('Comunidades carregadas');
     } catch (err: any) {
       toast.error(err.message || 'Erro ao listar comunidades');
