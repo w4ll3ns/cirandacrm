@@ -113,7 +113,21 @@ export default function Communities() {
     setLoading(true);
     try {
       const data = await callCommunities('list', { page: 1, pageSize: 50 });
-      setCommunities(Array.isArray(data) ? data : data?.communities || data?.data || []);
+      const list: Community[] = Array.isArray(data) ? data : data?.communities || data?.data || [];
+      setCommunities(list);
+
+      // Enrich each community with metadata (subGroups)
+      const enriched = await Promise.all(
+        list.map(async (c) => {
+          try {
+            const meta = await callCommunities('metadata', { communityId: c.id });
+            return { ...c, ...meta, subGroups: meta.subGroups || [] };
+          } catch {
+            return c;
+          }
+        })
+      );
+      setCommunities(enriched);
       toast.success('Comunidades carregadas');
     } catch (err: any) {
       toast.error(err.message || 'Erro ao listar comunidades');
