@@ -17,6 +17,7 @@ import Settings from "@/pages/Settings";
 import OpportunityDetail from "@/pages/OpportunityDetail";
 import FlowList from "@/pages/FlowList";
 import FlowBuilder from "@/pages/FlowBuilder";
+import Communities from "@/pages/Communities";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
