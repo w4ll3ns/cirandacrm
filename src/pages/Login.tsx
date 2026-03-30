@@ -63,10 +63,10 @@ export default function Login() {
     return (
       <div className="min-h-screen flex">
         <div className="hidden md:flex flex-1 bg-primary flex-col items-center justify-center p-12">
-          <img src="/logo.png" alt="Hora de Aprender" className="w-[120px] h-[120px] object-contain mb-6 drop-shadow-xl" />
-          <h1 className="text-3xl font-bold text-primary-foreground mb-2 text-center">Centro Educacional Hora de Aprender</h1>
+          <img src="/logo.png" alt="Dezenas CRM" className="w-[120px] h-[120px] object-contain mb-6 drop-shadow-xl" />
+          <h1 className="text-3xl font-bold text-primary-foreground mb-2 text-center">Dezenas CRM</h1>
           <p className="text-primary-foreground/70 text-center max-w-xs">
-            CRM Escolar para gerenciar matrículas, leads e comunicação com famílias.
+            Realizando Sonhos!
           </p>
           <div className="mt-12 grid grid-cols-3 gap-6 text-center">
             {[
@@ -97,9 +97,9 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-primary flex flex-col items-center justify-center p-6">
       <div className="mb-10 text-center">
-        <img src="/logo.png" alt="Hora de Aprender" className="w-24 h-24 object-contain mx-auto mb-4 drop-shadow-lg" />
-        <h1 className="text-2xl font-bold text-primary-foreground">Hora de Aprender</h1>
-        <p className="text-primary-foreground/70 text-sm mt-1">CRM Escolar</p>
+        <img src="/logo.png" alt="Dezenas CRM" className="w-24 h-24 object-contain mx-auto mb-4 drop-shadow-lg" />
+        <h1 className="text-2xl font-bold text-primary-foreground">Dezenas CRM</h1>
+        <p className="text-primary-foreground/70 text-sm mt-1">Realizando Sonhos!</p>
       </div>
       {loginForm}
       <p className="text-primary-foreground/40 text-xs mt-8">Desenvolvido por WS Soluções Digitais</p>
