@@ -530,6 +530,13 @@ export default function Communities() {
                           <span className={`w-2 h-2 rounded-full shrink-0 ${sg.isGroupAnnouncement ? 'bg-primary' : 'bg-muted-foreground/40'}`} />
                           <span className="truncate flex-1 font-medium">{sg.name}</span>
                           {sg.isGroupAnnouncement && <Badge variant="outline" className="text-[9px] py-0 px-1 shrink-0">Anúncios</Badge>}
+                          {loadingCounts ? (
+                            <Loader2 className="w-3 h-3 animate-spin shrink-0 text-muted-foreground" />
+                          ) : subGroupCounts[sg.phone] !== undefined && subGroupCounts[sg.phone] >= 0 ? (
+                            <Badge variant="secondary" className="text-[9px] py-0 px-1.5 shrink-0">
+                              {subGroupCounts[sg.phone]} participantes
+                            </Badge>
+                          ) : null}
                           <Button
                             variant="ghost"
                             size="sm"
