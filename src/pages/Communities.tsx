@@ -44,6 +44,8 @@ async function callCommunities(action: string, params: Record<string, unknown> =
 }
 
 export default function Communities() {
+  const navigate = useNavigate();
+  const { conversas = [] } = useData();
   const isMobile = useIsMobile();
   const [communities, setCommunities] = useState<Community[]>([]);
   const [loading, setLoading] = useState(false);
