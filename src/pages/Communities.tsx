@@ -111,6 +111,15 @@ export default function Communities() {
   const [fetchingLinkPreview, setFetchingLinkPreview] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Disabled communities state
+  const [disabledIds, setDisabledIds] = useState<Set<string>>(new Set());
+
+  // Delete confirmation dialog
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState<string>('');
+  const [deleteTargetName, setDeleteTargetName] = useState<string>('');
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+
   // Contacts state
   const [communityContacts, setCommunityContacts] = useState<any[]>([]);
   const [loadingContacts, setLoadingContacts] = useState(false);
