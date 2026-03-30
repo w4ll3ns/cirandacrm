@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users2, Plus, RefreshCw, Trash2, UserPlus, UserMinus, Link2, RotateCcw, Eye, Loader2, Copy, Check, MessageSquare, Send, Image, AudioLines, LinkIcon, Upload, Search, X, Video, Download, Phone, FileSpreadsheet, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Users2, Plus, RefreshCw, Trash2, UserPlus, UserMinus, Link2, RotateCcw, Eye, Loader2, Copy, Check, MessageSquare, Send, Image, AudioLines, LinkIcon, Upload, Search, X, Video, Download, Phone, FileSpreadsheet, FileText, ChevronLeft, ChevronRight, Ban, Power } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -111,6 +111,15 @@ export default function Communities() {
   const [fetchingLinkPreview, setFetchingLinkPreview] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Disabled communities state
+  const [disabledIds, setDisabledIds] = useState<Set<string>>(new Set());
+
+  // Delete confirmation dialog
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState<string>('');
+  const [deleteTargetName, setDeleteTargetName] = useState<string>('');
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+
   // Contacts state
   const [communityContacts, setCommunityContacts] = useState<any[]>([]);
   const [loadingContacts, setLoadingContacts] = useState(false);
@@ -121,10 +130,11 @@ export default function Communities() {
   const [contactsPage, setContactsPage] = useState(1);
   const CONTACTS_PER_PAGE = 200;
 
-  // All available groups from loaded communities
+  // All available groups from loaded communities (exclude disabled)
   const allGroups = useMemo(() => {
     const groups: { name: string; phone: string; isGroupAnnouncement: boolean; communityName: string }[] = [];
     communities.forEach(c => {
+      if (disabledIds.has(c.id)) return;
       const cName = c.name || c.communityName || 'Sem nome';
       const sgs = Array.isArray(c.subGroups) ? c.subGroups : [];
       sgs.forEach(sg => {
@@ -132,7 +142,7 @@ export default function Communities() {
       });
     });
     return groups;
-  }, [communities]);
+  }, [communities, disabledIds]);
 
   const fetchCommunities = useCallback(async () => {
     setLoading(true);
@@ -173,7 +183,52 @@ export default function Communities() {
     }
   }, []);
 
-  useEffect(() => { fetchCommunities(); }, [fetchCommunities]);
+  // Fetch disabled communities
+  const fetchDisabledIds = useCallback(async () => {
+    const { data } = await supabase.from('community_disabled').select('community_id');
+    if (data) setDisabledIds(new Set(data.map(d => d.community_id)));
+  }, []);
+
+  useEffect(() => { fetchCommunities(); fetchDisabledIds(); }, [fetchCommunities, fetchDisabledIds]);
+
+  const handleToggleDisable = async (communityId: string) => {
+    const isDisabled = disabledIds.has(communityId);
+    try {
+      if (isDisabled) {
+        await supabase.from('community_disabled').delete().eq('community_id', communityId);
+        toast.success('Comunidade reativada no sistema');
+      } else {
+        const { data: { user } } = await supabase.auth.getUser();
+        await supabase.from('community_disabled').insert({ community_id: communityId, disabled_by: user?.id });
+        toast.success('Comunidade desativada no sistema');
+      }
+      fetchDisabledIds();
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao alterar status');
+    }
+  };
+
+  const openDeleteConfirm = (communityId: string, communityName: string) => {
+    setDeleteTargetId(communityId);
+    setDeleteTargetName(communityName);
+    setDeleteConfirmText('');
+    setShowDeleteConfirm(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (deleteConfirmText.toLowerCase() !== 'excluir') return;
+    setLoadingAction(`deactivate-${deleteTargetId}`);
+    setShowDeleteConfirm(false);
+    try {
+      await callCommunities('deactivate', { communityId: deleteTargetId });
+      toast.success('Comunidade excluída do WhatsApp');
+      fetchCommunities();
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao excluir comunidade');
+    } finally {
+      setLoadingAction(null);
+    }
+  };
 
   const handleCreate = async () => {
     if (!newName.trim()) return;
@@ -224,19 +279,7 @@ export default function Communities() {
     }
   };
 
-  const handleDeactivate = async (communityId: string) => {
-    if (!confirm('Tem certeza que deseja desativar esta comunidade? Todos os grupos serão desconectados.')) return;
-    setLoadingAction(`deactivate-${communityId}`);
-    try {
-      await callCommunities('deactivate', { communityId });
-      toast.success('Comunidade desativada');
-      fetchCommunities();
-    } catch (err: any) {
-      toast.error(err.message || 'Erro ao desativar comunidade');
-    } finally {
-      setLoadingAction(null);
-    }
-  };
+  // handleDeactivate removed — replaced by handleToggleDisable + handleConfirmDelete
 
   const handleAddParticipant = async () => {
     const phones = addPartPhones.split(/[,;\n]/).map(p => p.trim()).filter(Boolean);
@@ -624,14 +667,19 @@ export default function Communities() {
           )}
 
           <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
-            {communities.map((c) => (
-              <Card key={c.id} className="group">
+            {communities.map((c) => {
+              const isDisabled = disabledIds.has(c.id);
+              return (
+              <Card key={c.id} className={`group ${isDisabled ? 'opacity-50' : ''}`}>
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
                       <CardTitle className="text-base truncate">{c.name || c.communityName || 'Sem nome'}</CardTitle>
                       <CardDescription className="text-xs mt-1 font-mono truncate">{c.id}</CardDescription>
                     </div>
+                    {isDisabled && (
+                      <Badge variant="destructive" className="shrink-0">Desativada</Badge>
+                    )}
                     <Badge variant="secondary" className="shrink-0">
                       {c.subGroups?.length || 0} grupo(s)
                     </Badge>
@@ -698,16 +746,26 @@ export default function Communities() {
                       {syncingContacts === c.id ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Download className="w-3 h-3 mr-1" />}
                       Sync
                     </Button>
+                    <Button
+                      variant={isDisabled ? 'default' : 'outline'}
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => handleToggleDisable(c.id)}
+                    >
+                      {isDisabled ? <Power className="w-3 h-3 mr-1" /> : <Ban className="w-3 h-3 mr-1" />}
+                      {isDisabled ? 'Ativar' : 'Desativar'}
+                    </Button>
                     <Button variant="destructive" size="sm" className="h-7 text-xs"
                       disabled={loadingAction === `deactivate-${c.id}`}
-                      onClick={() => handleDeactivate(c.id)}>
+                      onClick={() => openDeleteConfirm(c.id, c.name || c.communityName || 'Sem nome')}>
                       {loadingAction === `deactivate-${c.id}` ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Trash2 className="w-3 h-3 mr-1" />}
-                      Desativar
+                      Excluir
                     </Button>
                   </div>
                 </CardContent>
               </Card>
-            ))}
+              );
+            })}
           </div>
         </TabsContent>
 
@@ -1302,6 +1360,40 @@ export default function Communities() {
               </DialogFooter>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Excluir Comunidade</DialogTitle>
+            <DialogDescription>
+              Esta ação irá desconectar a comunidade <strong>{deleteTargetName}</strong> do WhatsApp permanentemente. Todos os grupos serão desconectados.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Para confirmar, digite <strong className="text-destructive">excluir</strong> no campo abaixo:
+            </p>
+            <Input
+              value={deleteConfirmText}
+              onChange={e => setDeleteConfirmText(e.target.value)}
+              placeholder="Digite 'excluir' para confirmar"
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>Cancelar</Button>
+            <Button
+              variant="destructive"
+              disabled={deleteConfirmText.toLowerCase() !== 'excluir'}
+              onClick={handleConfirmDelete}
+            >
+              <Trash2 className="w-4 h-4 mr-1" />
+              Excluir Permanentemente
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
