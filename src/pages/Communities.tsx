@@ -313,10 +313,19 @@ export default function Communities() {
     if (selectedGroups.size === 0) return false;
     switch (broadcastType) {
       case 'text': return !!broadcastMessage.trim();
-      case 'image': return !!broadcastMediaUrl.trim();
-      case 'audio': return !!broadcastMediaUrl.trim();
+      case 'image': return !!(broadcastMediaUrl.trim() || broadcastFile);
+      case 'audio': return !!(broadcastMediaUrl.trim() || broadcastFile);
       case 'link': return !!broadcastLinkUrl.trim();
     }
+  };
+
+  const uploadFileToStorage = async (file: File): Promise<string> => {
+    const ext = file.name.split('.').pop() || 'bin';
+    const path = `broadcast/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+    const { error } = await supabase.storage.from('chat-media').upload(path, file);
+    if (error) throw new Error('Erro ao fazer upload: ' + error.message);
+    const { data: urlData } = supabase.storage.from('chat-media').getPublicUrl(path);
+    return urlData.publicUrl;
   };
 
   const handleBroadcast = async () => {
@@ -325,11 +334,23 @@ export default function Communities() {
     setBroadcastResults(null);
 
     try {
+      let mediaUrl = broadcastMediaUrl || undefined;
+
+      // Upload file if selected
+      if (broadcastFile && (broadcastType === 'image' || broadcastType === 'audio')) {
+        setUploadingBroadcastFile(true);
+        try {
+          mediaUrl = await uploadFileToStorage(broadcastFile);
+        } finally {
+          setUploadingBroadcastFile(false);
+        }
+      }
+
       const { data, error } = await supabase.functions.invoke('zapi-community-broadcast', {
         body: {
           type: broadcastType,
           message: broadcastMessage,
-          media_url: broadcastMediaUrl || undefined,
+          media_url: mediaUrl,
           caption: broadcastCaption || undefined,
           link_url: broadcastLinkUrl || undefined,
           link_title: broadcastLinkTitle || undefined,
@@ -370,6 +391,47 @@ export default function Communities() {
     setBroadcastLinkImage('');
     setSelectedGroups(new Set());
     setBroadcastResults(null);
+    setBroadcastFile(null);
+    setBroadcastFilePreview(null);
+    setMediaInputMode('file');
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setBroadcastFile(file);
+    setBroadcastMediaUrl('');
+    if (file.type.startsWith('image/')) {
+      const url = URL.createObjectURL(file);
+      setBroadcastFilePreview(url);
+    } else {
+      setBroadcastFilePreview(null);
+    }
+  };
+
+  const clearFile = () => {
+    setBroadcastFile(null);
+    setBroadcastFilePreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleFetchLinkPreview = async () => {
+    if (!broadcastLinkUrl.trim()) return;
+    setFetchingLinkPreview(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('fetch-link-preview', {
+        body: { url: broadcastLinkUrl },
+      });
+      if (error) throw new Error(error.message);
+      if (data?.title) setBroadcastLinkTitle(data.title);
+      if (data?.description) setBroadcastLinkDesc(data.description);
+      if (data?.image) setBroadcastLinkImage(data.image);
+      toast.success('Preview carregado!');
+    } catch (err: any) {
+      toast.error('Não foi possível buscar o preview: ' + (err.message || 'Erro'));
+    } finally {
+      setFetchingLinkPreview(false);
+    }
   };
 
   const estimatedTime = useMemo(() => {
