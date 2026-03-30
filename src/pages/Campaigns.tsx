@@ -119,9 +119,10 @@ export default function Campaigns() {
       // Fetch participant counts for all subgroups
       setLoadingCounts(true);
       const counts: Record<string, number> = {};
-      const allSubs = enriched.flatMap((c: Community) =>
-        (c.subGroups || []).filter(s => !s.isGroupAnnouncement).map(s => s.phone)
-      );
+      const allSubs = enriched.flatMap((c: Community) => {
+        const sgs = Array.isArray(c.subGroups) ? c.subGroups : [];
+        return sgs.filter(s => !s.isGroupAnnouncement).map(s => s.phone);
+      });
       await Promise.all(
         allSubs.map(async (phone: string) => {
           try {
