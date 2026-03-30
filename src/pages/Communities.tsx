@@ -278,19 +278,7 @@ export default function Communities() {
     }
   };
 
-  const handleDeactivate = async (communityId: string) => {
-    if (!confirm('Tem certeza que deseja desativar esta comunidade? Todos os grupos serão desconectados.')) return;
-    setLoadingAction(`deactivate-${communityId}`);
-    try {
-      await callCommunities('deactivate', { communityId });
-      toast.success('Comunidade desativada');
-      fetchCommunities();
-    } catch (err: any) {
-      toast.error(err.message || 'Erro ao desativar comunidade');
-    } finally {
-      setLoadingAction(null);
-    }
-  };
+  // handleDeactivate removed — replaced by handleToggleDisable + handleConfirmDelete
 
   const handleAddParticipant = async () => {
     const phones = addPartPhones.split(/[,;\n]/).map(p => p.trim()).filter(Boolean);
