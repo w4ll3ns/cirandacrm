@@ -263,6 +263,7 @@ export default function Campaigns() {
             imagem_url: finalImageUrl,
             cor_primaria: formColorPrimary,
             cor_fundo: formColorBg,
+            auto_create_community: formAutoCreate,
           })
           .eq('id', editingId);
         if (error) throw error;
