@@ -919,6 +919,85 @@ export default function Communities() {
             </Card>
           )}
         </TabsContent>
+
+        <TabsContent value="history" className="space-y-4">
+          {loadingHistory ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : broadcastHistory.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+                <Send className="w-12 h-12 text-muted-foreground/30 mb-3" />
+                <p className="text-muted-foreground font-medium">Nenhum disparo registrado</p>
+                <p className="text-sm text-muted-foreground mt-1">O histórico aparecerá aqui após o primeiro disparo</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-3">
+              {broadcastHistory.map((log) => {
+                const isExpanded = expandedLogId === log.id;
+                const typeBadgeMap: Record<string, string> = {
+                  text: 'Texto', image: 'Imagem', audio: 'Áudio', video: 'Vídeo', link: 'Link'
+                };
+                const results = Array.isArray(log.results) ? log.results : [];
+                return (
+                  <Card key={log.id} className="cursor-pointer" onClick={() => setExpandedLogId(isExpanded ? null : log.id)}>
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          <Badge variant="outline" className="shrink-0">{typeBadgeMap[log.type] || log.type}</Badge>
+                          <span className="text-sm truncate text-muted-foreground">
+                            {log.message ? (log.message.length > 60 ? log.message.slice(0, 60) + '…' : log.message) : log.media_url ? 'Mídia' : log.link_url || '—'}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3 shrink-0 text-xs">
+                          <span className="text-muted-foreground">{log.group_phones?.length || 0} grupos</span>
+                          <Badge variant="secondary" className="bg-green-100 text-green-800">{log.sent_count} ✓</Badge>
+                          {log.error_count > 0 && (
+                            <Badge variant="destructive">{log.error_count} ✗</Badge>
+                          )}
+                          <span className="text-muted-foreground">
+                            {new Date(log.created_at).toLocaleDateString('pt-BR')} {new Date(log.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                      </div>
+
+                      {isExpanded && (
+                        <div className="mt-4 border-t pt-3 space-y-2">
+                          {log.message && (
+                            <div><span className="text-xs font-medium text-muted-foreground">Mensagem:</span><p className="text-sm mt-0.5">{log.message}</p></div>
+                          )}
+                          {log.media_url && (
+                            <div><span className="text-xs font-medium text-muted-foreground">Mídia:</span><p className="text-sm mt-0.5 break-all">{log.media_url}</p></div>
+                          )}
+                          {log.link_url && (
+                            <div><span className="text-xs font-medium text-muted-foreground">Link:</span><p className="text-sm mt-0.5 break-all">{log.link_url}</p></div>
+                          )}
+                          <div>
+                            <span className="text-xs font-medium text-muted-foreground">Resultados por grupo:</span>
+                            <div className="mt-1 space-y-1">
+                              {results.map((r: any, i: number) => (
+                                <div key={i} className="flex items-center gap-2 text-xs">
+                                  <span className="font-mono">{r.groupPhone}</span>
+                                  {r.status === 'sent' ? (
+                                    <Badge variant="secondary" className="bg-green-100 text-green-800 text-[10px]">Enviado</Badge>
+                                  ) : (
+                                    <Badge variant="destructive" className="text-[10px]">Erro: {r.error || 'desconhecido'}</Badge>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </TabsContent>
       </Tabs>
 
       {/* Create Community Dialog */}
