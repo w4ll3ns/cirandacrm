@@ -106,7 +106,8 @@ export default function Communities() {
     const groups: { name: string; phone: string; isGroupAnnouncement: boolean; communityName: string }[] = [];
     communities.forEach(c => {
       const cName = c.name || c.communityName || 'Sem nome';
-      c.subGroups?.forEach(sg => {
+      const sgs = Array.isArray(c.subGroups) ? c.subGroups : [];
+      sgs.forEach(sg => {
         groups.push({ ...sg, communityName: cName });
       });
     });
