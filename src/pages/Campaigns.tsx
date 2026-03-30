@@ -386,7 +386,12 @@ export default function Campaigns() {
                   <Loader2 className="h-4 w-4 animate-spin" /> Carregando comunidades...
                 </div>
               ) : communities.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-2">Nenhuma comunidade encontrada. Verifique a instância Z-API.</p>
+                <div className="flex flex-col items-center gap-2 py-4">
+                  <p className="text-sm text-muted-foreground">Nenhuma comunidade encontrada.</p>
+                  <Button variant="outline" size="sm" onClick={fetchCommunities}>
+                    <Loader2 className="h-3 w-3 mr-1" /> Tentar novamente
+                  </Button>
+                </div>
               ) : (
                 <div className="space-y-3 max-h-60 overflow-y-auto border rounded-lg p-3">
                   {communities.map(comm => {
