@@ -21,6 +21,7 @@ type Campaign = {
   slug: string;
   ativa: boolean;
   created_at: string;
+  auto_create_community: boolean;
 };
 
 type CampaignGroup = {
@@ -80,6 +81,7 @@ export default function Campaigns() {
   const [campaignImageFile, setCampaignImageFile] = useState<File | null>(null);
   const [campaignImagePreview, setCampaignImagePreview] = useState<string | null>(null);
   const [uploadingCampaignImage, setUploadingCampaignImage] = useState(false);
+  const [formAutoCreate, setFormAutoCreate] = useState(false);
 
   // Group selection
   const [communities, setCommunities] = useState<Community[]>([]);
@@ -159,6 +161,7 @@ export default function Campaigns() {
     setCampaignImageMode('url');
     setCampaignImageFile(null);
     setCampaignImagePreview(null);
+    setFormAutoCreate(false);
     setShowForm(true);
     fetchCommunities();
   };
@@ -170,6 +173,7 @@ export default function Campaigns() {
     setFormImage(campaign.imagem_url || '');
     setFormColorPrimary(campaign.cor_primaria);
     setFormColorBg(campaign.cor_fundo);
+    setFormAutoCreate(campaign.auto_create_community ?? false);
 
     // Load existing groups
     const { data: groups } = await supabase
@@ -259,6 +263,7 @@ export default function Campaigns() {
             imagem_url: finalImageUrl,
             cor_primaria: formColorPrimary,
             cor_fundo: formColorBg,
+            auto_create_community: formAutoCreate,
           })
           .eq('id', editingId);
         if (error) throw error;
@@ -276,6 +281,7 @@ export default function Campaigns() {
             cor_primaria: formColorPrimary,
             cor_fundo: formColorBg,
             slug,
+            auto_create_community: formAutoCreate,
           })
           .select()
           .single();
@@ -506,6 +512,15 @@ export default function Campaigns() {
                   <Input value={formColorBg} onChange={e => setFormColorBg(e.target.value)} className="flex-1" />
                 </div>
               </div>
+            </div>
+
+            {/* Auto Create Community Toggle */}
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <div className="space-y-0.5">
+                <Label className="text-sm font-medium">Criação automática de comunidade</Label>
+                <p className="text-xs text-muted-foreground">Criar nova comunidade automaticamente quando todos os grupos estiverem lotados</p>
+              </div>
+              <Switch checked={formAutoCreate} onCheckedChange={setFormAutoCreate} />
             </div>
 
             {/* Group Selection */}

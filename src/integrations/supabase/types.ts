@@ -165,6 +165,7 @@ export type Database = {
       community_campaigns: {
         Row: {
           ativa: boolean
+          auto_create_community: boolean
           cor_fundo: string
           cor_primaria: string
           created_at: string
@@ -177,6 +178,7 @@ export type Database = {
         }
         Insert: {
           ativa?: boolean
+          auto_create_community?: boolean
           cor_fundo?: string
           cor_primaria?: string
           created_at?: string
@@ -189,6 +191,7 @@ export type Database = {
         }
         Update: {
           ativa?: boolean
+          auto_create_community?: boolean
           cor_fundo?: string
           cor_primaria?: string
           created_at?: string
