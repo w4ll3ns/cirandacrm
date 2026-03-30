@@ -98,7 +98,7 @@ export default function Campaigns() {
     setLoadingCommunities(true);
     try {
       const list = await callCommunities('list', { page: 1, pageSize: 50 });
-      const comms = Array.isArray(list) ? list : [];
+      const comms: Community[] = Array.isArray(list) ? list : list?.communities || list?.data || [];
 
       // Enrich with metadata to get subGroups
       const enriched = await Promise.all(
