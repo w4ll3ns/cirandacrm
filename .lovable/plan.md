@@ -1,20 +1,28 @@
 
 
-## Corrigir Limite de 1000 Contatos de Comunidades
+## Paginação e Exportação de Contatos de Comunidades
 
-### Problema
-Há um `.limit(1000)` explícito na query `fetchContacts` (linha 455 de `Communities.tsx`), e o Supabase também tem um limite padrão de 1000 linhas. Comunidades com mais de 1000 participantes ficam truncadas.
+### 1. Paginação (200 por página)
 
-### Solução
+Na aba "Contatos" de `Communities.tsx`:
+- Adicionar estado `contactsPage` (default 1)
+- Substituir o `filteredContacts.slice(0, 200)` por paginação real: `filteredContacts.slice((page-1)*200, page*200)`
+- Resetar página ao mudar filtro/busca
+- Adicionar controles de paginação abaixo da tabela (anterior/próximo + indicador "Página X de Y")
 
-**`src/pages/Communities.tsx`** — Remover o `.limit(1000)` e implementar paginação ou carregamento completo:
+### 2. Exportação XLSX e CSV
 
-1. **Remover `.limit(1000)`** da query em `fetchContacts`
-2. **Implementar busca paginada** para carregar todos os registros: fazer fetch em lotes de 1000 usando `.range(from, to)` até não haver mais resultados, concatenando os dados
-3. Manter a filtragem/busca client-side existente sobre o conjunto completo
+Adicionar dois botões de exportação ao lado do badge de contagem:
+- **CSV**: gerar string CSV client-side com `Blob` e trigger download
+- **XLSX**: usar biblioteca `xlsx` (SheetJS) para gerar arquivo Excel client-side
 
-A edge function `zapi-communities` (sync-participants) não tem limite — ela já faz upsert de todos os participantes de todos os subgrupos. O problema é apenas na leitura/exibição.
+Ambos exportam os `filteredContacts` (respeitando filtro/busca atual) com colunas: Telefone, Nome, Comunidade, Grupo, Data.
 
-### Arquivo alterado
-- `src/pages/Communities.tsx` — ajustar `fetchContacts` para buscar todos os registros sem limite
+### 3. Dependência
+
+Instalar `xlsx` via npm para a exportação Excel.
+
+### Arquivos alterados
+- `src/pages/Communities.tsx` — paginação + botões de export
+- `package.json` — adicionar `xlsx`
 
