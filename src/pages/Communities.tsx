@@ -118,6 +118,8 @@ export default function Communities() {
   const [contactsFilter, setContactsFilter] = useState('all');
   const [syncingContacts, setSyncingContacts] = useState<string | null>(null);
   const [pageTab, setPageTab] = useState<'communities' | 'contacts'>('communities');
+  const [contactsPage, setContactsPage] = useState(1);
+  const CONTACTS_PER_PAGE = 200;
 
   // All available groups from loaded communities
   const allGroups = useMemo(() => {
