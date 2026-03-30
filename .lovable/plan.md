@@ -1,52 +1,32 @@
 
 
-## Exibir quantitativo de participantes por subgrupo
+## Exibir badge de participantes no card da comunidade
 
-### Problema atual
-A Z-API retorna participantes apenas no nível da comunidade via `communities-metadata`. Para saber quantos participantes cada subgrupo tem, é necessário chamar `group-metadata/{phone}` para cada subgrupo individualmente (como já é feito no edge function `community-join`).
+### Problema
+O badge de participantes no card só aparece se `c.participants` existir, mas os dados retornados pela listagem de comunidades (`action: list`) não incluem participantes — apenas o `communities-metadata` retorna essa informação. Por isso o badge nunca aparece.
 
 ### Solução
+Ao carregar as comunidades automaticamente, buscar os metadados de cada comunidade em paralelo para obter a contagem de participantes, e armazenar num state `Record<string, number>`. Exibir o badge no card usando esse state.
 
-**1. Edge Function `zapi-communities` — nova action `group-metadata`**
+### Mudanças em `src/pages/Communities.tsx`
 
-Adicionar uma action que aceita um `groupPhone` e retorna os metadados do grupo (incluindo lista de participantes):
+1. **Novo state**: `communityParticipantCounts: Record<string, number>` para guardar total de participantes por comunidade ID.
 
-```typescript
-case "group-metadata": {
-  zapiResponse = await fetch(`${baseUrl}/group-metadata/${params.groupPhone}`, {
-    method: "GET",
-    headers: { "Content-Type": "application/json", ...(clientToken ? { "Client-Token": clientToken } : {}) },
-  });
-  break;
-}
+2. **Após `fetchCommunities`**: Fazer chamadas paralelas de `metadata` para cada comunidade retornada, extrair `participants.length` e popular o state.
+
+3. **No card** (linhas ~405-412): Substituir o badge condicional `(c as any).participants?.length` por uma leitura do `communityParticipantCounts[c.id]`, exibindo o badge sempre que houver dado disponível:
+
+```tsx
+<Badge variant="secondary" className="shrink-0">
+  {c.subGroups?.length || 0} grupo(s)
+</Badge>
+{communityParticipantCounts[c.id] != null && (
+  <Badge variant="outline" className="shrink-0 text-xs">
+    <Users2 className="w-3 h-3 mr-1" />
+    {communityParticipantCounts[c.id]} participantes
+  </Badge>
+)}
 ```
 
-**2. Frontend `Communities.tsx` — Detalhes da comunidade**
-
-No dialog de "Detalhes", após carregar os metadados, buscar o `group-metadata` de cada subgrupo para obter a contagem de participantes. Exibir ao lado de cada subgrupo:
-
-```
-📌 Grupo de Avisos          — 245 participantes
-   Grupo Turma A            — 198 participantes
-   Grupo Turma B            — 87 participantes
-```
-
-**3. Frontend `Communities.tsx` — Card da comunidade**
-
-No card de cada comunidade, exibir o total de participantes da comunidade (já disponível em `metadata.participants.length`) quando os dados estiverem carregados.
-
-### Arquivos alterados
-
-| Arquivo | Mudança |
-|---|---|
-| `supabase/functions/zapi-communities/index.ts` | Nova action `group-metadata` |
-| `src/pages/Communities.tsx` | Buscar contagem de participantes por subgrupo no dialog de detalhes; exibir total no card |
-
-### Fluxo técnico
-
-1. Ao abrir "Detalhes", o `handleViewMeta` já busca `communities-metadata`
-2. Após receber os subgrupos, fazer chamadas paralelas `group-metadata` para cada subgrupo
-3. Armazenar contagens em um state `Record<string, number>` (phone → count)
-4. Exibir badge com contagem ao lado de cada subgrupo no dialog
-5. No card, exibir participantes totais da comunidade (soma ou dado do metadata)
+4. **Loading indicator**: Enquanto os counts estiverem sendo carregados, mostrar um skeleton/spinner sutil no lugar do badge.
 
