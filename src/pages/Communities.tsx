@@ -419,11 +419,17 @@ export default function Communities() {
                 <Badge variant="secondary" className="shrink-0">
                   {c.subGroups?.length || 0} grupo(s)
                 </Badge>
-                {(c as any).participants?.length > 0 && (
+                {communityParticipantCounts[c.id] != null ? (
                   <Badge variant="outline" className="shrink-0 text-xs">
-                    {(c as any).participants.length} participantes
+                    <Users2 className="w-3 h-3 mr-1" />
+                    {communityParticipantCounts[c.id]} participantes
                   </Badge>
-                )}
+                ) : loadingParticipantCounts ? (
+                  <Badge variant="outline" className="shrink-0 text-xs animate-pulse">
+                    <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                    ...
+                  </Badge>
+                ) : null}
               </div>
             </CardHeader>
             <CardContent className="pt-0">
