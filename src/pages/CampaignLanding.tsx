@@ -158,23 +158,7 @@ export default function CampaignLanding() {
     >
       <div className="w-full max-w-md space-y-6 text-center">
         {campaign.imagem_url ? (
-          <div className="relative w-full">
-            <img
-              src={campaign.imagem_url}
-              alt={campaign.nome}
-              width={800}
-              height={256}
-              loading="eager"
-              decoding="async"
-              fetchPriority="high"
-              className="w-full max-h-64 object-cover rounded-2xl shadow-lg mx-auto"
-              onLoad={(e) => {
-                const el = e.currentTarget.previousElementSibling;
-                if (el) (el as HTMLElement).style.display = 'none';
-              }}
-            />
-            <Skeleton className="absolute inset-0 rounded-2xl" />
-          </div>
+          <CampaignImage src={campaign.imagem_url} alt={campaign.nome} />
         ) : (
           <div
             className="w-24 h-24 rounded-2xl flex items-center justify-center mx-auto shadow-lg"
