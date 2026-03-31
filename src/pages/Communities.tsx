@@ -1,6 +1,8 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users2, Plus, RefreshCw, Trash2, UserPlus, UserMinus, Link2, RotateCcw, Eye, Loader2, Copy, Check, MessageSquare, Send, Image, AudioLines, LinkIcon, Upload, Search, X, Video, Download, Phone, FileSpreadsheet, FileText, ChevronLeft, ChevronRight, Ban, Power, Film } from 'lucide-react';
+import { Users2, Plus, RefreshCw, Trash2, UserPlus, UserMinus, Link2, RotateCcw, Eye, Loader2, Copy, Check, MessageSquare, Send, Image, AudioLines, LinkIcon, Upload, Search, X, Video, Download, Phone, FileSpreadsheet, FileText, ChevronLeft, ChevronRight, Ban, Power, Film, Clock, CalendarIcon } from 'lucide-react';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import * as XLSX from 'xlsx';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
