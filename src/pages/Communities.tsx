@@ -1718,15 +1718,71 @@ export default function Communities() {
                 </div>
               )}
 
+              {/* Schedule toggle */}
+              <div className="border rounded-md p-3 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Switch id="schedule-mode" checked={scheduleMode} onCheckedChange={setScheduleMode} />
+                  <Label htmlFor="schedule-mode" className="text-sm cursor-pointer flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5" />
+                    Agendar envio
+                  </Label>
+                </div>
+
+                {scheduleMode && (
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" size="sm" className={`h-9 text-xs justify-start ${!scheduleDate ? 'text-muted-foreground' : ''}`}>
+                          <CalendarIcon className="w-3.5 h-3.5 mr-1.5" />
+                          {scheduleDate ? format(scheduleDate, "dd/MM/yyyy", { locale: ptBR }) : 'Selecionar data'}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={scheduleDate}
+                          onSelect={setScheduleDate}
+                          disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                          initialFocus
+                          className="p-3 pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <div className="flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+                      <Input
+                        type="time"
+                        value={scheduleTime}
+                        onChange={e => setScheduleTime(e.target.value)}
+                        className="h-9 w-28 text-xs"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <DialogFooter>
                 <Button variant="outline" onClick={() => setShowBroadcast(false)} disabled={broadcastRunning}>Cancelar</Button>
-                <Button onClick={handleBroadcast} disabled={!canSendBroadcast() || broadcastRunning}>
-                  {broadcastRunning ? (
-                    <><Loader2 className="w-4 h-4 animate-spin mr-1" /> Enviando...</>
-                  ) : (
-                    <><Send className="w-4 h-4 mr-1" /> Iniciar Disparo ({selectedGroups.size} grupos)</>
-                  )}
-                </Button>
+                {scheduleMode ? (
+                  <Button
+                    onClick={handleScheduleBroadcast}
+                    disabled={!canSendBroadcast() || broadcastRunning || !scheduleDate || !scheduleTime}
+                  >
+                    {broadcastRunning ? (
+                      <><Loader2 className="w-4 h-4 animate-spin mr-1" /> Agendando...</>
+                    ) : (
+                      <><Clock className="w-4 h-4 mr-1" /> Agendar Disparo ({selectedGroups.size} grupos)</>
+                    )}
+                  </Button>
+                ) : (
+                  <Button onClick={handleBroadcast} disabled={!canSendBroadcast() || broadcastRunning}>
+                    {broadcastRunning ? (
+                      <><Loader2 className="w-4 h-4 animate-spin mr-1" /> Enviando...</>
+                    ) : (
+                      <><Send className="w-4 h-4 mr-1" /> Iniciar Disparo ({selectedGroups.size} grupos)</>
+                    )}
+                  </Button>
+                )}
               </DialogFooter>
             </div>
           )}
