@@ -38,7 +38,7 @@ type CommunityMetadata = {
   participants?: { phone: string; name?: string; isAdmin?: boolean }[];
 };
 
-type BroadcastType = 'text' | 'image' | 'audio' | 'video' | 'link';
+type BroadcastType = 'text' | 'image' | 'audio' | 'video' | 'gif' | 'link';
 type BroadcastResult = { groupPhone: string; status: string; error?: string };
 
 async function callCommunities(action: string, params: Record<string, unknown> = {}) {
