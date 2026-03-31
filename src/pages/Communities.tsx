@@ -1026,7 +1026,90 @@ export default function Communities() {
           )}
         </TabsContent>
 
-        <TabsContent value="history" className="space-y-4">
+        <TabsContent value="history" className="space-y-6">
+          {/* Scheduled Broadcasts Section */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold flex items-center gap-2">
+                <Clock className="w-4 h-4 text-primary" />
+                Disparos Agendados
+              </h3>
+              <Button variant="outline" size="sm" onClick={fetchScheduledBroadcasts} disabled={loadingScheduled}>
+                <RefreshCw className={`w-3 h-3 mr-1 ${loadingScheduled ? 'animate-spin' : ''}`} />
+                Atualizar
+              </Button>
+            </div>
+
+            {loadingScheduled ? (
+              <div className="flex items-center justify-center py-6">
+                <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : scheduledBroadcasts.filter(s => s.status === 'pending' || s.status === 'processing').length === 0 ? (
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center py-8 text-center">
+                  <Clock className="w-8 h-8 text-muted-foreground/30 mb-2" />
+                  <p className="text-sm text-muted-foreground">Nenhum disparo agendado</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-2">
+                {scheduledBroadcasts.filter(s => ['pending', 'processing', 'sent', 'cancelled', 'error'].includes(s.status)).map((sb) => {
+                  const typeBadgeMap: Record<string, string> = {
+                    text: 'Texto', image: 'Imagem', audio: 'Áudio', video: 'Vídeo', gif: 'GIF', link: 'Link',
+                  };
+                  const statusMap: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
+                    pending: { label: 'Agendado', variant: 'outline' },
+                    processing: { label: 'Enviando', variant: 'default' },
+                    sent: { label: 'Enviado', variant: 'secondary' },
+                    cancelled: { label: 'Cancelado', variant: 'destructive' },
+                    error: { label: 'Erro', variant: 'destructive' },
+                  };
+                  const st = statusMap[sb.status] || { label: sb.status, variant: 'outline' as const };
+                  return (
+                    <Card key={sb.id}>
+                      <CardContent className="p-3 flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          <Badge variant="outline" className="shrink-0 text-[10px]">{typeBadgeMap[sb.type] || sb.type}</Badge>
+                          <Badge variant={st.variant} className="shrink-0 text-[10px]">{st.label}</Badge>
+                          <span className="text-xs text-muted-foreground truncate">
+                            {sb.group_phones?.length || 0} grupos
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(sb.scheduled_at).toLocaleDateString('pt-BR')} {new Date(sb.scheduled_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                        {sb.status === 'pending' && (
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            className="h-7 text-xs shrink-0"
+                            disabled={cancellingId === sb.id}
+                            onClick={() => handleCancelScheduled(sb.id)}
+                          >
+                            {cancellingId === sb.id ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <X className="w-3 h-3 mr-1" />}
+                            Cancelar
+                          </Button>
+                        )}
+                        {sb.status === 'sent' && sb.sent_count != null && (
+                          <span className="text-xs text-muted-foreground">{sb.sent_count} ✓ {sb.error_count > 0 ? `${sb.error_count} ✗` : ''}</span>
+                        )}
+                        {sb.status === 'error' && sb.error_message && (
+                          <span className="text-xs text-destructive truncate max-w-[150px]">{sb.error_message}</span>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Broadcast History Section */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold flex items-center gap-2">
+              <Send className="w-4 h-4 text-primary" />
+              Histórico de Disparos
+            </h3>
           {loadingHistory ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
@@ -1044,7 +1127,7 @@ export default function Communities() {
               {broadcastHistory.map((log) => {
                 const isExpanded = expandedLogId === log.id;
                 const typeBadgeMap: Record<string, string> = {
-                  text: 'Texto', image: 'Imagem', audio: 'Áudio', video: 'Vídeo', link: 'Link'
+                  text: 'Texto', image: 'Imagem', audio: 'Áudio', video: 'Vídeo', gif: 'GIF', link: 'Link'
                 };
                 const results = Array.isArray(log.results) ? log.results : [];
                 return (
@@ -1059,7 +1142,7 @@ export default function Communities() {
                         </div>
                         <div className="flex items-center gap-3 shrink-0 text-xs">
                           <span className="text-muted-foreground">{log.group_phones?.length || 0} grupos</span>
-                          <Badge variant="secondary" className="bg-green-100 text-green-800">{log.sent_count} ✓</Badge>
+                          <Badge variant="secondary">{log.sent_count} ✓</Badge>
                           {log.error_count > 0 && (
                             <Badge variant="destructive">{log.error_count} ✗</Badge>
                           )}
@@ -1087,7 +1170,7 @@ export default function Communities() {
                                 <div key={i} className="flex items-center gap-2 text-xs">
                                   <span className="font-mono">{r.groupPhone}</span>
                                   {r.status === 'sent' ? (
-                                    <Badge variant="secondary" className="bg-green-100 text-green-800 text-[10px]">Enviado</Badge>
+                                    <Badge variant="secondary" className="text-[10px]">Enviado</Badge>
                                   ) : (
                                     <Badge variant="destructive" className="text-[10px]">Erro: {r.error || 'desconhecido'}</Badge>
                                   )}
@@ -1103,6 +1186,7 @@ export default function Communities() {
               })}
             </div>
           )}
+          </div>
         </TabsContent>
       </Tabs>
 
