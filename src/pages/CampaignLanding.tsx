@@ -16,6 +16,26 @@ type Campaign = {
   ativa: boolean;
 };
 
+function CampaignImage({ src, alt }: { src: string; alt: string }) {
+  const [loaded, setLoaded] = useState(false);
+  return (
+    <div className="relative w-full max-h-64 overflow-hidden rounded-2xl shadow-lg mx-auto">
+      {!loaded && <Skeleton className="w-full h-64 rounded-2xl" />}
+      <img
+        src={src}
+        alt={alt}
+        width={800}
+        height={256}
+        loading="eager"
+        decoding="async"
+        fetchPriority="high"
+        className={`w-full max-h-64 object-cover ${loaded ? '' : 'absolute inset-0 opacity-0'}`}
+        onLoad={() => setLoaded(true)}
+      />
+    </div>
+  );
+}
+
 export default function CampaignLanding() {
   const { slug } = useParams<{ slug: string }>();
   const [campaign, setCampaign] = useState<Campaign | null>(null);
