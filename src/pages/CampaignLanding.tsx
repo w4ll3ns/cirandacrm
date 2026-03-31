@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { Users2, Loader2, AlertCircle, UserX } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 
 type Campaign = {
   id: string;
@@ -14,6 +15,26 @@ type Campaign = {
   slug: string;
   ativa: boolean;
 };
+
+function CampaignImage({ src, alt }: { src: string; alt: string }) {
+  const [loaded, setLoaded] = useState(false);
+  return (
+    <div className="relative w-full max-h-64 overflow-hidden rounded-2xl shadow-lg mx-auto">
+      {!loaded && <Skeleton className="w-full h-64 rounded-2xl" />}
+      <img
+        src={src}
+        alt={alt}
+        width={800}
+        height={256}
+        loading="eager"
+        decoding="async"
+        fetchPriority="high"
+        className={`w-full max-h-64 object-cover ${loaded ? '' : 'absolute inset-0 opacity-0'}`}
+        onLoad={() => setLoaded(true)}
+      />
+    </div>
+  );
+}
 
 export default function CampaignLanding() {
   const { slug } = useParams<{ slug: string }>();
@@ -157,11 +178,7 @@ export default function CampaignLanding() {
     >
       <div className="w-full max-w-md space-y-6 text-center">
         {campaign.imagem_url ? (
-          <img
-            src={campaign.imagem_url}
-            alt={campaign.nome}
-            className="w-full max-h-64 object-cover rounded-2xl shadow-lg mx-auto"
-          />
+          <CampaignImage src={campaign.imagem_url} alt={campaign.nome} />
         ) : (
           <div
             className="w-24 h-24 rounded-2xl flex items-center justify-center mx-auto shadow-lg"

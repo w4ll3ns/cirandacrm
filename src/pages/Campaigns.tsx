@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
+import { resizeImage } from '@/lib/utils';
 
 type Campaign = {
   id: string;
@@ -243,9 +244,9 @@ export default function Campaigns() {
       // Upload file if selected
       if (campaignImageFile) {
         setUploadingCampaignImage(true);
-        const ext = campaignImageFile.name.split('.').pop() || 'jpg';
-        const path = `campaigns/${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${ext}`;
-        const { error: upErr } = await supabase.storage.from('chat-media').upload(path, campaignImageFile, { contentType: campaignImageFile.type });
+        const resized = await resizeImage(campaignImageFile, 800, 0.8);
+        const path = `campaigns/${Date.now()}_${Math.random().toString(36).substring(2, 8)}.jpg`;
+        const { error: upErr } = await supabase.storage.from('chat-media').upload(path, resized, { contentType: 'image/jpeg' });
         if (upErr) throw new Error('Erro ao fazer upload da imagem: ' + upErr.message);
         const { data: urlData } = supabase.storage.from('chat-media').getPublicUrl(path);
         finalImageUrl = urlData.publicUrl;
