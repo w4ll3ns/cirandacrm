@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
 import { Progress } from '@/components/ui/progress';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -104,6 +105,7 @@ export default function Communities() {
   const [broadcastResults, setBroadcastResults] = useState<BroadcastResult[] | null>(null);
 
   // File upload & link preview states
+  const [mentionAll, setMentionAll] = useState(false);
   const [broadcastFile, setBroadcastFile] = useState<File | null>(null);
   const [broadcastFilePreview, setBroadcastFilePreview] = useState<string | null>(null);
   const [uploadingBroadcastFile, setUploadingBroadcastFile] = useState(false);
@@ -435,6 +437,7 @@ export default function Communities() {
           link_description: broadcastLinkDesc || undefined,
           link_image: broadcastLinkImage || undefined,
           group_phones: Array.from(selectedGroups),
+          mention_all: mentionAll || undefined,
         },
       });
 
@@ -494,6 +497,7 @@ export default function Communities() {
     setBroadcastFile(null);
     setBroadcastFilePreview(null);
     setMediaInputMode('file');
+    setMentionAll(false);
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1278,6 +1282,10 @@ export default function Communities() {
                     <Label>Mensagem *</Label>
                     <Textarea value={broadcastMessage} onChange={e => setBroadcastMessage(e.target.value)} placeholder="Digite a mensagem..." rows={4} />
                   </div>
+                  <div className="flex items-center gap-2">
+                    <Switch id="mention-all-text" checked={mentionAll} onCheckedChange={setMentionAll} />
+                    <Label htmlFor="mention-all-text" className="text-xs text-muted-foreground cursor-pointer">Mencionar todos os participantes</Label>
+                  </div>
                 </TabsContent>
 
                 <TabsContent value="image" className="space-y-3 mt-3">
@@ -1315,6 +1323,10 @@ export default function Communities() {
                   <div>
                     <Label>Legenda</Label>
                     <Textarea value={broadcastCaption || broadcastMessage} onChange={e => { setBroadcastCaption(e.target.value); setBroadcastMessage(e.target.value); }} placeholder="Legenda da imagem (opcional)" rows={3} />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Switch id="mention-all-image" checked={mentionAll} onCheckedChange={setMentionAll} />
+                    <Label htmlFor="mention-all-image" className="text-xs text-muted-foreground cursor-pointer">Mencionar todos os participantes</Label>
                   </div>
                 </TabsContent>
 
@@ -1378,6 +1390,10 @@ export default function Communities() {
                     <Label>Legenda</Label>
                     <Textarea value={broadcastCaption || broadcastMessage} onChange={e => { setBroadcastCaption(e.target.value); setBroadcastMessage(e.target.value); }} placeholder="Legenda do vídeo (opcional)" rows={3} />
                   </div>
+                  <div className="flex items-center gap-2">
+                    <Switch id="mention-all-video" checked={mentionAll} onCheckedChange={setMentionAll} />
+                    <Label htmlFor="mention-all-video" className="text-xs text-muted-foreground cursor-pointer">Mencionar todos os participantes</Label>
+                  </div>
                 </TabsContent>
 
                 <TabsContent value="link" className="space-y-3 mt-3">
@@ -1421,6 +1437,10 @@ export default function Communities() {
                       </div>
                     </div>
                   )}
+                  <div className="flex items-center gap-2">
+                    <Switch id="mention-all-link" checked={mentionAll} onCheckedChange={setMentionAll} />
+                    <Label htmlFor="mention-all-link" className="text-xs text-muted-foreground cursor-pointer">Mencionar todos os participantes</Label>
+                  </div>
                 </TabsContent>
               </Tabs>
 

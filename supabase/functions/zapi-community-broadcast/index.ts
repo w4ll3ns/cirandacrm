@@ -85,7 +85,7 @@ Deno.serve(async (req) => {
     };
 
     const body = await req.json();
-    const { type, message, media_url, caption, link_url, link_title, link_description, link_image, group_phones } = body;
+    const { type, message, media_url, caption, link_url, link_title, link_description, link_image, group_phones, mention_all } = body;
 
     if (!type || !group_phones || !Array.isArray(group_phones) || group_phones.length === 0) {
       return new Response(JSON.stringify({ error: "type and group_phones are required" }), {
@@ -94,18 +94,46 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Helper: fetch group participants for mention
+    async function fetchGroupParticipants(phone: string): Promise<string[]> {
+      try {
+        const resp = await fetch(`${baseUrl}/group-metadata/${phone}`, { method: "GET", headers });
+        if (!resp.ok) {
+          console.log(`Failed to fetch metadata for ${phone}: HTTP ${resp.status}`);
+          return [];
+        }
+        const data = await resp.json();
+        const participants = data?.participants || [];
+        return participants.map((p: { phone?: string }) => p.phone).filter(Boolean);
+      } catch (err) {
+        console.error(`Error fetching participants for ${phone}:`, err);
+        return [];
+      }
+    }
+
     const results: { groupPhone: string; status: string; error?: string }[] = [];
 
     for (let i = 0; i < group_phones.length; i++) {
       const phone = group_phones[i];
       try {
+        // Fetch participants if mention_all is enabled
+        let mentionedPhones: string[] | undefined;
+        if (mention_all && type !== "audio") {
+          mentionedPhones = await fetchGroupParticipants(phone);
+          console.log(`Fetched ${mentionedPhones?.length || 0} participants for mention in ${phone}`);
+        }
+
         let endpoint: string;
         let payload: Record<string, unknown>;
 
         switch (type) {
           case "text":
             endpoint = `${baseUrl}/send-text`;
-            payload = { phone, message: message || "" };
+            payload = {
+              phone,
+              message: message || "",
+              ...(mentionedPhones?.length ? { mentioned: mentionedPhones } : {}),
+            };
             break;
           case "image":
             endpoint = `${baseUrl}/send-image`;
@@ -153,6 +181,27 @@ Deno.serve(async (req) => {
             status: "error",
             error: respData?.error || respData?.message || `HTTP ${resp.status}`,
           });
+        }
+
+        // For media types with mention_all, send a follow-up text with mentions
+        if (mentionedPhones?.length && type !== "text" && type !== "audio") {
+          console.log(`Sending mention follow-up text to ${phone}...`);
+          const mentionPayload = {
+            phone,
+            message: caption || message || "📢",
+            mentioned: mentionedPhones,
+          };
+          try {
+            const mentionResp = await fetch(`${baseUrl}/send-text`, {
+              method: "POST",
+              headers,
+              body: JSON.stringify(mentionPayload),
+            });
+            const mentionData = await mentionResp.json();
+            console.log(`Mention follow-up response for ${phone}:`, JSON.stringify(mentionData));
+          } catch (mentionErr) {
+            console.error(`Mention follow-up error for ${phone}:`, mentionErr);
+          }
         }
       } catch (err) {
         console.error(`Error sending to ${phone}:`, err);
