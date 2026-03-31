@@ -177,7 +177,7 @@ Deno.serve(async (req) => {
           }
 
           // Follow-up mention for media types
-          if (mentionedPhones?.length && broadcast.type !== "text" && broadcast.type !== "audio") {
+          if (mentionedPhones?.length && broadcast.type !== "text" && broadcast.type !== "audio" && broadcast.type !== "gif") {
             try {
               await fetch(`${baseUrl}/send-text`, {
                 method: "POST",

@@ -193,7 +193,7 @@ Deno.serve(async (req) => {
         }
 
         // For media types with mention_all, send a follow-up text with mentions
-        if (mentionedPhones?.length && type !== "text" && type !== "audio") {
+        if (mentionedPhones?.length && type !== "text" && type !== "audio" && type !== "gif") {
           console.log(`Sending mention follow-up text to ${phone}...`);
           const mentionPayload = {
             phone,
