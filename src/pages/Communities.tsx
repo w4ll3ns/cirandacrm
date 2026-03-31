@@ -436,6 +436,7 @@ export default function Communities() {
           link_description: broadcastLinkDesc || undefined,
           link_image: broadcastLinkImage || undefined,
           group_phones: Array.from(selectedGroups),
+          mention_all: mentionAll || undefined,
         },
       });
 
