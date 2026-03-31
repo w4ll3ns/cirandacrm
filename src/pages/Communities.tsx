@@ -418,7 +418,7 @@ export default function Communities() {
       let mediaUrl = broadcastMediaUrl || undefined;
 
       // Upload file if selected
-      if (broadcastFile && (broadcastType === 'image' || broadcastType === 'audio' || broadcastType === 'video')) {
+      if (broadcastFile && (broadcastType === 'image' || broadcastType === 'audio' || broadcastType === 'video' || broadcastType === 'gif')) {
         setUploadingBroadcastFile(true);
         try {
           mediaUrl = await uploadFileToStorage(broadcastFile);
