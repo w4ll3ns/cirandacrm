@@ -104,6 +104,7 @@ export default function Communities() {
   const [broadcastResults, setBroadcastResults] = useState<BroadcastResult[] | null>(null);
 
   // File upload & link preview states
+  const [mentionAll, setMentionAll] = useState(false);
   const [broadcastFile, setBroadcastFile] = useState<File | null>(null);
   const [broadcastFilePreview, setBroadcastFilePreview] = useState<string | null>(null);
   const [uploadingBroadcastFile, setUploadingBroadcastFile] = useState(false);
