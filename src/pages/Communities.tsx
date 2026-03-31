@@ -313,6 +313,25 @@ export default function Communities() {
 
   useEffect(() => { fetchCommunities(); fetchDisabledIds(); }, [fetchCommunities, fetchDisabledIds]);
 
+  // Realtime subscription for broadcast_logs and scheduled_broadcasts
+  useEffect(() => {
+    const channel = supabase
+      .channel('broadcast-realtime')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'broadcast_logs' },
+        () => { fetchBroadcastHistory(); }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'scheduled_broadcasts' },
+        () => { fetchScheduledBroadcasts(); }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [fetchBroadcastHistory, fetchScheduledBroadcasts]);
+
   const handleToggleDisable = async (communityId: string) => {
     const isDisabled = disabledIds.has(communityId);
     try {
