@@ -1613,6 +1613,10 @@ export default function Communities() {
                   <p className="text-[10px] text-muted-foreground bg-muted rounded-md px-2 py-1.5">
                     ⚠️ O arquivo deve ser <strong>MP4</strong> — o WhatsApp reproduz como GIF automaticamente.
                   </p>
+                  <div>
+                    <Label>Mensagem / Legenda</Label>
+                    <Textarea value={broadcastMessage} onChange={e => setBroadcastMessage(e.target.value)} placeholder="Texto opcional que acompanha o GIF..." rows={3} />
+                  </div>
                   <div className="flex items-center gap-2">
                     <Switch id="mention-all-gif" checked={mentionAll} onCheckedChange={setMentionAll} />
                     <Label htmlFor="mention-all-gif" className="text-xs text-muted-foreground cursor-pointer">Mencionar todos os participantes</Label>
