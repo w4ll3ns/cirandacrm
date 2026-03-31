@@ -1282,6 +1282,10 @@ export default function Communities() {
                     <Label>Mensagem *</Label>
                     <Textarea value={broadcastMessage} onChange={e => setBroadcastMessage(e.target.value)} placeholder="Digite a mensagem..." rows={4} />
                   </div>
+                  <div className="flex items-center gap-2">
+                    <Switch id="mention-all-text" checked={mentionAll} onCheckedChange={setMentionAll} />
+                    <Label htmlFor="mention-all-text" className="text-xs text-muted-foreground cursor-pointer">Mencionar todos os participantes</Label>
+                  </div>
                 </TabsContent>
 
                 <TabsContent value="image" className="space-y-3 mt-3">
