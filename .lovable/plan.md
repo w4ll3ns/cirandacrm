@@ -1,26 +1,27 @@
 
 
-## Mencionar Todos nos Disparos em Massa
+## Adicionar tipo de disparo GIF nos disparos em massa
 
 ### Resumo
-Adicionar switch "Mencionar todos" nos disparos. A mensagem fica inalterada — apenas o array `mentioned` com os participantes do grupo é adicionado ao payload, e o WhatsApp cuida de notificar todos.
+Adicionar uma 6ª aba "GIF" no broadcast de comunidades. Segundo a documentação da Z-API, o endpoint é `POST /send-gif` e o payload é `{ phone, gif: "<url do mp4>" }`. O arquivo precisa ser um **MP4** (o WhatsApp reproduz como GIF).
 
 ### Alterações
 
 **1. `src/pages/Communities.tsx` — UI**
-- Novo estado `mentionAll` (boolean, default false)
-- Switch abaixo dos textareas (texto, legenda imagem, legenda vídeo, mensagem link) — desabilitado para áudio
-- Resetar no `resetBroadcast`
-- Enviar `mention_all: true` no body da chamada à edge function
+- Expandir o type: `BroadcastType = 'text' | 'image' | 'audio' | 'video' | 'gif' | 'link'`
+- Mudar o grid de tabs de `grid-cols-5` para `grid-cols-6`
+- Adicionar nova aba "GIF" (ícone `Film` ou reutilizar `Video`) entre Vídeo e Link
+- O conteúdo da aba terá: seletor de arquivo (accept `video/mp4`) ou URL, campo opcional de legenda (nota: a doc Z-API não mostra campo caption para GIF, mas podemos manter a mensagem para o follow-up de menção)
+- Switch de "Mencionar todos" como nas outras abas
+- Atualizar `canSendBroadcast` para incluir o tipo `gif`
+- Atualizar `handleBroadcast` para incluir `gif` no upload de arquivo
+- Exibir nota informativa: "O arquivo deve ser MP4 (será exibido como GIF no WhatsApp)"
 
 **2. `supabase/functions/zapi-community-broadcast/index.ts` — Backend**
-- Receber `mention_all` do body
-- Quando `mention_all === true`:
-  - Para cada grupo, buscar participantes via `GET {baseUrl}/group-metadata/{phone}` (retorna lista de participantes com números)
-  - Extrair array de números
-  - Adicionar `mentioned: [números]` ao payload do `/send-text`
-  - Para `image`, `video`, `link`: enviar a mídia normalmente e em seguida enviar um `/send-text` com a mensagem original + `mentioned` array (única forma de mencionar nesses tipos)
-  - Para `audio`: ignorar menção (sem texto)
+- Adicionar case `gif` no switch:
+  - Endpoint: `{baseUrl}/send-gif`
+  - Payload: `{ phone, gif: media_url }`
+- Para menção com GIF: enviar follow-up text com `mentioned` array (mesmo padrão de image/video)
 
 ### Arquivos alterados
 - `src/pages/Communities.tsx`
