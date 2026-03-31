@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users2, Plus, RefreshCw, Trash2, UserPlus, UserMinus, Link2, RotateCcw, Eye, Loader2, Copy, Check, MessageSquare, Send, Image, AudioLines, LinkIcon, Upload, Search, X, Video, Download, Phone, FileSpreadsheet, FileText, ChevronLeft, ChevronRight, Ban, Power } from 'lucide-react';
+import { Users2, Plus, RefreshCw, Trash2, UserPlus, UserMinus, Link2, RotateCcw, Eye, Loader2, Copy, Check, MessageSquare, Send, Image, AudioLines, LinkIcon, Upload, Search, X, Video, Download, Phone, FileSpreadsheet, FileText, ChevronLeft, ChevronRight, Ban, Power, Film } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -38,7 +38,7 @@ type CommunityMetadata = {
   participants?: { phone: string; name?: string; isAdmin?: boolean }[];
 };
 
-type BroadcastType = 'text' | 'image' | 'audio' | 'video' | 'link';
+type BroadcastType = 'text' | 'image' | 'audio' | 'video' | 'gif' | 'link';
 type BroadcastResult = { groupPhone: string; status: string; error?: string };
 
 async function callCommunities(action: string, params: Record<string, unknown> = {}) {
@@ -395,6 +395,7 @@ export default function Communities() {
       case 'image': return !!(broadcastMediaUrl.trim() || broadcastFile);
       case 'audio': return !!(broadcastMediaUrl.trim() || broadcastFile);
       case 'video': return !!(broadcastMediaUrl.trim() || broadcastFile);
+      case 'gif': return !!(broadcastMediaUrl.trim() || broadcastFile);
       case 'link': return !!broadcastLinkUrl.trim();
     }
   };
@@ -417,7 +418,7 @@ export default function Communities() {
       let mediaUrl = broadcastMediaUrl || undefined;
 
       // Upload file if selected
-      if (broadcastFile && (broadcastType === 'image' || broadcastType === 'audio' || broadcastType === 'video')) {
+      if (broadcastFile && (broadcastType === 'image' || broadcastType === 'audio' || broadcastType === 'video' || broadcastType === 'gif')) {
         setUploadingBroadcastFile(true);
         try {
           mediaUrl = await uploadFileToStorage(broadcastFile);
@@ -1269,11 +1270,12 @@ export default function Communities() {
             <div className="space-y-5">
               {/* Message type tabs */}
               <Tabs value={broadcastType} onValueChange={(v) => setBroadcastType(v as BroadcastType)}>
-                <TabsList className="grid grid-cols-5 w-full">
+                <TabsList className="grid grid-cols-6 w-full">
                   <TabsTrigger value="text" className="text-xs gap-1"><MessageSquare className="w-3.5 h-3.5" /> Texto</TabsTrigger>
                   <TabsTrigger value="image" className="text-xs gap-1"><Image className="w-3.5 h-3.5" /> Imagem</TabsTrigger>
                   <TabsTrigger value="audio" className="text-xs gap-1"><AudioLines className="w-3.5 h-3.5" /> Áudio</TabsTrigger>
                   <TabsTrigger value="video" className="text-xs gap-1"><Video className="w-3.5 h-3.5" /> Vídeo</TabsTrigger>
+                  <TabsTrigger value="gif" className="text-xs gap-1"><Film className="w-3.5 h-3.5" /> GIF</TabsTrigger>
                   <TabsTrigger value="link" className="text-xs gap-1"><LinkIcon className="w-3.5 h-3.5" /> Link</TabsTrigger>
                 </TabsList>
 
@@ -1393,6 +1395,42 @@ export default function Communities() {
                   <div className="flex items-center gap-2">
                     <Switch id="mention-all-video" checked={mentionAll} onCheckedChange={setMentionAll} />
                     <Label htmlFor="mention-all-video" className="text-xs text-muted-foreground cursor-pointer">Mencionar todos os participantes</Label>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="gif" className="space-y-3 mt-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Button variant={mediaInputMode === 'file' ? 'default' : 'outline'} size="sm" className="h-7 text-xs" onClick={() => { setMediaInputMode('file'); setBroadcastMediaUrl(''); }}>
+                      <Upload className="w-3 h-3 mr-1" /> Enviar Arquivo
+                    </Button>
+                    <Button variant={mediaInputMode === 'url' ? 'default' : 'outline'} size="sm" className="h-7 text-xs" onClick={() => { setMediaInputMode('url'); clearFile(); }}>
+                      <LinkIcon className="w-3 h-3 mr-1" /> Colar URL
+                    </Button>
+                  </div>
+                  {mediaInputMode === 'file' ? (
+                    <div>
+                      <Label>Arquivo GIF (MP4) *</Label>
+                      <input ref={fileInputRef} type="file" accept="video/mp4" onChange={handleFileSelect} className="block w-full text-sm text-muted-foreground file:mr-2 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 cursor-pointer mt-1" />
+                      {broadcastFile && (
+                        <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                          <Film className="w-4 h-4" />
+                          <span>{broadcastFile.name}</span>
+                          <Button variant="ghost" size="icon" className="h-5 w-5" onClick={clearFile}><X className="w-3 h-3" /></Button>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div>
+                      <Label>URL do GIF (MP4) *</Label>
+                      <Input value={broadcastMediaUrl} onChange={e => setBroadcastMediaUrl(e.target.value)} placeholder="https://exemplo.com/animacao.mp4" />
+                    </div>
+                  )}
+                  <p className="text-[10px] text-muted-foreground bg-muted rounded-md px-2 py-1.5">
+                    ⚠️ O arquivo deve ser <strong>MP4</strong> — o WhatsApp reproduz como GIF automaticamente.
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Switch id="mention-all-gif" checked={mentionAll} onCheckedChange={setMentionAll} />
+                    <Label htmlFor="mention-all-gif" className="text-xs text-muted-foreground cursor-pointer">Mencionar todos os participantes</Label>
                   </div>
                 </TabsContent>
 
