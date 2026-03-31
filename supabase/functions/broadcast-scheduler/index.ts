@@ -144,7 +144,7 @@ Deno.serve(async (req) => {
               break;
             case "gif":
               endpoint = `${baseUrl}/send-gif`;
-              payload = { phone, gif: broadcast.media_url };
+              payload = { phone, gif: broadcast.media_url, caption: broadcast.caption || broadcast.message || "" };
               break;
             case "link":
               endpoint = `${baseUrl}/send-link`;
