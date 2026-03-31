@@ -495,6 +495,7 @@ export default function Communities() {
     setBroadcastFile(null);
     setBroadcastFilePreview(null);
     setMediaInputMode('file');
+    setMentionAll(false);
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
