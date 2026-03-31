@@ -1270,11 +1270,12 @@ export default function Communities() {
             <div className="space-y-5">
               {/* Message type tabs */}
               <Tabs value={broadcastType} onValueChange={(v) => setBroadcastType(v as BroadcastType)}>
-                <TabsList className="grid grid-cols-5 w-full">
+                <TabsList className="grid grid-cols-6 w-full">
                   <TabsTrigger value="text" className="text-xs gap-1"><MessageSquare className="w-3.5 h-3.5" /> Texto</TabsTrigger>
                   <TabsTrigger value="image" className="text-xs gap-1"><Image className="w-3.5 h-3.5" /> Imagem</TabsTrigger>
                   <TabsTrigger value="audio" className="text-xs gap-1"><AudioLines className="w-3.5 h-3.5" /> Áudio</TabsTrigger>
                   <TabsTrigger value="video" className="text-xs gap-1"><Video className="w-3.5 h-3.5" /> Vídeo</TabsTrigger>
+                  <TabsTrigger value="gif" className="text-xs gap-1"><Film className="w-3.5 h-3.5" /> GIF</TabsTrigger>
                   <TabsTrigger value="link" className="text-xs gap-1"><LinkIcon className="w-3.5 h-3.5" /> Link</TabsTrigger>
                 </TabsList>
 
