@@ -796,7 +796,7 @@ export default function Communities() {
 
       <Tabs value={pageTab} onValueChange={(v) => {
         setPageTab(v as 'communities' | 'contacts' | 'history');
-        if (v === 'history') fetchBroadcastHistory();
+        if (v === 'history') { fetchBroadcastHistory(); fetchScheduledBroadcasts(); }
       }} className="w-full">
         <TabsList>
           <TabsTrigger value="communities">Comunidades</TabsTrigger>
