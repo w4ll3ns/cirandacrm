@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { Users2, Loader2, AlertCircle, UserX } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 
 type Campaign = {
   id: string;
