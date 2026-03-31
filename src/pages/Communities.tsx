@@ -141,6 +141,14 @@ export default function Communities() {
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
 
+  // Scheduling state
+  const [scheduleMode, setScheduleMode] = useState(false);
+  const [scheduleDate, setScheduleDate] = useState<Date | undefined>(undefined);
+  const [scheduleTime, setScheduleTime] = useState('');
+  const [scheduledBroadcasts, setScheduledBroadcasts] = useState<any[]>([]);
+  const [loadingScheduled, setLoadingScheduled] = useState(false);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
+
   // All available groups from loaded communities (exclude disabled)
   const allGroups = useMemo(() => {
     const groups: { name: string; phone: string; isGroupAnnouncement: boolean; communityName: string }[] = [];
