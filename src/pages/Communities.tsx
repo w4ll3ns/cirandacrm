@@ -225,6 +225,92 @@ export default function Communities() {
     }
   }, []);
 
+  const fetchScheduledBroadcasts = useCallback(async () => {
+    setLoadingScheduled(true);
+    try {
+      const { data, error } = await supabase
+        .from('scheduled_broadcasts')
+        .select('*')
+        .order('scheduled_at', { ascending: true })
+        .limit(100);
+      if (error) throw error;
+      setScheduledBroadcasts(data || []);
+    } catch (err: any) {
+      console.error('Erro ao buscar agendamentos:', err);
+    } finally {
+      setLoadingScheduled(false);
+    }
+  }, []);
+
+  const handleCancelScheduled = async (id: string) => {
+    setCancellingId(id);
+    try {
+      const { error } = await supabase
+        .from('scheduled_broadcasts')
+        .update({ status: 'cancelled' })
+        .eq('id', id)
+        .eq('status', 'pending');
+      if (error) throw error;
+      toast.success('Disparo agendado cancelado');
+      fetchScheduledBroadcasts();
+    } catch (err: any) {
+      toast.error('Erro ao cancelar: ' + (err.message || ''));
+    } finally {
+      setCancellingId(null);
+    }
+  };
+
+  const handleScheduleBroadcast = async () => {
+    if (!canSendBroadcast() || !scheduleDate || !scheduleTime) return;
+    setBroadcastRunning(true);
+
+    try {
+      let mediaUrl = broadcastMediaUrl || undefined;
+
+      // Upload file if selected
+      if (broadcastFile && (broadcastType === 'image' || broadcastType === 'audio' || broadcastType === 'video' || broadcastType === 'gif')) {
+        setUploadingBroadcastFile(true);
+        try {
+          mediaUrl = await uploadFileToStorage(broadcastFile);
+        } finally {
+          setUploadingBroadcastFile(false);
+        }
+      }
+
+      const [hours, minutes] = scheduleTime.split(':').map(Number);
+      const scheduledAt = new Date(scheduleDate);
+      scheduledAt.setHours(hours, minutes, 0, 0);
+
+      const { data: { user } } = await supabase.auth.getUser();
+
+      const { error } = await supabase.from('scheduled_broadcasts').insert({
+        user_id: user?.id,
+        scheduled_at: scheduledAt.toISOString(),
+        type: broadcastType,
+        message: broadcastMessage || null,
+        media_url: mediaUrl || null,
+        caption: broadcastCaption || null,
+        link_url: broadcastLinkUrl || null,
+        link_title: broadcastLinkTitle || null,
+        link_description: broadcastLinkDesc || null,
+        link_image: broadcastLinkImage || null,
+        group_phones: Array.from(selectedGroups),
+        mention_all: mentionAll,
+      });
+
+      if (error) throw error;
+
+      toast.success(`Disparo agendado para ${format(scheduledAt, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`);
+      setShowBroadcast(false);
+      resetBroadcast();
+      fetchScheduledBroadcasts();
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao agendar disparo');
+    } finally {
+      setBroadcastRunning(false);
+    }
+  };
+
   useEffect(() => { fetchCommunities(); fetchDisabledIds(); }, [fetchCommunities, fetchDisabledIds]);
 
   const handleToggleDisable = async (communityId: string) => {
