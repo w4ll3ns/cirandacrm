@@ -1,26 +1,26 @@
 
 
-## Corrigir mensagem duplicada no disparo de GIF com menção
+## Histórico não atualiza automaticamente após disparo agendado
 
-### Causa raiz
-Na linha 175 do `broadcast-scheduler/index.ts` (e na mesma lógica em `zapi-community-broadcast/index.ts`), quando `mention_all` está ativo, o código envia um **follow-up text** com a mesma mensagem para todos os tipos de mídia exceto `text` e `audio`. Como o GIF já suporta `caption` nativamente (e a caption já foi incluída no payload do GIF), isso resulta em **duas mensagens**: o GIF com texto + um texto avulso idêntico.
+### Problema
+O histórico só é carregado quando o usuário clica na aba "Histórico". Disparos processados pelo cron em background não aparecem até um refresh manual.
 
-### Correção
-Excluir `gif` da lógica de follow-up de menção, já que o endpoint `/send-gif` suporta `caption` nativamente. A menção `@todos` para GIF precisará ser incluída diretamente no payload do GIF (não no follow-up).
+### Solução
+Adicionar um Supabase Realtime subscription na tabela `broadcast_logs` para atualizar automaticamente quando novos registros são inseridos. Também atualizar `scheduled_broadcasts` em realtime para refletir mudanças de status.
 
-**Arquivos:**
+### Alterações
 
-**1. `supabase/functions/broadcast-scheduler/index.ts`** (linha 175)
-- Mudar condição de:
-  `broadcast.type !== "text" && broadcast.type !== "audio"`
-- Para:
-  `broadcast.type !== "text" && broadcast.type !== "audio" && broadcast.type !== "gif"`
-- Adicionar `mentioned` ao payload do case `gif` quando `mentionedPhones` estiver disponível
+**1. Migration SQL — habilitar realtime**
+```sql
+ALTER PUBLICATION supabase_realtime ADD TABLE public.broadcast_logs;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.scheduled_broadcasts;
+```
 
-**2. `supabase/functions/zapi-community-broadcast/index.ts`**
-- Mesma correção: excluir `gif` do bloco de follow-up mention
-- Adicionar `mentioned` ao payload do case `gif`
+**2. `src/pages/Communities.tsx`**
+- Adicionar `useEffect` com subscription Realtime nos canais `broadcast_logs` e `scheduled_broadcasts`
+- Quando um INSERT em `broadcast_logs` ou UPDATE em `scheduled_broadcasts` ocorrer, chamar `fetchBroadcastHistory()` e `fetchScheduledBroadcasts()` automaticamente
+- Cleanup do channel no return do useEffect
 
 ### Resultado
-GIF com `mention_all` enviará uma única mensagem (GIF + caption + menções), sem texto duplicado.
+O histórico e a lista de agendamentos atualizam em tempo real sem precisar recarregar a página.
 
