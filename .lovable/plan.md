@@ -1,22 +1,26 @@
 
 
-## Adicionar caption ao envio de GIF
+## Corrigir mensagem duplicada no disparo de GIF com menção
 
-### Problema
-Atualmente o payload do GIF é `{ phone, gif: media_url }` — sem `caption`. A documentação da Z-API confirma que `caption` é um **atributo opcional** suportado nativamente no `/send-gif`. Não precisa de mensagem follow-up.
+### Causa raiz
+Na linha 175 do `broadcast-scheduler/index.ts` (e na mesma lógica em `zapi-community-broadcast/index.ts`), quando `mention_all` está ativo, o código envia um **follow-up text** com a mesma mensagem para todos os tipos de mídia exceto `text` e `audio`. Como o GIF já suporta `caption` nativamente (e a caption já foi incluída no payload do GIF), isso resulta em **duas mensagens**: o GIF com texto + um texto avulso idêntico.
 
-### Alterações
+### Correção
+Excluir `gif` da lógica de follow-up de menção, já que o endpoint `/send-gif` suporta `caption` nativamente. A menção `@todos` para GIF precisará ser incluída diretamente no payload do GIF (não no follow-up).
 
-**1. `supabase/functions/zapi-community-broadcast/index.ts`**
-- No case `"gif"`, adicionar `caption` ao payload: `{ phone, gif: media_url, caption: caption || message || "" }`
+**Arquivos:**
 
-**2. `supabase/functions/broadcast-scheduler/index.ts`**
-- Mesma correção: `{ phone, gif: broadcast.media_url, caption: broadcast.caption || broadcast.message || "" }`
+**1. `supabase/functions/broadcast-scheduler/index.ts`** (linha 175)
+- Mudar condição de:
+  `broadcast.type !== "text" && broadcast.type !== "audio"`
+- Para:
+  `broadcast.type !== "text" && broadcast.type !== "audio" && broadcast.type !== "gif"`
+- Adicionar `mentioned` ao payload do case `gif` quando `mentionedPhones` estiver disponível
 
-**3. `src/pages/Communities.tsx`**
-- Na aba GIF, adicionar um campo de texto (Textarea) para "Mensagem/Legenda" — igual ao que já existe para imagem e vídeo
-- Garantir que o valor do campo seja enviado como `caption` ou `message` no payload da edge function
+**2. `supabase/functions/zapi-community-broadcast/index.ts`**
+- Mesma correção: excluir `gif` do bloco de follow-up mention
+- Adicionar `mentioned` ao payload do case `gif`
 
-### Impacto
-3 arquivos, mudanças mínimas. O GIF passa a suportar texto nativamente sem mensagem duplicada.
+### Resultado
+GIF com `mention_all` enviará uma única mensagem (GIF + caption + menções), sem texto duplicado.
 
