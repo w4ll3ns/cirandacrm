@@ -144,7 +144,12 @@ Deno.serve(async (req) => {
               break;
             case "gif":
               endpoint = `${baseUrl}/send-gif`;
-              payload = { phone, gif: broadcast.media_url, caption: broadcast.caption || broadcast.message || "" };
+              payload = {
+                phone,
+                gif: broadcast.media_url,
+                caption: broadcast.caption || broadcast.message || "",
+                ...(mentionedPhones?.length ? { mentioned: mentionedPhones } : {}),
+              };
               break;
             case "link":
               endpoint = `${baseUrl}/send-link`;
@@ -172,7 +177,7 @@ Deno.serve(async (req) => {
           }
 
           // Follow-up mention for media types
-          if (mentionedPhones?.length && broadcast.type !== "text" && broadcast.type !== "audio") {
+          if (mentionedPhones?.length && broadcast.type !== "text" && broadcast.type !== "audio" && broadcast.type !== "gif") {
             try {
               await fetch(`${baseUrl}/send-text`, {
                 method: "POST",
