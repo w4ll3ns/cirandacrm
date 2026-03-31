@@ -395,6 +395,7 @@ export default function Communities() {
       case 'image': return !!(broadcastMediaUrl.trim() || broadcastFile);
       case 'audio': return !!(broadcastMediaUrl.trim() || broadcastFile);
       case 'video': return !!(broadcastMediaUrl.trim() || broadcastFile);
+      case 'gif': return !!(broadcastMediaUrl.trim() || broadcastFile);
       case 'link': return !!broadcastLinkUrl.trim();
     }
   };
