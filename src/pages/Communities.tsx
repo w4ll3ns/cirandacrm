@@ -1398,6 +1398,42 @@ export default function Communities() {
                   </div>
                 </TabsContent>
 
+                <TabsContent value="gif" className="space-y-3 mt-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Button variant={mediaInputMode === 'file' ? 'default' : 'outline'} size="sm" className="h-7 text-xs" onClick={() => { setMediaInputMode('file'); setBroadcastMediaUrl(''); }}>
+                      <Upload className="w-3 h-3 mr-1" /> Enviar Arquivo
+                    </Button>
+                    <Button variant={mediaInputMode === 'url' ? 'default' : 'outline'} size="sm" className="h-7 text-xs" onClick={() => { setMediaInputMode('url'); clearFile(); }}>
+                      <LinkIcon className="w-3 h-3 mr-1" /> Colar URL
+                    </Button>
+                  </div>
+                  {mediaInputMode === 'file' ? (
+                    <div>
+                      <Label>Arquivo GIF (MP4) *</Label>
+                      <input ref={fileInputRef} type="file" accept="video/mp4" onChange={handleFileSelect} className="block w-full text-sm text-muted-foreground file:mr-2 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 cursor-pointer mt-1" />
+                      {broadcastFile && (
+                        <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                          <Film className="w-4 h-4" />
+                          <span>{broadcastFile.name}</span>
+                          <Button variant="ghost" size="icon" className="h-5 w-5" onClick={clearFile}><X className="w-3 h-3" /></Button>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div>
+                      <Label>URL do GIF (MP4) *</Label>
+                      <Input value={broadcastMediaUrl} onChange={e => setBroadcastMediaUrl(e.target.value)} placeholder="https://exemplo.com/animacao.mp4" />
+                    </div>
+                  )}
+                  <p className="text-[10px] text-muted-foreground bg-muted rounded-md px-2 py-1.5">
+                    ⚠️ O arquivo deve ser <strong>MP4</strong> — o WhatsApp reproduz como GIF automaticamente.
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Switch id="mention-all-gif" checked={mentionAll} onCheckedChange={setMentionAll} />
+                    <Label htmlFor="mention-all-gif" className="text-xs text-muted-foreground cursor-pointer">Mencionar todos os participantes</Label>
+                  </div>
+                </TabsContent>
+
                 <TabsContent value="link" className="space-y-3 mt-3">
                   <div>
                     <Label>URL do Link *</Label>
