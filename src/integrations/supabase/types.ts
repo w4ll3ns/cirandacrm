@@ -1046,6 +1046,75 @@ export type Database = {
         }
         Relationships: []
       }
+      scheduled_broadcasts: {
+        Row: {
+          caption: string | null
+          created_at: string | null
+          error_count: number | null
+          error_message: string | null
+          group_phones: string[]
+          id: string
+          link_description: string | null
+          link_image: string | null
+          link_title: string | null
+          link_url: string | null
+          media_url: string | null
+          mention_all: boolean | null
+          message: string | null
+          results: Json | null
+          scheduled_at: string
+          sent_count: number | null
+          status: string
+          type: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string | null
+          error_count?: number | null
+          error_message?: string | null
+          group_phones: string[]
+          id?: string
+          link_description?: string | null
+          link_image?: string | null
+          link_title?: string | null
+          link_url?: string | null
+          media_url?: string | null
+          mention_all?: boolean | null
+          message?: string | null
+          results?: Json | null
+          scheduled_at: string
+          sent_count?: number | null
+          status?: string
+          type: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string | null
+          error_count?: number | null
+          error_message?: string | null
+          group_phones?: string[]
+          id?: string
+          link_description?: string | null
+          link_image?: string | null
+          link_title?: string | null
+          link_url?: string | null
+          media_url?: string | null
+          mention_all?: boolean | null
+          message?: string | null
+          results?: Json | null
+          scheduled_at?: string
+          sent_count?: number | null
+          status?: string
+          type?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       settings: {
         Row: {
           chave: string
