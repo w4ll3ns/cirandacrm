@@ -1,27 +1,28 @@
 
 
-## Otimização de imagem da landing page de campanha
+## Mencionar Todos nos Disparos em Massa
 
-### Problema
-A imagem da campanha é armazenada e servida em resolução original (pode ser vários MB). Na landing page mobile, o `max-h-64` (256px) limita a exibição, mas o navegador baixa a imagem inteira.
+### Resumo
+Adicionar switch "Mencionar todos" nos disparos. A mensagem fica inalterada — apenas o array `mentioned` com os participantes do grupo é adicionado ao payload, e o WhatsApp cuida de notificar todos.
 
-### Solução: Redimensionar no upload + otimizar exibição
+### Alterações
 
-**1. Redimensionar a imagem no momento do upload (`src/pages/Campaigns.tsx`)**
-- Antes do `supabase.storage.upload`, usar Canvas API para redimensionar a imagem para no máximo **800px de largura** e converter para **JPEG com qualidade 0.8** (~80%)
-- Criar uma função utilitária `resizeImage(file: File, maxWidth: number, quality: number): Promise<Blob>` que:
-  - Carrega a imagem em um `<img>` off-screen
-  - Desenha no canvas com dimensões proporcionais
-  - Exporta como `image/jpeg` com a qualidade especificada
-- Isso reduz drasticamente o tamanho do arquivo (de vários MB para ~50-150KB)
+**1. `src/pages/Communities.tsx` — UI**
+- Novo estado `mentionAll` (boolean, default false)
+- Switch abaixo dos textareas (texto, legenda imagem, legenda vídeo, mensagem link) — desabilitado para áudio
+- Resetar no `resetBroadcast`
+- Enviar `mention_all: true` no body da chamada à edge function
 
-**2. Otimizar a tag `<img>` na landing page (`src/pages/CampaignLanding.tsx`)**
-- Adicionar atributos `loading="eager"`, `decoding="async"` e `fetchPriority="high"` para priorizar o carregamento
-- Adicionar `width` e `height` fixos para evitar layout shift
-- Mostrar um placeholder/skeleton enquanto a imagem carrega (estado `imageLoaded`)
+**2. `supabase/functions/zapi-community-broadcast/index.ts` — Backend**
+- Receber `mention_all` do body
+- Quando `mention_all === true`:
+  - Para cada grupo, buscar participantes via `GET {baseUrl}/group-metadata/{phone}` (retorna lista de participantes com números)
+  - Extrair array de números
+  - Adicionar `mentioned: [números]` ao payload do `/send-text`
+  - Para `image`, `video`, `link`: enviar a mídia normalmente e em seguida enviar um `/send-text` com a mensagem original + `mentioned` array (única forma de mencionar nesses tipos)
+  - Para `audio`: ignorar menção (sem texto)
 
 ### Arquivos alterados
-- `src/lib/utils.ts` — nova função `resizeImage`
-- `src/pages/Campaigns.tsx` — usar `resizeImage` antes do upload
-- `src/pages/CampaignLanding.tsx` — otimizar tag `<img>` com atributos de performance e skeleton
+- `src/pages/Communities.tsx`
+- `supabase/functions/zapi-community-broadcast/index.ts`
 
