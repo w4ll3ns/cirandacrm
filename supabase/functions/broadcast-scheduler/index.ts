@@ -192,7 +192,20 @@ Deno.serve(async (req) => {
             results.push({ groupPhone: phone, status: "error", error: respData?.error || respData?.message || `HTTP ${resp.status}` });
           }
 
-          // No follow-up text — capability matrix ensures only native mention types are used
+          // Follow-up short mention for types without native mention support
+          if (useFollowUpMention && resp.ok) {
+            const mentionPhones = await fetchGroupParticipants(phone);
+            if (mentionPhones.length > 0) {
+              console.log(`Sending follow-up mention to ${phone} with ${mentionPhones.length} participants`);
+              const mentionResp = await fetch(`${baseUrl}/send-text`, {
+                method: "POST",
+                headers,
+                body: JSON.stringify({ phone, message: "☝️", mentioned: mentionPhones }),
+              });
+              const mentionData = await mentionResp.json();
+              console.log(`Mention follow-up for ${phone}:`, JSON.stringify(mentionData));
+            }
+          }
         } catch (err) {
           results.push({ groupPhone: phone, status: "error", error: err instanceof Error ? err.message : "Unknown error" });
         }

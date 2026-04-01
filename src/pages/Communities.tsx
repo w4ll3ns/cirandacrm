@@ -1685,7 +1685,11 @@ export default function Communities() {
                       </div>
                     </div>
                   )}
-                  <p className="text-[10px] text-muted-foreground italic">💡 Menção não disponível para link (evita mensagem duplicada)</p>
+                  <div className="flex items-center gap-2">
+                    <Switch id="mention-all-link" checked={mentionAll} onCheckedChange={setMentionAll} />
+                    <Label htmlFor="mention-all-link" className="text-xs text-muted-foreground cursor-pointer">Mencionar todos os participantes</Label>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground italic">💡 A menção será enviada como mensagem curta separada (☝️)</p>
                 </TabsContent>
               </Tabs>
 
