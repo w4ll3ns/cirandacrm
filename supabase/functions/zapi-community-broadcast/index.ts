@@ -87,6 +87,16 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { type, message, media_url, caption, link_url, link_title, link_description, link_image, group_phones, mention_all } = body;
 
+    // Capability matrix: defines what each type supports
+    const CAPS: Record<string, { inlineText: boolean; nativeMention: boolean }> = {
+      text:  { inlineText: true,  nativeMention: true  },
+      gif:   { inlineText: true,  nativeMention: true  },
+      image: { inlineText: true,  nativeMention: false },
+      video: { inlineText: true,  nativeMention: false },
+      link:  { inlineText: true,  nativeMention: false },
+      audio: { inlineText: false, nativeMention: false },
+    };
+
     if (!type || !group_phones || !Array.isArray(group_phones) || group_phones.length === 0) {
       return new Response(JSON.stringify({ error: "type and group_phones are required" }), {
         status: 400,
@@ -111,14 +121,27 @@ Deno.serve(async (req) => {
       }
     }
 
+    const cap = CAPS[type];
+    if (!cap) {
+      return new Response(JSON.stringify({ error: `Unknown type: ${type}` }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const useMention = !!mention_all && cap.nativeMention;
+    if (mention_all && !cap.nativeMention) {
+      console.log(`mention_all requested for type '${type}' but not supported natively — ignoring to prevent duplicate messages`);
+    }
+
     const results: { groupPhone: string; status: string; error?: string }[] = [];
 
     for (let i = 0; i < group_phones.length; i++) {
       const phone = group_phones[i];
       try {
-        // Fetch participants if mention_all is enabled
+        // Fetch participants only if this type supports native mention
         let mentionedPhones: string[] | undefined;
-        if (mention_all && type !== "audio") {
+        if (useMention) {
           mentionedPhones = await fetchGroupParticipants(phone);
           console.log(`Fetched ${mentionedPhones?.length || 0} participants for mention in ${phone}`);
         }
@@ -192,26 +215,7 @@ Deno.serve(async (req) => {
           });
         }
 
-        // For media types with mention_all, send a follow-up text with mentions
-        if (mentionedPhones?.length && type !== "text" && type !== "audio" && type !== "gif") {
-          console.log(`Sending mention follow-up text to ${phone}...`);
-          const mentionPayload = {
-            phone,
-            message: caption || message || "📢",
-            mentioned: mentionedPhones,
-          };
-          try {
-            const mentionResp = await fetch(`${baseUrl}/send-text`, {
-              method: "POST",
-              headers,
-              body: JSON.stringify(mentionPayload),
-            });
-            const mentionData = await mentionResp.json();
-            console.log(`Mention follow-up response for ${phone}:`, JSON.stringify(mentionData));
-          } catch (mentionErr) {
-            console.error(`Mention follow-up error for ${phone}:`, mentionErr);
-          }
-        }
+        // No follow-up text — capability matrix ensures only native mention types are used
       } catch (err) {
         console.error(`Error sending to ${phone}:`, err);
         results.push({
