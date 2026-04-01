@@ -84,6 +84,16 @@ Deno.serve(async (req) => {
       ...(clientToken ? { "Client-Token": clientToken } : {}),
     };
 
+    // Capability matrix: defines what each type supports
+    const CAPS: Record<string, { inlineText: boolean; nativeMention: boolean }> = {
+      text:  { inlineText: true,  nativeMention: true  },
+      gif:   { inlineText: true,  nativeMention: true  },
+      image: { inlineText: true,  nativeMention: false },
+      video: { inlineText: true,  nativeMention: false },
+      link:  { inlineText: true,  nativeMention: false },
+      audio: { inlineText: false, nativeMention: false },
+    };
+
     // Helper: fetch group participants for mention
     async function fetchGroupParticipants(phone: string): Promise<string[]> {
       try {
@@ -106,15 +116,20 @@ Deno.serve(async (req) => {
 
       console.log(`Processing broadcast ${broadcast.id} (type: ${broadcast.type})`);
 
+      const cap = CAPS[broadcast.type] || { inlineText: false, nativeMention: false };
+      const useMention = !!broadcast.mention_all && cap.nativeMention;
+      if (broadcast.mention_all && !cap.nativeMention) {
+        console.log(`mention_all requested for type '${broadcast.type}' but not supported natively — ignoring to prevent duplicate messages`);
+      }
+
       const results: { groupPhone: string; status: string; error?: string }[] = [];
       const groupPhones: string[] = broadcast.group_phones || [];
 
       for (let i = 0; i < groupPhones.length; i++) {
         const phone = groupPhones[i];
         try {
-          // Fetch participants if mention_all
           let mentionedPhones: string[] | undefined;
-          if (broadcast.mention_all && broadcast.type !== "audio") {
+          if (useMention) {
             mentionedPhones = await fetchGroupParticipants(phone);
           }
 
@@ -176,22 +191,7 @@ Deno.serve(async (req) => {
             results.push({ groupPhone: phone, status: "error", error: respData?.error || respData?.message || `HTTP ${resp.status}` });
           }
 
-          // Follow-up mention for media types
-          if (mentionedPhones?.length && broadcast.type !== "text" && broadcast.type !== "audio" && broadcast.type !== "gif") {
-            try {
-              await fetch(`${baseUrl}/send-text`, {
-                method: "POST",
-                headers,
-                body: JSON.stringify({
-                  phone,
-                  message: broadcast.caption || broadcast.message || "📢",
-                  mentioned: mentionedPhones,
-                }),
-              });
-            } catch (mentionErr) {
-              console.error(`Mention follow-up error for ${phone}:`, mentionErr);
-            }
-          }
+          // No follow-up text — capability matrix ensures only native mention types are used
         } catch (err) {
           results.push({ groupPhone: phone, status: "error", error: err instanceof Error ? err.message : "Unknown error" });
         }

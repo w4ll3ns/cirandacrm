@@ -1530,10 +1530,7 @@ export default function Communities() {
                     <Label>Legenda</Label>
                     <Textarea value={broadcastCaption || broadcastMessage} onChange={e => { setBroadcastCaption(e.target.value); setBroadcastMessage(e.target.value); }} placeholder="Legenda da imagem (opcional)" rows={3} />
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Switch id="mention-all-image" checked={mentionAll} onCheckedChange={setMentionAll} />
-                    <Label htmlFor="mention-all-image" className="text-xs text-muted-foreground cursor-pointer">Mencionar todos os participantes</Label>
-                  </div>
+                  <p className="text-[10px] text-muted-foreground italic">💡 Menção não disponível para imagem (evita mensagem duplicada)</p>
                 </TabsContent>
 
                 <TabsContent value="audio" className="space-y-3 mt-3">
@@ -1596,10 +1593,7 @@ export default function Communities() {
                     <Label>Legenda</Label>
                     <Textarea value={broadcastCaption || broadcastMessage} onChange={e => { setBroadcastCaption(e.target.value); setBroadcastMessage(e.target.value); }} placeholder="Legenda do vídeo (opcional)" rows={3} />
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Switch id="mention-all-video" checked={mentionAll} onCheckedChange={setMentionAll} />
-                    <Label htmlFor="mention-all-video" className="text-xs text-muted-foreground cursor-pointer">Mencionar todos os participantes</Label>
-                  </div>
+                  <p className="text-[10px] text-muted-foreground italic">💡 Menção não disponível para vídeo (evita mensagem duplicada)</p>
                 </TabsContent>
 
                 <TabsContent value="gif" className="space-y-3 mt-3">
@@ -1683,10 +1677,7 @@ export default function Communities() {
                       </div>
                     </div>
                   )}
-                  <div className="flex items-center gap-2">
-                    <Switch id="mention-all-link" checked={mentionAll} onCheckedChange={setMentionAll} />
-                    <Label htmlFor="mention-all-link" className="text-xs text-muted-foreground cursor-pointer">Mencionar todos os participantes</Label>
-                  </div>
+                  <p className="text-[10px] text-muted-foreground italic">💡 Menção não disponível para link (evita mensagem duplicada)</p>
                 </TabsContent>
               </Tabs>
 
