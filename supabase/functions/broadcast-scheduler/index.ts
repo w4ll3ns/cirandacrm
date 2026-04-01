@@ -118,8 +118,9 @@ Deno.serve(async (req) => {
 
       const cap = CAPS[broadcast.type] || { inlineText: false, nativeMention: false };
       const useMention = !!broadcast.mention_all && cap.nativeMention;
-      if (broadcast.mention_all && !cap.nativeMention) {
-        console.log(`mention_all requested for type '${broadcast.type}' but not supported natively — ignoring to prevent duplicate messages`);
+      const useFollowUpMention = !!broadcast.mention_all && !cap.nativeMention && cap.inlineText;
+      if (useFollowUpMention) {
+        console.log(`mention_all requested for type '${broadcast.type}' — will send short follow-up mention`);
       }
 
       const results: { groupPhone: string; status: string; error?: string }[] = [];
