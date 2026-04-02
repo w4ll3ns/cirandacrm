@@ -22,6 +22,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useData } from '@/contexts/DataContext';
+import BroadcastAIAssistant from '@/components/BroadcastAIAssistant';
 
 type Community = {
   id: string;
@@ -1487,6 +1488,7 @@ export default function Communities() {
                   <div>
                     <Label>Mensagem *</Label>
                     <Textarea value={broadcastMessage} onChange={e => setBroadcastMessage(e.target.value)} placeholder="Digite a mensagem..." rows={4} />
+                    <BroadcastAIAssistant currentText={broadcastMessage} onApplyText={setBroadcastMessage} broadcastType={broadcastType} />
                   </div>
                   <div className="flex items-center gap-2">
                     <Switch id="mention-all-text" checked={mentionAll} onCheckedChange={setMentionAll} />
@@ -1529,6 +1531,7 @@ export default function Communities() {
                   <div>
                     <Label>Legenda</Label>
                     <Textarea value={broadcastCaption || broadcastMessage} onChange={e => { setBroadcastCaption(e.target.value); setBroadcastMessage(e.target.value); }} placeholder="Legenda da imagem (opcional)" rows={3} />
+                    <BroadcastAIAssistant currentText={broadcastCaption || broadcastMessage} onApplyText={(t) => { setBroadcastCaption(t); setBroadcastMessage(t); }} broadcastType={broadcastType} />
                   </div>
                   <div className="flex items-center gap-2">
                     <Switch id="mention-all-image" checked={mentionAll} onCheckedChange={setMentionAll} />
@@ -1596,6 +1599,7 @@ export default function Communities() {
                   <div>
                     <Label>Legenda</Label>
                     <Textarea value={broadcastCaption || broadcastMessage} onChange={e => { setBroadcastCaption(e.target.value); setBroadcastMessage(e.target.value); }} placeholder="Legenda do vídeo (opcional)" rows={3} />
+                    <BroadcastAIAssistant currentText={broadcastCaption || broadcastMessage} onApplyText={(t) => { setBroadcastCaption(t); setBroadcastMessage(t); }} broadcastType={broadcastType} />
                   </div>
                   <div className="flex items-center gap-2">
                     <Switch id="mention-all-video" checked={mentionAll} onCheckedChange={setMentionAll} />
@@ -1637,6 +1641,7 @@ export default function Communities() {
                   <div>
                     <Label>Mensagem / Legenda</Label>
                     <Textarea value={broadcastMessage} onChange={e => setBroadcastMessage(e.target.value)} placeholder="Texto opcional que acompanha o GIF..." rows={3} />
+                    <BroadcastAIAssistant currentText={broadcastMessage} onApplyText={setBroadcastMessage} broadcastType={broadcastType} />
                   </div>
                   <div className="flex items-center gap-2">
                     <Switch id="mention-all-gif" checked={mentionAll} onCheckedChange={setMentionAll} />
@@ -1658,6 +1663,7 @@ export default function Communities() {
                   <div>
                     <Label>Mensagem</Label>
                     <Textarea value={broadcastMessage} onChange={e => setBroadcastMessage(e.target.value)} placeholder="Texto que acompanha o link" rows={2} />
+                    <BroadcastAIAssistant currentText={broadcastMessage} onApplyText={setBroadcastMessage} broadcastType={broadcastType} />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
