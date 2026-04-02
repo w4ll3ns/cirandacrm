@@ -1488,6 +1488,7 @@ export default function Communities() {
                   <div>
                     <Label>Mensagem *</Label>
                     <Textarea value={broadcastMessage} onChange={e => setBroadcastMessage(e.target.value)} placeholder="Digite a mensagem..." rows={4} />
+                    <BroadcastAIAssistant currentText={broadcastMessage} onApplyText={setBroadcastMessage} broadcastType={broadcastType} />
                   </div>
                   <div className="flex items-center gap-2">
                     <Switch id="mention-all-text" checked={mentionAll} onCheckedChange={setMentionAll} />
