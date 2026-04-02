@@ -1663,6 +1663,7 @@ export default function Communities() {
                   <div>
                     <Label>Mensagem</Label>
                     <Textarea value={broadcastMessage} onChange={e => setBroadcastMessage(e.target.value)} placeholder="Texto que acompanha o link" rows={2} />
+                    <BroadcastAIAssistant currentText={broadcastMessage} onApplyText={setBroadcastMessage} broadcastType={broadcastType} />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
