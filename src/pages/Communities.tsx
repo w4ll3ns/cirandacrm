@@ -1599,6 +1599,7 @@ export default function Communities() {
                   <div>
                     <Label>Legenda</Label>
                     <Textarea value={broadcastCaption || broadcastMessage} onChange={e => { setBroadcastCaption(e.target.value); setBroadcastMessage(e.target.value); }} placeholder="Legenda do vídeo (opcional)" rows={3} />
+                    <BroadcastAIAssistant currentText={broadcastCaption || broadcastMessage} onApplyText={(t) => { setBroadcastCaption(t); setBroadcastMessage(t); }} broadcastType={broadcastType} />
                   </div>
                   <div className="flex items-center gap-2">
                     <Switch id="mention-all-video" checked={mentionAll} onCheckedChange={setMentionAll} />
