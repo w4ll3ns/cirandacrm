@@ -1,40 +1,47 @@
 
 
-## Menção não funciona para imagem, vídeo e link
+## Assistente IA de Copy — com sua API OpenAI
 
-### Problema
-A correção anterior contra mensagens duplicadas desabilitou completamente a menção para `image`, `video` e `link`. Resultado: a flag `mention_all` é ignorada silenciosamente nesses tipos. Seus últimos disparos agendados eram todos do tipo `image` com `mention_all: true` — por isso ninguém foi mencionado.
+### Resumo
+Criar módulo de geração/melhoria de textos com IA no disparador de mensagens, usando sua chave da OpenAI diretamente.
 
-### Causa raiz
-A matriz de capacidades marca `nativeMention: false` para image/video/link porque a API Z-API não aceita o campo `mentioned` nesses endpoints. A correção anterior removeu o follow-up de texto para evitar duplicação, mas junto removeu qualquer forma de mencionar.
+### Passo 1: Configurar a chave OpenAI
+- Vou solicitar que você insira sua `OPENAI_API_KEY` como secret do projeto (armazenada de forma segura no backend, nunca exposta no frontend)
 
-### Solução
-Para tipos que não suportam menção nativa, enviar um **follow-up curto de menção** após a mídia — mas com uma mensagem mínima (ex: "☝️") em vez de repetir o texto/caption inteiro. Isso resolve a duplicação E mantém a menção.
+### Passo 2: Edge Function `ai-copy-generator`
+Nova função em `supabase/functions/ai-copy-generator/index.ts`:
+- Recebe: `action` (generate, improve, variation, shorten, stronger, urgent, quick_suggestion), `currentText`, `tone`, `size`, `linkContext`, `suggestionType`
+- Chama `https://api.openai.com/v1/chat/completions` com `OPENAI_API_KEY` usando modelo `gpt-4o-mini` (rápido e barato para copy curta)
+- Prompt interno completo com todas as regras de copy (urgência, escassez, prova social, emojis, asteriscos para negrito WhatsApp, diferenciação prêmio instantâneo vs principal)
+- Inclui os 3 exemplos de referência no prompt
+- Tratamento de erros (rate limit, quota, etc.)
+- Autenticação do usuário via JWT
 
-### Alterações
+### Passo 3: Componente `BroadcastAIAssistant.tsx`
+Novo componente renderizado abaixo de cada textarea no disparador:
+- **Collapsible** — abre com botão "✨ Assistente IA"
+- Campo "Link da ação atual" — busca preview via `fetch-link-preview` existente
+- 6 botões principais: Gerar com IA, Melhorar texto, Gerar variação, Encurtar, Mais forte, Mais urgente
+- 20+ chips de sugestões rápidas (Bom dia, Última oportunidade, Reta final, etc.)
+- Seletor de tom (Direto, Popular, Urgente, Emocional, Agressivo, Comunidade, Premium)
+- Seletor de tamanho (Curto, Médio, Longo)
+- Ações: Gerar novamente, Copiar, Inserir sem substituir
+- Loading state durante geração
+- Histórico local da última sugestão (botão Desfazer)
 
-**1. `supabase/functions/zapi-community-broadcast/index.ts`**
-- Após enviar image/video/link com sucesso, se `mention_all` estiver ativo, enviar um `send-text` follow-up com mensagem curta "☝️" + array `mentioned` com todos os participantes
-- Manter o comportamento atual para `text` e `gif` (menção nativa inline)
-- `audio` continua sem menção
+### Passo 4: Integração em `Communities.tsx`
+- Importar e renderizar `<BroadcastAIAssistant>` abaixo de cada textarea (tabs text, image, video, gif, link)
+- Passar `broadcastMessage`, `setBroadcastMessage` e `broadcastType`
+- Zero alteração no fluxo de disparo existente
 
-**2. `supabase/functions/broadcast-scheduler/index.ts`**
-- Mesma lógica de follow-up curto para agendamentos de image/video/link com `mention_all: true`
+### Arquivos
+| Arquivo | Ação |
+|---------|------|
+| `supabase/functions/ai-copy-generator/index.ts` | Criar |
+| `src/components/BroadcastAIAssistant.tsx` | Criar |
+| `src/pages/Communities.tsx` | Editar (adicionar componente) |
 
-**3. `src/pages/Communities.tsx`**
-- Reabilitar o toggle "Mencionar todos" para image, video e link
-- Adicionar tooltip explicando que nesses tipos a menção será enviada como mensagem separada curta
-
-### Comportamento final por tipo
-
-```text
-Tipo     | Menção                              | Mensagens
----------|-------------------------------------|----------
-text     | Nativa (inline)                     | 1
-gif      | Nativa (inline)                     | 1
-image    | Follow-up "☝️" com mentioned        | 2
-video    | Follow-up "☝️" com mentioned        | 2
-link     | Follow-up "☝️" com mentioned        | 2
-audio    | Não suportada                       | 1
-```
+### Modelo OpenAI
+- `gpt-4o-mini` como padrão (custo ~$0.15/1M tokens input) — ideal para copy curta
+- Pode trocar para `gpt-4o` se quiser mais qualidade
 
