@@ -22,6 +22,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useData } from '@/contexts/DataContext';
+import BroadcastAIAssistant from '@/components/BroadcastAIAssistant';
 
 type Community = {
   id: string;
