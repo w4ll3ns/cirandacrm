@@ -1641,6 +1641,7 @@ export default function Communities() {
                   <div>
                     <Label>Mensagem / Legenda</Label>
                     <Textarea value={broadcastMessage} onChange={e => setBroadcastMessage(e.target.value)} placeholder="Texto opcional que acompanha o GIF..." rows={3} />
+                    <BroadcastAIAssistant currentText={broadcastMessage} onApplyText={setBroadcastMessage} broadcastType={broadcastType} />
                   </div>
                   <div className="flex items-center gap-2">
                     <Switch id="mention-all-gif" checked={mentionAll} onCheckedChange={setMentionAll} />
