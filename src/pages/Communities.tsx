@@ -149,6 +149,7 @@ export default function Communities() {
   const [scheduledBroadcasts, setScheduledBroadcasts] = useState<any[]>([]);
   const [loadingScheduled, setLoadingScheduled] = useState(false);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [noInstance, setNoInstance] = useState(false);
 
   // All available groups from loaded communities (exclude disabled)
   const allGroups = useMemo(() => {
@@ -195,9 +196,14 @@ export default function Communities() {
       setCommunityParticipantCounts(counts);
       setLoadingParticipantCounts(false);
 
+      setNoInstance(false);
       toast.success('Comunidades carregadas');
     } catch (err: any) {
-      toast.error(err.message || 'Erro ao listar comunidades');
+      if (err.message?.includes('No active Z-API instance')) {
+        setNoInstance(true);
+      } else {
+        toast.error(err.message || 'Erro ao listar comunidades');
+      }
     } finally {
       setLoading(false);
     }
@@ -803,11 +809,11 @@ export default function Communities() {
             <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
             {loading ? 'Carregando...' : 'Carregar'}
           </Button>
-          <Button variant="secondary" size="sm" onClick={() => { resetBroadcast(); setShowBroadcast(true); }} disabled={allGroups.length === 0}>
+          <Button variant="secondary" size="sm" onClick={() => { resetBroadcast(); setShowBroadcast(true); }} disabled={allGroups.length === 0 || noInstance}>
             <Send className="w-4 h-4 mr-1" />
             Disparar Mensagem
           </Button>
-          <Button size="sm" onClick={() => setShowCreate(true)}>
+          <Button size="sm" onClick={() => setShowCreate(true)} disabled={noInstance}>
             <Plus className="w-4 h-4 mr-1" />
             Nova Comunidade
           </Button>
@@ -830,7 +836,19 @@ export default function Communities() {
         </TabsList>
 
         <TabsContent value="communities" className="space-y-4">
-          {communities.length === 0 && !loading && (
+          {noInstance && !loading && (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+                <Power className="w-12 h-12 text-muted-foreground/30 mb-3" />
+                <p className="text-foreground font-medium text-lg">Nenhuma instância Z-API conectada</p>
+                <p className="text-sm text-muted-foreground mt-1 max-w-md">Para gerenciar comunidades, conecte uma instância Z-API nas configurações.</p>
+                <Button className="mt-4" onClick={() => navigate('/app/configuracoes')}>
+                  Ir para Configurações
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+          {!noInstance && communities.length === 0 && !loading && (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-16 text-center">
                 <Users2 className="w-12 h-12 text-muted-foreground/30 mb-3" />
