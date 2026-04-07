@@ -54,7 +54,11 @@ async function callCommunities(action: string, params: Record<string, unknown> =
     body: { action, ...params },
   });
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    // For non-2xx responses, the actual error detail may be in data
+    const detail = data?.error || error.message;
+    throw new Error(detail);
+  }
   return data;
 }
 
