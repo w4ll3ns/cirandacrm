@@ -196,9 +196,14 @@ export default function Communities() {
       setCommunityParticipantCounts(counts);
       setLoadingParticipantCounts(false);
 
+      setNoInstance(false);
       toast.success('Comunidades carregadas');
     } catch (err: any) {
-      toast.error(err.message || 'Erro ao listar comunidades');
+      if (err.message?.includes('No active Z-API instance')) {
+        setNoInstance(true);
+      } else {
+        toast.error(err.message || 'Erro ao listar comunidades');
+      }
     } finally {
       setLoading(false);
     }
