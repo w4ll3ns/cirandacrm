@@ -56,6 +56,24 @@ Deno.serve(async (req) => {
       });
     }
 
+    let body: Record<string, unknown>;
+    try {
+      body = await req.json();
+    } catch {
+      return new Response(JSON.stringify({ error: "Invalid request body" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { action, ...params } = body;
+    if (!action || typeof action !== "string") {
+      return new Response(JSON.stringify({ error: "action is required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Get active Z-API instance
     const { data: instance } = await supabase
       .from("zapi_instances")
@@ -65,7 +83,14 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (!instance) {
-      return new Response(JSON.stringify({ error: "No active Z-API instance" }), {
+      if (action === "list") {
+        return new Response(JSON.stringify({ communities: [], noActiveInstance: true }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(JSON.stringify({ error: "No active Z-API instance", noActiveInstance: true }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -73,9 +98,6 @@ Deno.serve(async (req) => {
 
     const baseUrl = `https://api.z-api.io/instances/${instance.instance_id}/token/${instance.token}`;
     const clientToken = instance.client_token;
-
-    const body = await req.json();
-    const { action, ...params } = body;
 
     let zapiResponse: Response;
 
