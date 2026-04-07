@@ -9,7 +9,6 @@ export function usePermissions() {
   const isAdmin = role === 'admin';
 
   const hasModule = (mod: AppModule): boolean => {
-    if (isAdmin) return true;
     return modules.includes(mod);
   };
 

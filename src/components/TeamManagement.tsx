@@ -207,22 +207,17 @@ export default function TeamManagement() {
                 {u.active ? <UserX className="w-4 h-4 text-muted-foreground" /> : <UserCheck className="w-4 h-4 text-green-500" />}
               </button>
             </div>
-            {!isAdmin && (
-              <div className="flex items-center gap-4 pl-12">
-                {Object.entries(MODULE_LABELS).map(([mod, label]) => (
-                  <label key={mod} className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
-                    <Checkbox
-                      checked={mods.includes(mod)}
-                      onCheckedChange={() => handleToggleModule(u.id, mod)}
-                    />
-                    {label}
-                  </label>
-                ))}
-              </div>
-            )}
-            {isAdmin && (
-              <p className="text-[10px] text-muted-foreground pl-12 italic">Admins têm acesso a todos os módulos</p>
-            )}
+            <div className="flex items-center gap-4 pl-12">
+              {Object.entries(MODULE_LABELS).map(([mod, label]) => (
+                <label key={mod} className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
+                  <Checkbox
+                    checked={mods.includes(mod)}
+                    onCheckedChange={() => handleToggleModule(u.id, mod)}
+                  />
+                  {label}
+                </label>
+              ))}
+            </div>
           </div>
         );
       })}
