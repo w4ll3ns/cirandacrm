@@ -836,7 +836,19 @@ export default function Communities() {
         </TabsList>
 
         <TabsContent value="communities" className="space-y-4">
-          {communities.length === 0 && !loading && (
+          {noInstance && !loading && (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+                <Power className="w-12 h-12 text-muted-foreground/30 mb-3" />
+                <p className="text-foreground font-medium text-lg">Nenhuma instância Z-API conectada</p>
+                <p className="text-sm text-muted-foreground mt-1 max-w-md">Para gerenciar comunidades, conecte uma instância Z-API nas configurações.</p>
+                <Button className="mt-4" onClick={() => navigate('/app/configuracoes')}>
+                  Ir para Configurações
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+          {!noInstance && communities.length === 0 && !loading && (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-16 text-center">
                 <Users2 className="w-12 h-12 text-muted-foreground/30 mb-3" />
