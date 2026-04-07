@@ -149,6 +149,7 @@ export default function Communities() {
   const [scheduledBroadcasts, setScheduledBroadcasts] = useState<any[]>([]);
   const [loadingScheduled, setLoadingScheduled] = useState(false);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [noInstance, setNoInstance] = useState(false);
 
   // All available groups from loaded communities (exclude disabled)
   const allGroups = useMemo(() => {
