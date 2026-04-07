@@ -207,6 +207,14 @@ export default function Communities() {
     setLoading(true);
     try {
       const data = await callCommunities('list', { page: 1, pageSize: 50 });
+
+      if (data?.noActiveInstance) {
+        setCommunities([]);
+        setCommunityParticipantCounts({});
+        setNoInstance(true);
+        return;
+      }
+
       const list: Community[] = Array.isArray(data) ? data : data?.communities || data?.data || [];
       setCommunities(list);
 
@@ -238,6 +246,8 @@ export default function Communities() {
       toast.success('Comunidades carregadas');
     } catch (err: any) {
       if (err.message?.includes('No active Z-API instance')) {
+        setCommunities([]);
+        setCommunityParticipantCounts({});
         setNoInstance(true);
       } else {
         toast.error(err.message || 'Erro ao listar comunidades');
