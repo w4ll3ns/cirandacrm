@@ -46,6 +46,42 @@ type CommunityMetadata = {
 type BroadcastType = 'text' | 'image' | 'audio' | 'video' | 'gif' | 'link';
 type BroadcastResult = { groupPhone: string; status: string; error?: string };
 
+async function getFunctionErrorMessage(error: any, data: any) {
+  if (typeof data?.error === 'string' && data.error) {
+    return data.error;
+  }
+
+  const context = error?.context;
+  if (context && typeof context.clone === 'function') {
+    try {
+      const parsed = await context.clone().json();
+      if (typeof parsed?.error === 'string' && parsed.error) {
+        return parsed.error;
+      }
+    } catch {
+      // ignore JSON parsing issues and try plain text below
+    }
+
+    try {
+      const text = await context.clone().text();
+      if (text) {
+        try {
+          const parsed = JSON.parse(text);
+          if (typeof parsed?.error === 'string' && parsed.error) {
+            return parsed.error;
+          }
+        } catch {
+          return text;
+        }
+      }
+    } catch {
+      // ignore text parsing issues and fall back to error.message
+    }
+  }
+
+  return error?.message || 'Erro ao comunicar com o servidor';
+}
+
 async function callCommunities(action: string, params: Record<string, unknown> = {}) {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) throw new Error('Não autenticado');
@@ -55,9 +91,7 @@ async function callCommunities(action: string, params: Record<string, unknown> =
   });
 
   if (error) {
-    // For non-2xx responses, the actual error detail may be in data
-    const detail = data?.error || error.message;
-    throw new Error(detail);
+    throw new Error(await getFunctionErrorMessage(error, data));
   }
   return data;
 }
@@ -173,6 +207,14 @@ export default function Communities() {
     setLoading(true);
     try {
       const data = await callCommunities('list', { page: 1, pageSize: 50 });
+
+      if (data?.noActiveInstance) {
+        setCommunities([]);
+        setCommunityParticipantCounts({});
+        setNoInstance(true);
+        return;
+      }
+
       const list: Community[] = Array.isArray(data) ? data : data?.communities || data?.data || [];
       setCommunities(list);
 
@@ -204,6 +246,8 @@ export default function Communities() {
       toast.success('Comunidades carregadas');
     } catch (err: any) {
       if (err.message?.includes('No active Z-API instance')) {
+        setCommunities([]);
+        setCommunityParticipantCounts({});
         setNoInstance(true);
       } else {
         toast.error(err.message || 'Erro ao listar comunidades');
