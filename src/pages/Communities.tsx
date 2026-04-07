@@ -809,11 +809,11 @@ export default function Communities() {
             <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
             {loading ? 'Carregando...' : 'Carregar'}
           </Button>
-          <Button variant="secondary" size="sm" onClick={() => { resetBroadcast(); setShowBroadcast(true); }} disabled={allGroups.length === 0}>
+          <Button variant="secondary" size="sm" onClick={() => { resetBroadcast(); setShowBroadcast(true); }} disabled={allGroups.length === 0 || noInstance}>
             <Send className="w-4 h-4 mr-1" />
             Disparar Mensagem
           </Button>
-          <Button size="sm" onClick={() => setShowCreate(true)}>
+          <Button size="sm" onClick={() => setShowCreate(true)} disabled={noInstance}>
             <Plus className="w-4 h-4 mr-1" />
             Nova Comunidade
           </Button>
