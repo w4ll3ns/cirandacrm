@@ -34,13 +34,15 @@ Deno.serve(async (req) => {
     const payload = await req.json();
     console.log("Webhook payload:", JSON.stringify(payload));
 
-    // Log the webhook event
-    await supabase.from("webhook_events").insert({
-      provider: "zapi",
-      event_type: payload.type || payload.event || "message",
-      external_event_id: payload.messageId || null,
-      payload,
-    });
+    // Log the webhook event (skip high-volume status callbacks to reduce DB usage)
+    if (payload.type !== "MessageStatusCallback") {
+      await supabase.from("webhook_events").insert({
+        provider: "zapi",
+        event_type: payload.type || payload.event || "message",
+        external_event_id: payload.messageId || null,
+        payload,
+      });
+    }
 
     // ─── Handle MessageStatusCallback ───
     if (payload.type === "MessageStatusCallback") {
