@@ -1,29 +1,63 @@
+## Otimização de uso do Lovable Cloud — 3 etapas
 
+Aplicar as 3 mudanças aprovadas, em sequência segura, para reduzir ~97% do tamanho do banco e ~80% das invocações de edge function, **sem impacto no funcionamento atual**.
 
-## Fallback amigável para instância Z-API não conectada
+---
 
-### Problema
-Quando não há instância Z-API conectada, a página de Comunidades exibe um erro genérico via toast ("No active Z-API instance"). O usuário não entende o que precisa fazer.
+### Etapa 1 — Limpeza e retenção de tabelas internas (zero impacto)
 
-### Solução
-Detectar o erro específico "No active Z-API instance" no `fetchCommunities`, salvar em um estado, e renderizar um card informativo com orientação clara e botão para ir às Configurações.
+Migration única que:
 
-### Alterações em `src/components/Communities.tsx`
+1. **Deleta `webhook_events` antigos** (>7 dias) — foco em `MessageStatusCallback` (227k linhas).
+2. **Cria job pg_cron de retenção semanal** para:
+   - `webhook_events` → mantém 7 dias
+   - `cron.job_run_details` → mantém 7 dias
+   - `net._http_response` → mantém 3 dias
+3. Executa `VACUUM` (não `FULL` em migration — apenas reclaim padrão via autovacuum após DELETE massivo).
 
-1. **Novo estado**: `noInstance` (boolean, default false)
-2. **No `fetchCommunities` catch**: detectar se `err.message` contém "No active Z-API instance" → setar `noInstance = true` e NÃO mostrar toast de erro genérico. No try (sucesso), resetar `noInstance = false`.
-3. **No render (dentro do TabsContent "communities")**: antes do card "Nenhuma comunidade carregada", adicionar condicional:
-   - Se `noInstance && !loading`: exibir Card com ícone (Power ou WifiOff), título "Nenhuma instância Z-API conectada", descrição explicativa, e botão "Ir para Configurações" que navega para `/app/configuracoes`.
-4. **Desabilitar botões** "Nova Comunidade" e "Disparar Mensagem" quando `noInstance` é true.
+**Impacto funcional:** nenhum. Tabelas são logs/telemetria que nenhum código de aplicação consulta.
 
-### Resultado visual
-Card centralizado com:
-- Ícone de conexão desativada
-- "Nenhuma instância Z-API conectada"
-- "Para gerenciar comunidades, conecte uma instância Z-API nas configurações."
-- Botão: "Ir para Configurações"
+---
+
+### Etapa 2 — Pré-check SQL no cron do broadcast-scheduler
+
+Mantém o cron rodando **a cada 1 minuto** (não muda frequência, preserva pontualidade dos agendamentos), mas envolve o `net.http_post` em um `IF EXISTS (... scheduled_broadcasts WHERE status='pending' AND scheduled_at <= now())`.
+
+- Reagenda o cron via `cron.unschedule` + `cron.schedule` com o novo SQL.
+- Resultado: edge function só é chamada quando há trabalho real. Invocações caem de 1.440/dia para apenas as necessárias (tipicamente <10/dia).
+
+**Impacto funcional:** nenhum. Agendamentos continuam sendo processados no minuto correto.
+
+---
+
+### Etapa 3 — Parar de gravar `MessageStatusCallback` em `webhook_events`
+
+Editar `supabase/functions/zapi-webhook/index.ts`:
+
+- Mover o `insert` em `webhook_events` para **depois** do early-return de `MessageStatusCallback`, ou condicionar a `payload.type !== "MessageStatusCallback"`.
+- O `UPDATE` em `messages` (linhas 60-79) **continua intacto** — status de mensagens segue funcionando.
+
+**Impacto funcional:** nenhum. Apenas para de duplicar payload bruto num log que ninguém consulta. Eventos `ReceivedCallback` e outros continuam sendo logados.
+
+---
+
+### Ordem de execução
+
+1. Migration da Etapa 1 (requires-approval do usuário)
+2. Insert/SQL da Etapa 2 (via `supabase--insert` pois contém URL+anon key)
+3. Edição do arquivo `zapi-webhook/index.ts` (Etapa 3) — deploy automático
+
+### Arquivos afetados
 
 | Arquivo | Ação |
-|---------|------|
-| `src/pages/Communities.tsx` | Editar (estado + fallback UI + desabilitar botões) |
+|---|---|
+| `supabase/migrations/*_cleanup_and_retention.sql` | Criar (Etapa 1) |
+| `cron.job` `broadcast-scheduler-cron` | Reagendar via SQL (Etapa 2) |
+| `supabase/functions/zapi-webhook/index.ts` | Editar (Etapa 3) |
 
+### Resultado esperado
+
+- Banco: 208 MB → ~5 MB
+- Invocações edge/mês: 43.200 → <300
+- Escritas/dia: 5.000+ → dezenas
+- **Funcionalidades preservadas:** envio agendado, status de mensagens (sent/delivered/read), webhook de mensagens recebidas, flow engine.
