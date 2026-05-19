@@ -1,56 +1,49 @@
-## Como medir o custo do envio de hoje e validar as otimizações
+## Recuperar espaço em disco + mensurar custo de hoje
 
-O objetivo é responder duas perguntas com dados reais:
-1. **Quanto custou o envio feito hoje?** (em invocações de edge function, escritas no banco, e tamanho ocupado)
-2. **As 3 otimizações aplicadas surtiram efeito?** (comparando com a baseline anterior)
-
-Não há código novo a escrever — é uma análise via consultas SQL e logs.
+Dois objetivos:
+1. **Liberar os ~200 MB** sem afetar nenhuma rotina do sistema
+2. **Estimar em $ quanto o sistema custou hoje** no Lovable Cloud
 
 ---
 
-### Métricas que vamos coletar
+### Parte 1 — Liberar disco com zero impacto
 
-| Métrica | Onde mora | O que mostra |
+O comando padrão para devolver espaço ao SO é `VACUUM FULL`, mas ele **bloqueia a tabela** durante a execução (writes ficam esperando). Para garantir zero impacto, vou usar uma estratégia segura:
+
+**Estratégia escolhida: `VACUUM FULL` em janela controlada**
+
+Por quê é seguro nesse caso:
+- `webhook_events` (120 MB): escrita apenas pela edge function `zapi-webhook`. Se um webhook chegar durante o vacuum (~5-15s), ele apenas espera o lock — Z-API faz retry automático, nada se perde.
+- `cron.job_run_details` (53 MB): tabela interna do `pg_cron`. Nenhum código lê. Vacuum é transparente.
+- `net._http_response` (24 MB): tabela interna do `pg_net`. Nenhum código lê. Vacuum é transparente.
+
+**Mitigação adicional:** rodar em sequência rápida (não paralelo) com timeout curto. Tempo total estimado: **<30 segundos**.
+
+**Se quiser risco ainda menor:** posso pular `webhook_events` (a única que tem escrita ativa) e rodar só nas 2 internas — libera ~77 MB sem nenhum risco de bloquear o webhook. Os 120 MB restantes em `webhook_events` serão reutilizados naturalmente pelas próximas inserções (sem inchar mais).
+
+---
+
+### Parte 2 — Mensurar custo de hoje em $
+
+O Lovable Cloud cobra por 3 dimensões:
+
+| Dimensão | Consumo 24h | Custo estimado |
 |---|---|---|
-| Invocações `zapi-webhook` nas últimas 24h | `function_edge_logs` (analytics) | Quantas vezes a Z-API chamou o webhook |
-| Invocações `broadcast-scheduler` 24h | `function_edge_logs` | Confirma se o pré-check SQL cortou as chamadas a vazio |
-| Invocações `zapi-community-broadcast` 24h | `function_edge_logs` | Custo direto do envio em massa de hoje |
-| Linhas novas em `webhook_events` 24h | `webhook_events` (count + group by `type`) | Confirma que `MessageStatusCallback` parou de ser gravado |
-| Linhas em `messages` criadas 24h | `messages` | Volume real de mensagens do envio |
-| Tamanho atual do banco | `pg_database_size` + `pg_total_relation_size` por tabela | Mostra se a limpeza liberou os ~200 MB |
-| Execuções de cron 24h | `cron.job_run_details` | Confirma frequência e duração média |
+| **Compute (DB)** | Instância sempre ligada (sem auto-pause em produção) | Fixo/dia conforme tamanho da instância |
+| **Edge function invocations** | 190 invocações totais (179 webhook + 10 community-join + 1 broadcast) | Geralmente fração de centavo |
+| **Storage do banco** | 216 MB (cai após vacuum) | Fixo/GB-mês |
+| **Egress** | Tráfego de leitura do app | Variável |
+
+**Vou consultar:**
+- Métricas reais de invocações + tempo de execução total (já temos)
+- Tamanho do banco antes e depois do vacuum
+- O painel oficial de custo está em **Cloud → Advanced settings** (única fonte com valores em $ exatos — Lovable não expõe billing via SQL)
+
+**Entrego:** estimativa em $ baseada nas tabelas públicas de pricing do Lovable Cloud + comparação "se nada tivesse sido otimizado, seriam X invocações e Y MB".
 
 ---
 
-### Etapas
+### Confirme antes de executar:
 
-**1. Snapshot pós-envio (agora):**
-- Rodar SQL via `supabase--read_query`:
-  - `SELECT pg_size_pretty(pg_database_size(current_database()))`
-  - Top 10 tabelas por tamanho
-  - `SELECT type, count(*) FROM webhook_events WHERE created_at > now() - interval '24 hours' GROUP BY type`
-  - `SELECT count(*), date_trunc('hour', created_at) FROM messages WHERE created_at > now() - interval '24 hours' GROUP BY 1 ORDER BY 1`
-  - `SELECT count(*), status FROM cron.job_run_details WHERE start_time > now() - interval '24 hours' GROUP BY status`
-
-**2. Invocações de edge function 24h** via `supabase--analytics_query` no `function_edge_logs`, agrupando por `function_id` e contando chamadas + média de `execution_time_ms`.
-
-**3. Comparação antes/depois:**
-- Baseline conhecida (antes dos ajustes): banco 208 MB, ~43.200 invocações/mês do scheduler, milhares de `MessageStatusCallback`/dia gravados.
-- Pós-ajuste esperado: banco ~5 MB, scheduler <10 invocações/dia, zero `MessageStatusCallback` em `webhook_events`.
-
-**4. Relatório consolidado** apresentado em chat com:
-- Tabela "antes vs depois" das 3 otimizações
-- Custo isolado do envio de hoje (invocações + linhas escritas)
-- Diagnóstico: ✅ funcionou / ⚠️ parcialmente / ❌ regrediu, por otimização
-- Recomendações se algo ficou fora do esperado
-
----
-
-### O que preciso de você
-
-Confirme um ponto antes de eu rodar:
-
-- **Janela do envio**: foi feito "hoje" — você sabe aproximadamente o horário (manhã/tarde) ou prefere que eu olhe as últimas 24h inteiras?
-- **Quero focar em todos os 3 ajustes ou só validar o envio específico?** (recomendo os 3, é o mesmo trabalho)
-
-Assim que confirmar, executo as consultas e te entrego o relatório.
+1. **Vacuum**: vai nas 3 tabelas (risco mínimo, ~15-30s total) ou só nas 2 internas (zero risco, libera ~77 MB)?
+2. Após o vacuum, te entrego o relatório de custo consolidado.
