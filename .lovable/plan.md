@@ -1,63 +1,56 @@
-## Otimização de uso do Lovable Cloud — 3 etapas
+## Como medir o custo do envio de hoje e validar as otimizações
 
-Aplicar as 3 mudanças aprovadas, em sequência segura, para reduzir ~97% do tamanho do banco e ~80% das invocações de edge function, **sem impacto no funcionamento atual**.
+O objetivo é responder duas perguntas com dados reais:
+1. **Quanto custou o envio feito hoje?** (em invocações de edge function, escritas no banco, e tamanho ocupado)
+2. **As 3 otimizações aplicadas surtiram efeito?** (comparando com a baseline anterior)
 
----
-
-### Etapa 1 — Limpeza e retenção de tabelas internas (zero impacto)
-
-Migration única que:
-
-1. **Deleta `webhook_events` antigos** (>7 dias) — foco em `MessageStatusCallback` (227k linhas).
-2. **Cria job pg_cron de retenção semanal** para:
-   - `webhook_events` → mantém 7 dias
-   - `cron.job_run_details` → mantém 7 dias
-   - `net._http_response` → mantém 3 dias
-3. Executa `VACUUM` (não `FULL` em migration — apenas reclaim padrão via autovacuum após DELETE massivo).
-
-**Impacto funcional:** nenhum. Tabelas são logs/telemetria que nenhum código de aplicação consulta.
+Não há código novo a escrever — é uma análise via consultas SQL e logs.
 
 ---
 
-### Etapa 2 — Pré-check SQL no cron do broadcast-scheduler
+### Métricas que vamos coletar
 
-Mantém o cron rodando **a cada 1 minuto** (não muda frequência, preserva pontualidade dos agendamentos), mas envolve o `net.http_post` em um `IF EXISTS (... scheduled_broadcasts WHERE status='pending' AND scheduled_at <= now())`.
-
-- Reagenda o cron via `cron.unschedule` + `cron.schedule` com o novo SQL.
-- Resultado: edge function só é chamada quando há trabalho real. Invocações caem de 1.440/dia para apenas as necessárias (tipicamente <10/dia).
-
-**Impacto funcional:** nenhum. Agendamentos continuam sendo processados no minuto correto.
-
----
-
-### Etapa 3 — Parar de gravar `MessageStatusCallback` em `webhook_events`
-
-Editar `supabase/functions/zapi-webhook/index.ts`:
-
-- Mover o `insert` em `webhook_events` para **depois** do early-return de `MessageStatusCallback`, ou condicionar a `payload.type !== "MessageStatusCallback"`.
-- O `UPDATE` em `messages` (linhas 60-79) **continua intacto** — status de mensagens segue funcionando.
-
-**Impacto funcional:** nenhum. Apenas para de duplicar payload bruto num log que ninguém consulta. Eventos `ReceivedCallback` e outros continuam sendo logados.
+| Métrica | Onde mora | O que mostra |
+|---|---|---|
+| Invocações `zapi-webhook` nas últimas 24h | `function_edge_logs` (analytics) | Quantas vezes a Z-API chamou o webhook |
+| Invocações `broadcast-scheduler` 24h | `function_edge_logs` | Confirma se o pré-check SQL cortou as chamadas a vazio |
+| Invocações `zapi-community-broadcast` 24h | `function_edge_logs` | Custo direto do envio em massa de hoje |
+| Linhas novas em `webhook_events` 24h | `webhook_events` (count + group by `type`) | Confirma que `MessageStatusCallback` parou de ser gravado |
+| Linhas em `messages` criadas 24h | `messages` | Volume real de mensagens do envio |
+| Tamanho atual do banco | `pg_database_size` + `pg_total_relation_size` por tabela | Mostra se a limpeza liberou os ~200 MB |
+| Execuções de cron 24h | `cron.job_run_details` | Confirma frequência e duração média |
 
 ---
 
-### Ordem de execução
+### Etapas
 
-1. Migration da Etapa 1 (requires-approval do usuário)
-2. Insert/SQL da Etapa 2 (via `supabase--insert` pois contém URL+anon key)
-3. Edição do arquivo `zapi-webhook/index.ts` (Etapa 3) — deploy automático
+**1. Snapshot pós-envio (agora):**
+- Rodar SQL via `supabase--read_query`:
+  - `SELECT pg_size_pretty(pg_database_size(current_database()))`
+  - Top 10 tabelas por tamanho
+  - `SELECT type, count(*) FROM webhook_events WHERE created_at > now() - interval '24 hours' GROUP BY type`
+  - `SELECT count(*), date_trunc('hour', created_at) FROM messages WHERE created_at > now() - interval '24 hours' GROUP BY 1 ORDER BY 1`
+  - `SELECT count(*), status FROM cron.job_run_details WHERE start_time > now() - interval '24 hours' GROUP BY status`
 
-### Arquivos afetados
+**2. Invocações de edge function 24h** via `supabase--analytics_query` no `function_edge_logs`, agrupando por `function_id` e contando chamadas + média de `execution_time_ms`.
 
-| Arquivo | Ação |
-|---|---|
-| `supabase/migrations/*_cleanup_and_retention.sql` | Criar (Etapa 1) |
-| `cron.job` `broadcast-scheduler-cron` | Reagendar via SQL (Etapa 2) |
-| `supabase/functions/zapi-webhook/index.ts` | Editar (Etapa 3) |
+**3. Comparação antes/depois:**
+- Baseline conhecida (antes dos ajustes): banco 208 MB, ~43.200 invocações/mês do scheduler, milhares de `MessageStatusCallback`/dia gravados.
+- Pós-ajuste esperado: banco ~5 MB, scheduler <10 invocações/dia, zero `MessageStatusCallback` em `webhook_events`.
 
-### Resultado esperado
+**4. Relatório consolidado** apresentado em chat com:
+- Tabela "antes vs depois" das 3 otimizações
+- Custo isolado do envio de hoje (invocações + linhas escritas)
+- Diagnóstico: ✅ funcionou / ⚠️ parcialmente / ❌ regrediu, por otimização
+- Recomendações se algo ficou fora do esperado
 
-- Banco: 208 MB → ~5 MB
-- Invocações edge/mês: 43.200 → <300
-- Escritas/dia: 5.000+ → dezenas
-- **Funcionalidades preservadas:** envio agendado, status de mensagens (sent/delivered/read), webhook de mensagens recebidas, flow engine.
+---
+
+### O que preciso de você
+
+Confirme um ponto antes de eu rodar:
+
+- **Janela do envio**: foi feito "hoje" — você sabe aproximadamente o horário (manhã/tarde) ou prefere que eu olhe as últimas 24h inteiras?
+- **Quero focar em todos os 3 ajustes ou só validar o envio específico?** (recomendo os 3, é o mesmo trabalho)
+
+Assim que confirmar, executo as consultas e te entrego o relatório.
