@@ -6,6 +6,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import TeamManagement from '@/components/TeamManagement';
 import ZapiConfig from '@/components/ZapiConfig';
 import PipelineConfig from '@/components/PipelineConfig';
+import UsageMonitoringPanel from '@/components/UsageMonitoringPanel';
 
 export default function Settings() {
   const { usuario, logout } = useAuth();
@@ -36,6 +37,11 @@ export default function Settings() {
         {canManageSettings && (
           <div className="bg-card rounded-xl p-4 border border-border">
             <PipelineConfig />
+          </div>
+        )}
+        {canManageSettings && (
+          <div className="bg-card rounded-xl p-4 border border-border">
+            <UsageMonitoringPanel />
           </div>
         )}
         <NotificationsCard />
@@ -74,6 +80,13 @@ export default function Settings() {
         {canManageSettings && (
           <div className="col-span-2 bg-card rounded-xl p-6 border border-border">
             <PipelineConfig />
+          </div>
+        )}
+
+        {/* Row 4.5: Monitoring (full width) */}
+        {canManageSettings && (
+          <div className="col-span-2 bg-card rounded-xl p-6 border border-border">
+            <UsageMonitoringPanel />
           </div>
         )}
 
