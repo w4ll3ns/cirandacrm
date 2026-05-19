@@ -1,49 +1,85 @@
-## Recuperar espaço em disco + mensurar custo de hoje
+# Painel de Monitoramento de Custo & Consumo (Admin)
 
-Dois objetivos:
-1. **Liberar os ~200 MB** sem afetar nenhuma rotina do sistema
-2. **Estimar em $ quanto o sistema custou hoje** no Lovable Cloud
+Novo painel exclusivo para administradores que mostra, em tempo quase real, o custo estimado das últimas 24h e o consumo das edge functions.
 
----
+## Onde fica
 
-### Parte 1 — Liberar disco com zero impacto
+- Nova aba **"Monitoramento"** dentro de `Configurações` (`/app/configuracoes`), visível apenas para `role = admin` (usando `usePermissions().canManageSettings`).
+- Alternativa caso prefira página dedicada: rota `/app/monitoramento` no menu lateral (admin-only). **Sugestão**: manter dentro de Configurações para não poluir a navegação.
 
-O comando padrão para devolver espaço ao SO é `VACUUM FULL`, mas ele **bloqueia a tabela** durante a execução (writes ficam esperando). Para garantir zero impacto, vou usar uma estratégia segura:
+## O que o painel mostra
 
-**Estratégia escolhida: `VACUUM FULL` em janela controlada**
+### 1. Cards de resumo (topo)
+- **Custo estimado 24h** (~$0,30/dia) — soma de Compute + Functions + Storage + Egress
+- **Invocações de Edge Functions** (últimas 24h)
+- **CPU total consumido** (soma de `execution_time_ms`)
+- **Tamanho do banco** (MB)
+- **Webhooks recebidos** (24h)
 
-Por quê é seguro nesse caso:
-- `webhook_events` (120 MB): escrita apenas pela edge function `zapi-webhook`. Se um webhook chegar durante o vacuum (~5-15s), ele apenas espera o lock — Z-API faz retry automático, nada se perde.
-- `cron.job_run_details` (53 MB): tabela interna do `pg_cron`. Nenhum código lê. Vacuum é transparente.
-- `net._http_response` (24 MB): tabela interna do `pg_net`. Nenhum código lê. Vacuum é transparente.
+Cada card mostra valor + variação vs. 24h anteriores (seta verde/vermelha).
 
-**Mitigação adicional:** rodar em sequência rápida (não paralelo) com timeout curto. Tempo total estimado: **<30 segundos**.
+### 2. Tabela "Edge Functions — últimas 24h"
+Colunas: Função | Invocações | CPU total (s) | CPU média (ms) | Erros | Custo estimado
 
-**Se quiser risco ainda menor:** posso pular `webhook_events` (a única que tem escrita ativa) e rodar só nas 2 internas — libera ~77 MB sem nenhum risco de bloquear o webhook. Os 120 MB restantes em `webhook_events` serão reutilizados naturalmente pelas próximas inserções (sem inchar mais).
+Funções monitoradas: `zapi-webhook`, `zapi-community-broadcast`, `community-join`, `ai-copy-generator`, `broadcast-scheduler`, `zapi-send`, `flow-engine`, `invite-member`, `fetch-link-preview`, `zapi-communities`, `zapi-instance-manager`.
 
----
+### 3. Gráfico de barras "Invocações por hora" (24h)
+Recharts BarChart agrupado por hora, com toggle entre "Invocações" e "CPU (ms)".
 
-### Parte 2 — Mensurar custo de hoje em $
+### 4. Detalhamento de custo
+Tabela com fórmula transparente:
+| Recurso | Quantidade | Preço unit. | Subtotal |
+|---|---|---|---|
+| Compute DB (Micro) | 24h | $0,01307/h | $0,3137 |
+| Edge invocations | N | $2/milhão | $… |
+| Storage | X MB | $0,125/GB/mês | $… |
+| Egress | Y MB | $0,09/GB | $… |
+| **Total estimado** | | | **$0,XX** |
 
-O Lovable Cloud cobra por 3 dimensões:
+Texto-aviso: "Valores estimados. Os valores oficiais aparecem em Lovable Cloud → Cloud & AI balance."
 
-| Dimensão | Consumo 24h | Custo estimado |
-|---|---|---|
-| **Compute (DB)** | Instância sempre ligada (sem auto-pause em produção) | Fixo/dia conforme tamanho da instância |
-| **Edge function invocations** | 190 invocações totais (179 webhook + 10 community-join + 1 broadcast) | Geralmente fração de centavo |
-| **Storage do banco** | 216 MB (cai após vacuum) | Fixo/GB-mês |
-| **Egress** | Tráfego de leitura do app | Variável |
+## Como os dados são obtidos
 
-**Vou consultar:**
-- Métricas reais de invocações + tempo de execução total (já temos)
-- Tamanho do banco antes e depois do vacuum
-- O painel oficial de custo está em **Cloud → Advanced settings** (única fonte com valores em $ exatos — Lovable não expõe billing via SQL)
+Não existe API pública de billing. Vamos consultar tabelas internas do Postgres via uma **Edge Function `admin-usage-metrics`** (verifica JWT + role admin) que retorna JSON consolidado:
 
-**Entrego:** estimativa em $ baseada nas tabelas públicas de pricing do Lovable Cloud + comparação "se nada tivesse sido otimizado, seriam X invocações e Y MB".
+- **Invocações + CPU por função**: query em `function_edge_logs` (banco de analytics) via `supabase.rpc` indireta — ou alternativamente uma query SQL agregada na tabela `cron.job_run_details` + contagem de `webhook_events` por `event_type` como proxy para `zapi-webhook`.
+- **Tamanho do banco**: `pg_database_size(current_database())`.
+- **Storage**: `SELECT sum(metadata->>'size')::bigint FROM storage.objects`.
+- **Egress**: estimado a partir de invocações * payload médio (aproximação) — marcado como "estimativa grosseira".
 
----
+A função retorna `{ summary, hourly, perFunction, costBreakdown }`.
 
-### Confirme antes de executar:
+## Realtime / atualização
 
-1. **Vacuum**: vai nas 3 tabelas (risco mínimo, ~15-30s total) ou só nas 2 internas (zero risco, libera ~77 MB)?
-2. Após o vacuum, te entrego o relatório de custo consolidado.
+- Polling automático a cada **30s** via React Query (`refetchInterval: 30000`).
+- Botão "Atualizar agora" + timestamp da última atualização.
+- (Logs de função são imutáveis e não suportam Postgres Realtime — polling é o correto.)
+
+## Detalhes técnicos
+
+**Arquivos novos:**
+- `supabase/functions/admin-usage-metrics/index.ts` — agrega métricas, valida JWT, exige role admin via `has_role`.
+- `src/components/UsageMonitoringPanel.tsx` — UI completa (cards + tabela + gráfico).
+- `src/hooks/useUsageMetrics.ts` — React Query hook.
+
+**Arquivos editados:**
+- `src/pages/Settings.tsx` — adicionar seção "Monitoramento" (admin-only) com o `<UsageMonitoringPanel />`.
+
+**Constantes de preço** (centralizadas em `admin-usage-metrics/index.ts`):
+```ts
+const PRICING = {
+  computeMicroPerHour: 0.01307,
+  edgeInvocationPerMillion: 2.00,
+  storagePerGbMonth: 0.125,
+  egressPerGb: 0.09,
+};
+```
+
+**Segurança:** RLS já protege `webhook_events`/`audit_logs` (admin-only). A edge function valida JWT e checa `has_role(user_id, 'admin')` antes de retornar dados.
+
+**Sem mudanças de schema** — somente leitura de tabelas existentes + `pg_database_size` + `storage.objects`.
+
+## Fora do escopo
+- Alertas por e-mail/push quando custo passar de limite (pode ser fase 2).
+- Histórico além de 24h (dados antigos são limpos pelo `cleanup_internal_logs`).
+- Exportar CSV (fase 2 se você pedir).
