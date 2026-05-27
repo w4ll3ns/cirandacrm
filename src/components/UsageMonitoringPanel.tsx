@@ -167,3 +167,93 @@ function SummaryCard({ icon, label, value }: { icon: React.ReactNode; label: str
     </div>
   );
 }
+
+function InstanceSizeAlert() {
+  const [size, setSize] = useState<string>("micro");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("settings")
+        .select("valor")
+        .eq("chave", "cloud_instance_size")
+        .maybeSingle();
+      if (data?.valor) setSize(data.valor);
+      setLoading(false);
+    })();
+  }, []);
+
+  const saveSize = async (newSize: string) => {
+    setSaving(true);
+    setSize(newSize);
+    const { data: existing } = await supabase
+      .from("settings")
+      .select("id")
+      .eq("chave", "cloud_instance_size")
+      .maybeSingle();
+    const payload = {
+      chave: "cloud_instance_size",
+      valor: newSize,
+      descricao: "Tamanho atual da instância do Lovable Cloud (informado manualmente)",
+    };
+    const { error } = existing
+      ? await supabase.from("settings").update(payload).eq("id", existing.id)
+      : await supabase.from("settings").insert(payload);
+    setSaving(false);
+    if (error) toast.error("Erro ao salvar");
+    else toast.success("Tamanho registrado");
+  };
+
+  if (loading) return null;
+  const info = INSTANCE_PRICING[size] ?? INSTANCE_PRICING.micro;
+  const isOversized = size !== "micro" && size !== "nano";
+
+  return (
+    <div
+      className={`rounded-lg border p-4 ${
+        isOversized
+          ? "bg-yellow-50 border-yellow-300 dark:bg-yellow-950/30 dark:border-yellow-800"
+          : "bg-card border-border"
+      }`}
+    >
+      <div className="flex items-start gap-3">
+        <div className={`mt-0.5 ${isOversized ? "text-yellow-600" : "text-primary"}`}>
+          {isOversized ? <AlertTriangle className="w-5 h-5" /> : <Server className="w-5 h-5" />}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold">
+            Instância atual: {info.label} · ~${info.perDay.toFixed(2)}/dia
+          </p>
+          {isOversized ? (
+            <p className="text-xs text-yellow-800 dark:text-yellow-200 mt-1">
+              O uso atual do app é muito baixo (RAM ~15%, poucas invocações/dia). Considere
+              voltar para <strong>Micro</strong> em <em>Backend → Advanced settings</em> para
+              economizar ~${(info.perDay - INSTANCE_PRICING.micro.perDay).toFixed(2)}/dia.
+            </p>
+          ) : (
+            <p className="text-xs text-muted-foreground mt-1">
+              Tamanho adequado para o volume atual. Se o app ficar lento sob carga, suba em
+              Backend → Advanced settings.
+            </p>
+          )}
+        </div>
+        <div className="w-32 shrink-0">
+          <Select value={size} onValueChange={saveSize} disabled={saving}>
+            <SelectTrigger className="h-8 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(INSTANCE_PRICING).map(([key, v]) => (
+                <SelectItem key={key} value={key} className="text-xs">
+                  {v.label} (${v.perDay.toFixed(2)}/d)
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+    </div>
+  );
+}
