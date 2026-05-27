@@ -1,8 +1,22 @@
+import { useEffect, useState } from "react";
 import { useUsageMetrics } from "@/hooks/useUsageMetrics";
-import { Activity, DollarSign, Cpu, Database, Webhook, RefreshCw } from "lucide-react";
+import { Activity, DollarSign, Cpu, Database, Webhook, RefreshCw, AlertTriangle, Server } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip } from "recharts";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+
+const INSTANCE_PRICING: Record<string, { perHour: number; perDay: number; label: string }> = {
+  nano: { perHour: 0.0070, perDay: 0.17, label: "Nano" },
+  micro: { perHour: 0.01307, perDay: 0.31, label: "Micro" },
+  small: { perHour: 0.025, perDay: 0.60, label: "Small" },
+  medium: { perHour: 0.07, perDay: 1.68, label: "Medium" },
+  large: { perHour: 0.14, perDay: 3.36, label: "Large" },
+  xl: { perHour: 0.28, perDay: 6.72, label: "XL" },
+  "2xl": { perHour: 0.56, perDay: 13.40, label: "2XL" },
+};
 
 const fmtUsd = (n: number) => `$${n.toFixed(4)}`;
 const fmtNum = (n: number) => n.toLocaleString("pt-BR");
@@ -23,6 +37,8 @@ export default function UsageMonitoringPanel() {
 
   return (
     <div className="space-y-6">
+      <InstanceSizeAlert />
+
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-sm font-semibold flex items-center gap-2">
@@ -148,6 +164,96 @@ function SummaryCard({ icon, label, value }: { icon: React.ReactNode; label: str
         {icon} {label}
       </div>
       <p className="text-lg font-semibold mt-1.5 tabular-nums">{value}</p>
+    </div>
+  );
+}
+
+function InstanceSizeAlert() {
+  const [size, setSize] = useState<string>("micro");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("settings")
+        .select("valor")
+        .eq("chave", "cloud_instance_size")
+        .maybeSingle();
+      if (data?.valor) setSize(data.valor);
+      setLoading(false);
+    })();
+  }, []);
+
+  const saveSize = async (newSize: string) => {
+    setSaving(true);
+    setSize(newSize);
+    const { data: existing } = await supabase
+      .from("settings")
+      .select("id")
+      .eq("chave", "cloud_instance_size")
+      .maybeSingle();
+    const payload = {
+      chave: "cloud_instance_size",
+      valor: newSize,
+      descricao: "Tamanho atual da instância do Lovable Cloud (informado manualmente)",
+    };
+    const { error } = existing
+      ? await supabase.from("settings").update(payload).eq("id", existing.id)
+      : await supabase.from("settings").insert(payload);
+    setSaving(false);
+    if (error) toast.error("Erro ao salvar");
+    else toast.success("Tamanho registrado");
+  };
+
+  if (loading) return null;
+  const info = INSTANCE_PRICING[size] ?? INSTANCE_PRICING.micro;
+  const isOversized = size !== "micro" && size !== "nano";
+
+  return (
+    <div
+      className={`rounded-lg border p-4 ${
+        isOversized
+          ? "bg-yellow-50 border-yellow-300 dark:bg-yellow-950/30 dark:border-yellow-800"
+          : "bg-card border-border"
+      }`}
+    >
+      <div className="flex items-start gap-3">
+        <div className={`mt-0.5 ${isOversized ? "text-yellow-600" : "text-primary"}`}>
+          {isOversized ? <AlertTriangle className="w-5 h-5" /> : <Server className="w-5 h-5" />}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold">
+            Instância atual: {info.label} · ~${info.perDay.toFixed(2)}/dia
+          </p>
+          {isOversized ? (
+            <p className="text-xs text-yellow-800 dark:text-yellow-200 mt-1">
+              O uso atual do app é muito baixo (RAM ~15%, poucas invocações/dia). Considere
+              voltar para <strong>Micro</strong> em <em>Backend → Advanced settings</em> para
+              economizar ~${(info.perDay - INSTANCE_PRICING.micro.perDay).toFixed(2)}/dia.
+            </p>
+          ) : (
+            <p className="text-xs text-muted-foreground mt-1">
+              Tamanho adequado para o volume atual. Se o app ficar lento sob carga, suba em
+              Backend → Advanced settings.
+            </p>
+          )}
+        </div>
+        <div className="w-32 shrink-0">
+          <Select value={size} onValueChange={saveSize} disabled={saving}>
+            <SelectTrigger className="h-8 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(INSTANCE_PRICING).map(([key, v]) => (
+                <SelectItem key={key} value={key} className="text-xs">
+                  {v.label} (${v.perDay.toFixed(2)}/d)
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
     </div>
   );
 }
