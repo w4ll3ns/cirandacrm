@@ -37,6 +37,8 @@ export default function UsageMonitoringPanel() {
 
   return (
     <div className="space-y-6">
+      <InstanceSizeAlert />
+
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-sm font-semibold flex items-center gap-2">
