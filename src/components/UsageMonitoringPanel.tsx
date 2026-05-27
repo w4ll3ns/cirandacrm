@@ -1,8 +1,22 @@
+import { useEffect, useState } from "react";
 import { useUsageMetrics } from "@/hooks/useUsageMetrics";
-import { Activity, DollarSign, Cpu, Database, Webhook, RefreshCw } from "lucide-react";
+import { Activity, DollarSign, Cpu, Database, Webhook, RefreshCw, AlertTriangle, Server } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip } from "recharts";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+
+const INSTANCE_PRICING: Record<string, { perHour: number; perDay: number; label: string }> = {
+  nano: { perHour: 0.0070, perDay: 0.17, label: "Nano" },
+  micro: { perHour: 0.01307, perDay: 0.31, label: "Micro" },
+  small: { perHour: 0.025, perDay: 0.60, label: "Small" },
+  medium: { perHour: 0.07, perDay: 1.68, label: "Medium" },
+  large: { perHour: 0.14, perDay: 3.36, label: "Large" },
+  xl: { perHour: 0.28, perDay: 6.72, label: "XL" },
+  "2xl": { perHour: 0.56, perDay: 13.40, label: "2XL" },
+};
 
 const fmtUsd = (n: number) => `$${n.toFixed(4)}`;
 const fmtNum = (n: number) => n.toLocaleString("pt-BR");
